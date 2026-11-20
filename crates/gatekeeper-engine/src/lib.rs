@@ -7,6 +7,7 @@ pub mod plan;
 pub mod run;
 pub(crate) mod runner;
 pub mod selftest;
+pub mod skill;
 
 use std::fmt;
 use std::path::Path;

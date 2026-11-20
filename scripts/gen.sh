@@ -33,3 +33,5 @@ use crate::{Error, Result};' \
 module crates/gatekeeper/src/cmd \
     'use std::process::ExitCode;' \
     'pub fn run(name: &str, args: &[String]) -> Option<ExitCode>' VERBS 'Some(%s::run(args))' None
+
+./.gatekeeper/run skill --to skill
