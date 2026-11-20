@@ -113,6 +113,10 @@ fn run_line(run: &str, (gate, vars): (&Gate, &[(&str, String)]), cx: &RunCtx) ->
     for (var, value) in vars {
         line = line.replace(var, value);
     }
+    for tool in fetch::named_in(run) {
+        let bin = fetch::tool(tool, &cx.cache)?;
+        line = line.replace(&format!("{{tool:{tool}}}"), &bin.to_string_lossy());
+    }
     Ok(line)
 }
 

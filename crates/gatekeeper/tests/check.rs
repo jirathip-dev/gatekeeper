@@ -433,3 +433,52 @@ fn deps_fails_lockfile_growth_alike_on_a_lane_and_in_ci_checks_only_the_list_on_
     assert_eq!(code, 1, "{push}");
     assert!(push.contains("[cargo] p0: stale"), "{push}");
 }
+
+fn pinned_sha256(tool: &str, target: &str) -> String {
+    let path =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("../../packs/core/tools/{tool}.toml"));
+    let text = fs::read_to_string(path).expect("tool file");
+    let table = format!("[asset.{target}]");
+    let after = text.split_once(&table).expect("an asset for this target").1;
+    let sha = after.split_once("sha256 = \"").expect("sha256").1;
+    sha[..64].to_owned()
+}
+
+#[test]
+fn a_run_line_gets_a_pinned_tool_by_name_from_the_cache_in_under_2_s_and_an_unpinned_name_is_refused()
+ {
+    let Some(target) = gatekeeper_engine::fetch::host_target() else {
+        return;
+    };
+    let gate = "about = \"uses a tool\"\nfix = \"none\"\nbudget_secs = 5\nrun = \"{tool:drover} > used\"\n";
+    let root = repo("check-tool", CONFIG, &[("tool", gate)]);
+    let cached = root
+        .join("cache/gatekeeper/tools")
+        .join(pinned_sha256("drover", target));
+    fs::create_dir_all(&cached).expect("cache dir");
+    fs::write(cached.join("tool"), "#!/bin/sh\necho cached drover\n").expect("stub");
+    let mode = std::os::unix::fs::PermissionsExt::from_mode(0o755);
+    fs::set_permissions(cached.join("tool"), mode).expect("executable");
+    let started = std::time::Instant::now();
+    let (code, out) = gk(&root, &["check"], &[]);
+    assert!(
+        started.elapsed() < std::time::Duration::from_secs(2),
+        "{:?}",
+        started.elapsed()
+    );
+    assert_eq!(code, 0, "{out}");
+    assert_eq!(
+        fs::read_to_string(root.join("used")).expect("ran"),
+        "cached drover\n"
+    );
+
+    let gate =
+        "about = \"uses a tool\"\nfix = \"none\"\nbudget_secs = 5\nrun = \"{tool:nope} x\"\n";
+    let (code, out) = gk(
+        &repo("check-tool-nope", CONFIG, &[("tool", gate)]),
+        &["check"],
+        &[],
+    );
+    assert_eq!(code, 2, "{out}");
+    assert!(out.contains("{tool:nope} is no pinned tool"), "{out}");
+}

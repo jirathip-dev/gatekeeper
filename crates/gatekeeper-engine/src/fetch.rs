@@ -6,7 +6,7 @@ use std::fs;
 use std::os::unix::fs::PermissionsExt as _;
 use std::path::{Path, PathBuf};
 
-/// `packs/<pack>/tools/<tool>.toml`: one pinned version, an executable per target or a set of npm tarballs.
+/// `packs/<pack>/tools/<tool>.toml`: one pinned version, an executable or archive per target, or npm tarballs.
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
 pub enum ToolFile {
@@ -18,7 +18,20 @@ pub enum ToolFile {
 #[serde(deny_unknown_fields)]
 pub struct BinaryTool {
     pub version: String,
+    #[serde(default)]
     pub asset: BTreeMap<String, Asset>,
+    #[serde(default)]
+    pub build: Option<Build>,
+}
+
+/// `[build]`: a tool with no upstream binary, built once per version by `tools.yml` into `$OUT`, archived per target.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Build {
+    pub targets: Vec<String>,
+    pub budget_minutes: u32,
+    pub bin: String,
+    pub script: String,
 }
 
 /// npm tarballs laid out as one flat `node_modules`; `bin` is the script under it, run by its `node` shebang.
@@ -55,6 +68,7 @@ pub struct Package {
 pub fn host_target() -> Option<&'static str> {
     match (std::env::consts::ARCH, std::env::consts::OS) {
         ("x86_64", "linux") => Some("x86_64-unknown-linux-gnu"),
+        ("aarch64", "linux") => Some("aarch64-unknown-linux-gnu"),
         ("aarch64", "macos") => Some("aarch64-apple-darwin"),
         _ => None,
     }
@@ -69,10 +83,30 @@ pub fn sha256_hex(bytes: &[u8]) -> String {
         .collect()
 }
 
+impl ToolFile {
+    #[must_use]
+    pub fn version(&self) -> &str {
+        match self {
+            ToolFile::Binary(t) => &t.version,
+            ToolFile::Node(t) => &t.version,
+        }
+    }
+}
+
+pub(crate) fn parse(path: &str, text: &str) -> Result<ToolFile> {
+    toml::from_str(text).map_err(|e| Error(format!("{path}: {e}")))
+}
+
+pub(crate) fn named_in(line: &str) -> impl Iterator<Item = &str> {
+    line.split("{tool:")
+        .skip(1)
+        .filter_map(|rest| Some(rest.split_once('}')?.0))
+}
+
 fn parsed(name: &str) -> Result<(ToolFile, &'static str)> {
     let (path, text) =
         packs::tool_file(name).ok_or_else(|| Error(format!("no pinned tool `{name}`")))?;
-    let file: ToolFile = toml::from_str(text).map_err(|e| Error(format!("{path}: {e}")))?;
+    let file = parse(path, text)?;
     let target = host_target().ok_or_else(|| Error("no pinned tools for this platform".into()))?;
     Ok((file, target))
 }
