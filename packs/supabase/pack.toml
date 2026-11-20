@@ -1,2 +1,3 @@
 about = "the migration files' names, order and policy rule, and pgTAP on a local stack (CI only on a lane's host)"
 platform = "linux"
+setup = ["node"]

@@ -2,4 +2,4 @@ about = "static, no database: each file under supabase/migrations is <14-digit U
 fix = "rename the file with a new timestamp newer than every migration on the base, or wrap auth.uid() as (select auth.uid()); never edit a migration the base already has"
 budget_secs = 10
 paths = ["supabase/migrations/**"]
-run = "node {scripts}/check.mjs {--base}"
+run = "node {scripts}/check.ts {--base}"

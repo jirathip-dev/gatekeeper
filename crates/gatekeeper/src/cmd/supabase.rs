@@ -7,7 +7,7 @@ fn script_args(args: &[String]) -> Result<(&'static str, Vec<String>), Error> {
     match args.split_first() {
         Some((verb, rest)) if verb == "status" => {
             Args::parse(rest, &[], &[])?;
-            Ok(("status.mjs", Vec::new()))
+            Ok(("status.ts", Vec::new()))
         }
         Some((verb, rest)) if verb == "apply" => {
             let parsed = Args::parse(rest, &["--target"], &[])?;
@@ -18,7 +18,7 @@ fn script_args(args: &[String]) -> Result<(&'static str, Vec<String>), Error> {
             };
             let target = parsed.value("--target").unwrap_or_default().to_owned();
             Ok((
-                "apply.mjs",
+                "apply.ts",
                 vec!["--target".into(), target, "--branch".into(), branch],
             ))
         }

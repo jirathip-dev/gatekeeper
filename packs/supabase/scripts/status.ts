@@ -1,4 +1,4 @@
-import { compare, fail, ledgerApi } from "./migrations.mjs";
+import { compare, fail, ledgerApi, message } from "./migrations.ts";
 
 try {
   const { files, applied, pending, warnings } = await compare(process.cwd(), ledgerApi());
@@ -10,5 +10,5 @@ try {
   }
   process.stdout.write(`${files.length} migrations, ${pending.length} pending\n`);
 } catch (e) {
-  fail(`supabase status: ${e.message}`);
+  fail(`supabase status: ${message(e)}`);
 }

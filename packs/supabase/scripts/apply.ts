@@ -1,20 +1,20 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
-import { DIR, LEDGER, compare, fail, git, ledgerApi } from "./migrations.mjs";
+import { DIR, LEDGER, compare, fail, git, ledgerApi, message } from "./migrations.ts";
 
 const root = process.cwd();
 const { target, branch } = parseArgs({
   options: { target: { type: "string" }, branch: { type: "string" } },
 }).values;
-if (!["dev", "prod"].includes(target) || !branch) {
-  fail("usage: apply.mjs --target dev|prod --branch <deployed branch>");
+if ((target !== "dev" && target !== "prod") || !branch) {
+  fail("usage: apply.ts --target dev|prod --branch <deployed branch>");
 }
 if (git(root, ["status", "--porcelain", "--", DIR])) {
   fail(`supabase apply: ${DIR} has uncommitted changes; apply only what ${branch} holds`);
 }
 const head = git(root, ["rev-parse", "HEAD"]);
-const tip = git(root, ["ls-remote", "origin", `refs/heads/${branch}`]).split(/\s/)[0];
+const tip = git(root, ["ls-remote", "origin", `refs/heads/${branch}`]).split(/\s/)[0] ?? "";
 if (head !== tip) {
   fail(`supabase apply: this checkout is ${head.slice(0, 12)}, origin/${branch} is ${(tip || "missing").slice(0, 12)}; apply from a fresh checkout of ${branch}`);
 }
@@ -38,11 +38,11 @@ try {
         `begin;\n${sql}\n;\ninsert into ${LEDGER} (version, name, statements) values ('${f.version}', '${f.name}', array[${tag}${sql}${tag}]);\ncommit;`,
       );
     } catch (e) {
-      fail(`failed   ${f.file} (rolled back, not in the ledger): ${e.message}`);
+      fail(`failed   ${f.file} (rolled back, not in the ledger): ${message(e)}`);
     }
     process.stdout.write(`applied  ${f.file}\n`);
   }
   process.stdout.write(`${target}: ${pending.length} applied\n`);
 } catch (e) {
-  fail(`supabase apply: ${e.message}`);
+  fail(`supabase apply: ${message(e)}`);
 }
