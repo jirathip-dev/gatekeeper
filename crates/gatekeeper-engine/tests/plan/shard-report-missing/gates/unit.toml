@@ -1,0 +1,5 @@
+about = "unit tests, sharded"
+fix = "none"
+budget_secs = 5
+shards = { hosted = 2, self-hosted = 4 }
+run = "echo shard {shard}"

@@ -1,0 +1,3 @@
+{"version": "0.1.0", "jobs": [{"leg": "z-db-seed", "shard": "1/1", "host": {"kind": "github-hosted", "warm_cache": true}, "setup": 0,
+  "gates": [{"id": "local/make", "outcome": {"passed": {"slow": false}}, "took": 10, "budget": 5, "log": "target/gatekeeper/local-make.log",
+    "kept": [{"name": "snap", "files": ["snap/db.txt"]}]}]}]}

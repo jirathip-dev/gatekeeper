@@ -1,5 +1,5 @@
 use gatekeeper_engine::Error;
-use gatekeeper_model::{Filter, GateId, Host, PackId};
+use gatekeeper_model::{Filter, GateId, Host, PackId, Shard, Trigger};
 use std::env;
 use std::io::Write as _;
 use std::path::PathBuf;
@@ -80,10 +80,16 @@ impl Args {
             .value("--gate")
             .map(|g| GateId::try_from(g.to_owned()).map_err(Error))
             .transpose()?;
+        let shard = self
+            .value("--shard")
+            .map(|s| Shard::try_from(s.to_owned()).map_err(Error))
+            .transpose()?;
         Ok(Filter {
             packs,
             gate,
-            changed: None,
+            leg: self.value("--leg").map(str::to_owned),
+            shard,
+            trigger: Trigger::default(),
         })
     }
 }

@@ -1,13 +1,13 @@
 use crate::cli::{self, Args, say};
-use gatekeeper_engine::{Error, config, packs, plan};
+use gatekeeper_engine::{Error, config, plan};
 use gatekeeper_model::{Decision, Plan};
 use std::process::ExitCode;
 
 fn planned(args: &Args) -> Result<Plan, Error> {
     let root = cli::root()?;
     let config = config::load(&root)?;
-    let gates = packs::configured(&config, &root)?;
-    plan::plan(&config, gates, cli::host(), &args.filter()?)
+    let host = cli::host();
+    plan::repo(&config, &root, &|_| host, &args.filter()?)
 }
 
 /// `list [--json]`: the planned gates with their budgets.

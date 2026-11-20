@@ -1,0 +1,5 @@
+host = { kind = "github-hosted", warm_cache = true }
+leg = "a-seed"
+after_reports = true
+jobs = ["a-seed"]
+outcomes = { "local/seed" = "skip" }

@@ -1,0 +1,10 @@
+trigger = { change = ["apps/web/src/main.ts"] }
+expect = { projects = ["apps/web"] }
+ignore = ["docs/**"]
+
+[graph]
+"apps/web" = ["packages/ui"]
+"apps/admin" = ["packages/ui"]
+"packages/ui" = ["packages/core"]
+"packages/core" = []
+

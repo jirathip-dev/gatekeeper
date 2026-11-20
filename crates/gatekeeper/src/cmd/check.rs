@@ -1,8 +1,8 @@
 use crate::cli::{self, Args, say};
 use gatekeeper_engine::ci::secs;
 use gatekeeper_engine::run::{self, RunCtx};
-use gatekeeper_engine::{Error, VERSION, config, packs, plan};
-use gatekeeper_model::{Gate, GateReport, Host, Outcome, Plan};
+use gatekeeper_engine::{Error, VERSION, config, plan};
+use gatekeeper_model::{Gate, GateReport, Host, Outcome, Plan, Trigger, Widened, job_label};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -24,6 +24,9 @@ fn show(root: &Path, gate: &Gate, r: &GateReport) {
                 secs(r.took),
                 r.budget.0
             ));
+            if !r.projects.is_empty() {
+                say(&format!("      selected: {}", r.projects.join(" ")));
+            }
             for kept in &r.kept {
                 let dir = format!(
                     "{}/files/{}/",
@@ -61,16 +64,18 @@ fn show(root: &Path, gate: &Gate, r: &GateReport) {
 
 fn prepare(args: &Args, root: &Path) -> Result<(Plan, RunCtx, Option<usize>), Error> {
     let config = config::load(root)?;
-    let gates = packs::configured(&config, root)?;
     let host = cli::host();
     let given = args.value("--base").map(str::to_owned);
     let pushed = host != Host::Lane && given.is_none();
     let base = given.or_else(|| run::default_base(root, &config.integration));
     let mut filter = args.filter()?;
-    if !args.has("--all") && !pushed {
-        filter.changed = base.as_deref().map(|b| run::changed(root, b)).transpose()?;
-    }
-    let plan = plan::plan(&config, gates, host, &filter)?;
+    filter.trigger = match &base {
+        _ if args.has("--all") => Trigger::Everything(Widened::Forced),
+        _ if pushed => Trigger::Everything(Widened::NotAPullRequest),
+        None => Trigger::Everything(Widened::NoBase),
+        Some(b) => Trigger::Change(run::changed(root, b)?),
+    };
+    let plan = plan::repo(&config, root, &|_| host, &filter)?;
     let cx = RunCtx {
         root: root.to_path_buf(),
         out: run::out_dir(root),
@@ -80,17 +85,49 @@ fn prepare(args: &Args, root: &Path) -> Result<(Plan, RunCtx, Option<usize>), Er
         host,
         job_start: cli::job_start(),
         manifest: config::manifest(&config).to_owned(),
+        after_reports: args.value("--after-reports").map(PathBuf::from),
     };
-    Ok((plan, cx, filter.changed.map(|c| c.len())))
+    let changed = match filter.trigger {
+        Trigger::Change(files) => Some(files.len()),
+        Trigger::Everything(_) => None,
+    };
+    Ok((plan, cx, changed))
 }
 
-/// `check [--pack P] [--gate ID] [--base REV] [--pr-body FILE] [--all]`: plan and run every planned gate.
+const VALUED: [&str; 7] = [
+    "--pack",
+    "--leg",
+    "--shard",
+    "--gate",
+    "--base",
+    "--pr-body",
+    "--after-reports",
+];
+
+fn header(plan: &Plan, cx: &RunCtx, changed: Option<usize>) {
+    let legs: Vec<String> = plan
+        .jobs
+        .iter()
+        .map(|j| job_label(&j.leg, j.shard))
+        .collect();
+    let base = cx
+        .base
+        .as_deref()
+        .map_or("none", |b| b.get(..12).unwrap_or(b));
+    let scope = changed.map_or("every gate".to_owned(), |n| format!("{n} files changed"));
+    say(&format!(
+        "gatekeeper {VERSION} · legs {} · base {base} · {scope} · host {}",
+        legs.join(" "),
+        cx.host.label()
+    ));
+    if let Some(affected) = &plan.affected {
+        say(&format!("scope: {affected}"));
+    }
+}
+
+/// `check [--pack P] [--leg L] [--shard I/N] [--gate ID] [--base REV] [--pr-body FILE] [--after-reports DIR] [--all]`.
 pub fn run(args: &[String]) -> ExitCode {
-    let parsed = Args::parse(
-        args,
-        &["--pack", "--gate", "--base", "--pr-body"],
-        &["--all"],
-    );
+    let parsed = Args::parse(args, &VALUED, &["--all"]);
     let root = match cli::root() {
         Ok(root) => root,
         Err(e) => return cli::usage_error(&e),
@@ -99,17 +136,7 @@ pub fn run(args: &[String]) -> ExitCode {
         Ok(ready) => ready,
         Err(e) => return cli::usage_error(&e),
     };
-    let legs: Vec<String> = plan.jobs.iter().map(|j| j.leg.to_string()).collect();
-    let base = cx
-        .base
-        .as_deref()
-        .map_or("none", |b| b.get(..12).unwrap_or(b));
-    let scope = changed.map_or("every gate".to_owned(), |n| format!("{n} files changed"));
-    say(&format!(
-        "gatekeeper {VERSION} · packs {} · base {base} · {scope} · host {}",
-        legs.join(" "),
-        cx.host.label()
-    ));
+    header(&plan, &cx, changed);
     let report = match run::run(&plan, &cx, &mut |gate, r| show(&root, gate, r)) {
         Ok(report) => report,
         Err(e) => return cli::usage_error(&e),

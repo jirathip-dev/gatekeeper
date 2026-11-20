@@ -95,8 +95,9 @@ Not gates, so they are test cases of the engine, one folder each under `crates/g
 |---|---|
 | kept files (G4) | `kept-on-pass`, `kept-on-fail`, `glob-matches-nothing` (reported, not a failure) |
 | budget mode (G1) | `over-budget-hosted-warm` fails; `over-budget-self-hosted`, `over-budget-cold`, `over-budget-lane` pass as `slow` |
-| affected projects (G10) | `leaf-changed`, `dependency-changed`, `file-outside-every-project` (widens), `ignored-file`, `no-base` (widens), `forced-full` |
-| shards and legs (G10) | `shard-report-missing` fails `done`; `lane-plans-one-shard`; `after-leg-waits`; `after-leg-skipped-when-first-fails` |
+| affected projects (G10) | `affected/`: `leaf-changed`, `dependency-changed`, `file-outside-every-project` (widens), `ignored-file`, `no-base` (widens), `forced-full` |
+| workspace readers (G10) | `graph/`: `cargo`, `pnpm`, `swiftpm`, each a small workspace and the graph it must read |
+| shards and legs (G10) | `plan/`: `shard-report-missing` fails `done`; `lane-plans-one-shard`; `after-leg-waits`; `after-leg-skipped-when-first-fails`; in CI, `after-leg-receives-kept-files` and `after-leg-skipped-without-a-report` |
 
 ## The engine's own budget
 

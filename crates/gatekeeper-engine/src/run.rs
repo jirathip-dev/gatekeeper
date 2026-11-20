@@ -2,8 +2,8 @@ use crate::baseline::{self, Baseline};
 use crate::runner::{self, Ended};
 use crate::{Error, Result, VERSION, fetch, kept, packs};
 use gatekeeper_model::{
-    Decision, Failure, Gate, GateReport, Host, JobReport, Millis, Outcome, Plan, Report, Step,
-    judge,
+    Decision, Failure, Gate, GateReport, Host, Job, JobReport, Millis, Outcome, Plan, Planned,
+    Report, Shard, Skip, Step, judge,
 };
 use std::collections::BTreeSet;
 use std::fs::{self, File};
@@ -28,6 +28,8 @@ pub struct RunCtx {
     pub host: Host,
     pub job_start: Option<SystemTime>,
     pub manifest: String,
+    /// The reports and kept files of the leg an `after` job waits for, downloaded in CI.
+    pub after_reports: Option<PathBuf>,
 }
 
 fn millis(d: Duration) -> Millis {
@@ -69,6 +71,7 @@ fn ended(r: Result<Ended>, log: &mut File) -> std::result::Result<(), Failure> {
 fn step(
     step: &Step,
     gate: &Gate,
+    vars: &[(&str, String)],
     cx: &RunCtx,
     log: &mut File,
     deadline: Instant,
@@ -82,7 +85,10 @@ fn step(
                 writeln!(log, "{e}").ok();
                 return Err(Failure::Exit(127));
             }
-            let line = run.replace("{files}", &files.to_string_lossy());
+            let mut line = run.replace("{files}", &files.to_string_lossy());
+            for (var, value) in vars {
+                line = line.replace(var, value);
+            }
             ended(runner::shell(&line, &cx.root, log, deadline), log)
         }
         Step::Tool { tool, args } => match fetch::tool(tool, &cx.cache) {
@@ -115,16 +121,25 @@ fn step(
     }
 }
 
-pub(crate) fn gate(gate: &Gate, cx: &RunCtx) -> Result<GateReport> {
+pub(crate) fn gate(
+    gate: &Gate,
+    shard: Shard,
+    projects: &[String],
+    cx: &RunCtx,
+) -> Result<GateReport> {
     let path = cx.out.join(format!("{}.log", gate.id.file_stem()));
     let mut log = File::create(&path).map_err(|e| Error::at(&path, e))?;
     let start = Instant::now();
     let deadline = start + Duration::from_secs(u64::from(gate.budget.0).max(1) * 5);
     let mut listed = Baseline::load(&cx.root, &gate.id)?;
+    let vars = [
+        ("{shard}", shard.to_string()),
+        ("{projects}", projects.join(" ")),
+    ];
     let result = gate
         .steps
         .iter()
-        .try_for_each(|s| step(s, gate, cx, &mut log, deadline, &mut listed))
+        .try_for_each(|s| step(s, gate, &vars, cx, &mut log, deadline, &mut listed))
         .and_then(|()| {
             let mut stale = listed.stale().peekable();
             let none = stale.peek().is_none();
@@ -151,7 +166,34 @@ pub(crate) fn gate(gate: &Gate, cx: &RunCtx) -> Result<GateReport> {
             .to_string_lossy()
             .into_owned(),
         kept,
+        projects: projects.to_vec(),
     })
+}
+
+fn skipped(planned: &Planned, skip: Skip) -> GateReport {
+    GateReport {
+        id: planned.gate.id.clone(),
+        outcome: Outcome::Skipped(skip),
+        took: Millis(0),
+        budget: planned.gate.budget,
+        log: String::new(),
+        kept: Vec::new(),
+        projects: Vec::new(),
+    }
+}
+
+fn after_passed(job: &Job, done: &[JobReport], cx: &RunCtx) -> Result<bool> {
+    let Some(after) = &job.after else {
+        return Ok(true);
+    };
+    let mut first = done.iter().filter(|j| j.leg == *after).peekable();
+    if first.peek().is_some() {
+        return Ok(first.flat_map(|j| &j.gates).all(|g| !g.outcome.fails()));
+    }
+    match &cx.after_reports {
+        Some(dir) => kept::receive(dir, after, &cx.root),
+        None => Ok(true),
+    }
 }
 
 /// # Errors
@@ -159,6 +201,7 @@ pub fn run(plan: &Plan, cx: &RunCtx, seen: &mut dyn FnMut(&Gate, &GateReport)) -
     fs::create_dir_all(&cx.out).map_err(|e| Error::at(&cx.out, e))?;
     let mut report = Report {
         version: VERSION.into(),
+        affected: plan.affected.clone(),
         jobs: Vec::new(),
     };
     for (i, job) in plan.jobs.iter().enumerate() {
@@ -168,24 +211,20 @@ pub fn run(plan: &Plan, cx: &RunCtx, seen: &mut dyn FnMut(&Gate, &GateReport)) -
             }
             _ => Millis(0),
         };
+        let waited = after_passed(job, &report.jobs, cx)?;
         let mut gates = Vec::new();
         for planned in &job.gates {
             let done = match planned.decision {
-                Decision::Run => gate(&planned.gate, cx)?,
-                Decision::Skip(skip) => GateReport {
-                    id: planned.gate.id.clone(),
-                    outcome: Outcome::Skipped(skip),
-                    took: Millis(0),
-                    budget: planned.gate.budget,
-                    log: String::new(),
-                    kept: Vec::new(),
-                },
+                Decision::Run if !waited => skipped(planned, Skip::AfterFailed),
+                Decision::Run => gate(&planned.gate, job.shard, &planned.projects, cx)?,
+                Decision::Skip(skip) => skipped(planned, skip),
             };
             seen(&planned.gate, &done);
             gates.push(done);
         }
         report.jobs.push(JobReport {
-            leg: job.leg,
+            leg: job.leg.clone(),
+            shard: job.shard,
             host: cx.host,
             setup,
             gates,
