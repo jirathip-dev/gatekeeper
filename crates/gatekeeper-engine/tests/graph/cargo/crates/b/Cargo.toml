@@ -1,0 +1,6 @@
+[package]
+name = "b"
+
+[dev-dependencies]
+alpha = { package = "a", path = "../a" }
+serde = "1"

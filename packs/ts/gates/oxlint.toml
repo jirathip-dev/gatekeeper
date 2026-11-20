@@ -1,0 +1,6 @@
+about = "pinned oxlint over the [ts] projects with the pack's config by reference: no as-casts, non-null !, any, ts-ignore or ts-expect-error, HTML sinks, eval, new Function, console, default exports or enums; and the 15 anti-slop rules"
+fix = "rewrite the line oxlint names: narrow with a type guard, parse at the edge, use textContent or DOM nodes, named exports and string unions; never disable the rule"
+budget_secs = 30
+
+[[step]]
+check = "oxlint"

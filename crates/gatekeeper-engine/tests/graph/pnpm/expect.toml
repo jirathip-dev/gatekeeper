@@ -1,0 +1,6 @@
+kinds = ["pnpm"]
+
+[graph]
+"apps/web" = ["packages/ui"]
+"packages/core" = []
+"packages/ui" = ["packages/core"]

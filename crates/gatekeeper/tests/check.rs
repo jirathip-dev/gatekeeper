@@ -49,6 +49,7 @@ fn gk(root: &Path, args: &[&str], env: &[(&str, &str)]) -> (i32, String) {
 const BAD: &str =
     "about = \"fails\"\nfix = \"make it pass\"\nbudget_secs = 5\nrun = \"echo boom; exit 3\"\n";
 const DB: &str = "about = \"needs a database\"\nfix = \"none\"\nbudget_secs = 5\nneeds = [\"containers\"]\nrun = \"true\"\n";
+const TS: &str = "\n[ts]\nprojects = [\".\"]\ninstall = \"true\"\n";
 const OK: &str = "about = \"passes\"\nfix = \"none\"\nbudget_secs = 5\nrun = \"true\"\n";
 
 fn three(name: &str) -> PathBuf {
@@ -132,6 +133,15 @@ fn usage_and_config_errors_exit_2() {
     let (code, out) = gk(&typo, &["check"], &[]);
     assert_eq!(code, 2);
     assert!(out.contains("pakcs"), "{out}");
+    let ts_alone = "integration = \"staging\"\npin = \"checkout\"\npacks = [\"ts\"]\n";
+    for (name, config) in [
+        ("check-ts-no-table", ts_alone.to_owned()),
+        ("check-ts-no-pack", format!("{CONFIG}{TS}")),
+    ] {
+        let (code, out) = gk(&repo(name, &config, &[]), &["list"], &[]);
+        assert_eq!(code, 2, "{out}");
+        assert!(out.contains("go together"), "{out}");
+    }
 }
 
 #[test]
@@ -157,7 +167,18 @@ fn ci_plan_emits_one_leg_per_pack_and_done_fails_a_missing_or_failed_report() {
     assert_eq!(code, 0);
     assert_eq!(
         plan.trim(),
-        r#"matrix={"include":[{"leg":"local","runs-on":"ubuntu-latest","rust":true}]}"#
+        "matrix={\"include\":[{\"after\":\"\",\"artifact\":\"gates-local\",\"leg\":\"local\",\"node\":false,\"runs-on\":\"ubuntu-latest\",\"rust\":true,\"shard\":\"\"}]}\nafter={\"include\":[]}"
+    );
+    let ts = repo(
+        "ci-ts",
+        &format!("{}{TS}", CONFIG.replace("[]", "[\"ts\"]")),
+        &[],
+    );
+    let (code, plan) = gk(&ts, &["ci", "plan"], &[]);
+    assert_eq!(code, 0, "{plan}");
+    assert_eq!(
+        plan.trim(),
+        "matrix={\"include\":[{\"after\":\"\",\"artifact\":\"gates-ts\",\"leg\":\"ts\",\"node\":true,\"runs-on\":\"ubuntu-latest\",\"rust\":true,\"shard\":\"\"}]}\nafter={\"include\":[]}"
     );
     let reports = root.join("reports");
     let (code, out) = gk(&root, &["ci", "done", "--reports", "reports"], &[]);
@@ -330,4 +351,85 @@ fn a_lane_sees_where_a_failed_gates_kept_files_are_and_what_matched_nothing() {
         root.join("target/gatekeeper/files/ui-390/shots/a.png")
             .is_file()
     );
+}
+
+const DEPS: &str =
+    "about = \"deps\"\nfix = \"list it\"\nbudget_secs = 5\n\n[[step]]\ncheck = \"deps\"\n";
+
+fn cargo_lock(sourced: usize) -> String {
+    (0..sourced).fold("version = 4\n".to_owned(), |lock, i| {
+        lock + &format!("\n[[package]]\nname = \"p{i}\"\nversion = \"1.0.0\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\n")
+    })
+}
+
+fn grown_deps_repo() -> (PathBuf, String) {
+    let root = repo("deps", CONFIG, &[("deps", DEPS)]);
+    fs::write(
+        root.join("Cargo.toml"),
+        "[package]\nname = \"app\"\nversion = \"0.1.0\"\n\n[dependencies]\np0 = \"1\"\n",
+    )
+    .expect("manifest");
+    fs::write(root.join("Cargo.lock"), cargo_lock(1)).expect("lock");
+    fs::write(
+        root.join(".gatekeeper/deps.toml"),
+        "growth = 10\n\n[cargo]\np0 = \"the one\"\n",
+    )
+    .expect("list");
+    git(&root, &["init", "-q"]);
+    git(&root, &["add", "-A"]);
+    git(&root, &["commit", "-q", "-m", "base"]);
+    let base = git(&root, &["rev-parse", "HEAD"]);
+    git(&root, &["update-ref", "refs/remotes/origin/staging", &base]);
+    fs::write(root.join("Cargo.lock"), cargo_lock(12)).expect("grown");
+    git(&root, &["commit", "-q", "-am", "grow"]);
+    (root, base)
+}
+
+#[test]
+fn deps_fails_lockfile_growth_alike_on_a_lane_and_in_ci_checks_only_the_list_on_a_push_and_notes_the_count()
+ {
+    let (root, base) = grown_deps_repo();
+    let ci = [("GITHUB_ACTIONS", "true")];
+    let (lane_code, lane) = gk(&root, &["check"], &[]);
+    let (ci_code, in_ci) = gk(&root, &["check", "--base", &base], &ci);
+    for (code, out) in [(lane_code, &lane), (ci_code, &in_ci)] {
+        assert_eq!(code, 1, "{out}");
+        assert!(
+            out.contains("      lockfiles: Cargo.lock 1 -> 12 (+11)"),
+            "{out}"
+        );
+        assert!(
+            out.contains("lockfiles grew by 11 packages, over the limit of 10"),
+            "{out}"
+        );
+    }
+    let reports = root.join("reports/gates-local");
+    fs::create_dir_all(&reports).expect("reports");
+    fs::copy(
+        root.join("target/gatekeeper/report.json"),
+        reports.join("report.json"),
+    )
+    .expect("copy");
+    let (code, table) = gk(&root, &["ci", "done", "--reports", "reports"], &[]);
+    assert_eq!(code, 1, "{table}");
+    let row = table
+        .lines()
+        .find(|l| l.contains("local/deps"))
+        .expect("row");
+    assert!(
+        row.ends_with("| FAIL | lockfiles: Cargo.lock 1 -> 12 (+11) |"),
+        "{row}"
+    );
+    git(&root, &["update-ref", "-d", "refs/remotes/origin/staging"]);
+    let (code, push) = gk(&root, &["check"], &ci);
+    assert_eq!(code, 0, "{push}");
+    assert!(push.contains("      lockfiles: Cargo.lock 12\n"), "{push}");
+    fs::write(
+        root.join("Cargo.toml"),
+        "[package]\nname = \"app\"\nversion = \"0.1.0\"\n",
+    )
+    .expect("dropped");
+    let (code, push) = gk(&root, &["check"], &ci);
+    assert_eq!(code, 1, "{push}");
+    assert!(push.contains("[cargo] p0: stale"), "{push}");
 }

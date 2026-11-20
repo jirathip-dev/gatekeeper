@@ -1,0 +1,6 @@
+about = "after the [ts] install, each [ts] project's tsconfig has strict on and no strict flag switched off; then tsc --noEmit -p"
+fix = "turn strict back on and drop the flag that switches part of it off, then fix the type error tsc names"
+budget_secs = 90
+
+[[step]]
+check = "tsc"

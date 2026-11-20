@@ -17,7 +17,7 @@ fn write(args: &[String]) -> Result<baseline::Written, Error> {
         .iter()
         .find(|g| g.id == id)
         .ok_or_else(|| Error(format!("{id}: no such gate")))?;
-    baseline::write(gate, &root, config::manifest(&config))
+    baseline::write(gate, &root, &cli::cache(), &config)
 }
 
 /// `baseline <gate>`: list the gate's findings once; after that only drop the fixed ones.

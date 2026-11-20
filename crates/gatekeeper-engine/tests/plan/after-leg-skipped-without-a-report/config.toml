@@ -1,0 +1,10 @@
+packs = []
+integration = "staging"
+pin = "checkout"
+
+[legs.z-db]
+platform = "linux"
+
+[legs.a-seed]
+platform = "linux"
+after = "z-db"

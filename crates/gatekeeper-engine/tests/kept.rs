@@ -1,5 +1,5 @@
+use gatekeeper_engine::plan;
 use gatekeeper_engine::run::{self, RunCtx};
-use gatekeeper_engine::{packs, plan};
 use gatekeeper_model::{Config, Filter, Host};
 use serde::Deserialize;
 use std::fs;
@@ -31,9 +31,8 @@ fn run_case(case: &Path) {
     let config: Config =
         toml::from_str("packs = []\nintegration = \"staging\"\npin = \"checkout\"\n")
             .expect("config");
-    let gates = packs::configured(&config, &root).expect("gates");
-    let upload = gates[0].uploads[0].name.clone();
-    let plan = plan::plan(&config, gates, Host::Lane, &Filter::default()).expect("plan");
+    let plan = plan::repo(&config, &root, &|_| Host::Lane, &Filter::default()).expect("plan");
+    let upload = plan.jobs[0].gates[0].gate.uploads[0].name.clone();
     let cx = RunCtx {
         out: run::out_dir(&root),
         root: root.clone(),
@@ -43,6 +42,8 @@ fn run_case(case: &Path) {
         host: Host::Lane,
         job_start: None,
         manifest: "Cargo.toml".into(),
+        after_reports: None,
+        ts: None,
     };
     let report = run::run(&plan, &cx, &mut |_, _| {}).expect("run");
     let gate = &report.jobs[0].gates[0];

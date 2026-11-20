@@ -1,12 +1,14 @@
 mod gate;
 mod glob;
 mod report;
+mod scope;
 
 pub use gate::{Capability, Gate, GateFile, PackFile, Platform, Step, Toolchain, Upload};
 pub use glob::Glob;
 pub use report::{
     BudgetMode, Failure, GateReport, Host, JobReport, Kept, Millis, Outcome, Report, judge,
 };
+pub use scope::{Affected, Graph, GraphKind, Leg, ScopeConfig, Shard, Shards, Trigger, Widened};
 
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
@@ -18,24 +20,26 @@ use std::fmt;
 pub enum PackId {
     Core,
     Rust,
+    Ts,
     Local,
 }
 
 impl PackId {
-    pub const BUILT_IN: [PackId; 2] = [PackId::Core, PackId::Rust];
+    pub const BUILT_IN: [PackId; 3] = [PackId::Core, PackId::Rust, PackId::Ts];
 
     #[must_use]
     pub fn as_str(self) -> &'static str {
         match self {
             PackId::Core => "core",
             PackId::Rust => "rust",
+            PackId::Ts => "ts",
             PackId::Local => "local",
         }
     }
 
     #[must_use]
     pub fn parse(s: &str) -> Option<PackId> {
-        [PackId::Core, PackId::Rust, PackId::Local]
+        [PackId::Core, PackId::Rust, PackId::Ts, PackId::Local]
             .into_iter()
             .find(|p| p.as_str() == s)
     }
@@ -121,6 +125,11 @@ pub struct Config {
     pub budgets: BTreeMap<GateId, Secs>,
     #[serde(default)]
     pub rust: Option<RustPack>,
+    #[serde(default)]
+    pub scope: Option<ScopeConfig>,
+    #[serde(default)]
+    pub legs: BTreeMap<String, Leg>,
+    pub ts: Option<TsPack>,
 }
 
 /// Which gatekeeper runs: this checkout's build, or a release by version and per-target sha256.
@@ -150,32 +159,67 @@ pub struct RustPack {
     pub manifest: String,
 }
 
+/// `[ts]`: the folders `tsc -p` checks and oxlint lints, and the command that installs their dependencies.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TsPack {
+    pub projects: Vec<String>,
+    pub install: String,
+}
+
 /// What `check` and `list` narrow the configured gates to.
 #[derive(Debug, Default)]
 pub struct Filter {
     pub packs: BTreeSet<PackId>,
     pub gate: Option<GateId>,
-    /// The files changed against the base; `None` (a push, no base, `--all`) runs every gate.
-    pub changed: Option<BTreeSet<String>>,
+    pub leg: Option<String>,
+    pub shard: Option<Shard>,
+    pub trigger: Trigger,
 }
 
 #[derive(Debug, Serialize)]
 pub struct Plan {
+    /// `None` when the config has no `[scope]`.
+    pub affected: Option<Affected>,
     pub jobs: Vec<Job>,
 }
 
 #[derive(Debug, Serialize)]
 pub struct Job {
-    pub leg: PackId,
+    pub leg: String,
+    pub shard: Shard,
+    pub after: Option<String>,
     pub platform: Platform,
     pub setup: BTreeSet<Toolchain>,
     pub gates: Vec<Planned>,
 }
 
-#[derive(Debug, Serialize)]
+/// `leg` or `leg i/n`: a job's name in a table.
+#[must_use]
+pub fn job_label(leg: &str, shard: Shard) -> String {
+    if shard.of == Shard::ONE.of {
+        leg.to_owned()
+    } else {
+        format!("{leg} {shard}")
+    }
+}
+
+/// `gates-leg` or `gates-leg-i`: the artifact a job uploads.
+#[must_use]
+pub fn artifact(leg: &str, shard: Shard) -> String {
+    if shard.of == Shard::ONE.of {
+        format!("gates-{leg}")
+    } else {
+        format!("gates-{leg}-{}", shard.index)
+    }
+}
+
+#[derive(Clone, Debug, Serialize)]
 pub struct Planned {
     pub gate: Gate,
     pub decision: Decision,
+    /// The affected project roots the gate's `projects` match: its `{projects}`.
+    pub projects: Vec<String>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
@@ -189,6 +233,8 @@ pub enum Decision {
 #[serde(rename_all = "kebab-case")]
 pub enum Skip {
     OutOfScope,
+    NoAffectedProject,
+    AfterFailed,
     CiOnly(Capability),
 }
 
@@ -196,6 +242,8 @@ impl fmt::Display for Skip {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Skip::OutOfScope => f.write_str("no changed file matches its paths"),
+            Skip::NoAffectedProject => f.write_str("no affected project matches its projects"),
+            Skip::AfterFailed => f.write_str("the leg it runs after failed or left no report"),
             Skip::CiOnly(c) => write!(f, "CI only on a lane's host: needs {c}"),
         }
     }

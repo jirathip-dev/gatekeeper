@@ -1,0 +1,10 @@
+trigger = { everything = "forced" }
+expect = { all = "forced" }
+ignore = ["docs/**"]
+
+[graph]
+"apps/web" = ["packages/ui"]
+"apps/admin" = ["packages/ui"]
+"packages/ui" = ["packages/core"]
+"packages/core" = []
+
