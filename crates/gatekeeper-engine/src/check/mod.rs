@@ -4,6 +4,7 @@ pub mod deps;
 pub mod knip;
 pub mod lint_floor;
 pub mod oxlint;
+pub mod pin;
 pub mod tsc;
 
 use crate::run::CheckCx;
@@ -16,6 +17,7 @@ pub const NAMES: &[&str] = &[
     "knip",
     "lint-floor",
     "oxlint",
+    "pin",
     "tsc",
 ];
 
@@ -27,6 +29,7 @@ pub fn run(name: &str, cx: &CheckCx) -> Result<Vec<String>> {
         "knip" => knip::run(cx),
         "lint-floor" => lint_floor::run(cx),
         "oxlint" => oxlint::run(cx),
+        "pin" => pin::run(cx),
         "tsc" => tsc::run(cx),
         _ => Err(Error(format!("no built-in check `{name}`"))),
     }

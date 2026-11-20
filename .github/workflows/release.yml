@@ -1,0 +1,272 @@
+name: release
+on:
+  workflow_call:
+    inputs:
+      bin:
+        description: the package and executable to release
+        type: string
+        required: true
+      sha:
+        description: the commit to build; empty is the calling run's commit
+        type: string
+        default: ""
+      branch:
+        description: the branch the commit is on; empty is the calling run's ref
+        type: string
+        default: ""
+      targets:
+        description: the target triples to build, as a JSON list
+        type: string
+        default: '["x86_64-unknown-linux-gnu", "aarch64-apple-darwin"]'
+      build-env:
+        description: KEY=VALUE lines added to the build's environment
+        type: string
+        default: ""
+      version-check:
+        description: the executable's --version names the package version, and a v<version> tag that version
+        type: boolean
+        default: false
+      allow-partial:
+        description: publish the targets that built when another failed
+        type: boolean
+        default: false
+      prune-days:
+        description: delete prereleases older than this many days after publishing; 0 keeps them
+        type: number
+        default: 14
+      environment:
+        description: the environment holding the release secrets
+        type: string
+        default: release
+      key:
+        description: the minisign public keys the checker accepts, space separated paths in the repo
+        type: string
+        default: release.pub release-backup.pub
+      tag:
+        description: the release tag; empty is build-<sha7> on main, build-<branch>-<sha7> elsewhere
+        type: string
+        default: ""
+      publish:
+        description: false is a dry run that signs with a throwaway key, checks, and publishes nothing
+        type: boolean
+        default: true
+    secrets:
+      MACOS_CERT_P12:
+        required: false
+      MACOS_CERT_PASSWORD:
+        required: false
+      ASC_API_KEY_P8:
+        required: false
+      ASC_API_KEY_ID:
+        required: false
+      ASC_API_ISSUER_ID:
+        required: false
+      RELEASE_SIGNING_KEY:
+        required: false
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  BIN: ${{ inputs.bin }}
+  REPO: ${{ github.repository }}
+  KEYS: ${{ inputs.key }}
+  FARRIER_GIT: https://github.com/jirathip-dev/farrier
+  FARRIER_REV: 04d7a80c55bee4082cb6dd985b71db18d482158f
+
+jobs:
+  meta:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      sha: ${{ steps.meta.outputs.sha }}
+      tag: ${{ steps.meta.outputs.tag }}
+      prerelease: ${{ steps.meta.outputs.prerelease }}
+      matrix: ${{ steps.meta.outputs.matrix }}
+    steps:
+      - id: meta
+        env:
+          SHA_IN: ${{ inputs.sha }}
+          BRANCH_IN: ${{ inputs.branch }}
+          TAG_IN: ${{ inputs.tag }}
+          TARGETS: ${{ inputs.targets }}
+        run: |
+          sha=${SHA_IN:-$GITHUB_SHA}
+          branch=${BRANCH_IN:-$GITHUB_REF_NAME}
+          tag=$TAG_IN
+          if [ -z "$tag" ] && [ "$branch" = main ]; then tag="build-${sha:0:7}"; fi
+          if [ -z "$tag" ]; then tag="build-$branch-${sha:0:7}"; fi
+          prerelease=false
+          if [ "$branch" != main ]; then prerelease=true; fi
+          matrix=$(jq -c '{include: map({triple: ., os: (if test("apple-darwin$") then "macos-latest" else "ubuntu-latest" end)})}' <<< "$TARGETS")
+          {
+            echo "sha=$sha"
+            echo "tag=$tag"
+            echo "prerelease=$prerelease"
+            echo "matrix=$matrix"
+          } >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: meta
+    name: build ${{ matrix.triple }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.meta.outputs.matrix) }}
+    runs-on: ${{ matrix.os }}
+    environment: ${{ inputs.publish && inputs.environment || '' }}
+    timeout-minutes: 45
+    env:
+      SHA: ${{ needs.meta.outputs.sha }}
+      TAG: ${{ needs.meta.outputs.tag }}
+      TRIPLE: ${{ matrix.triple }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ needs.meta.outputs.sha }}
+      - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
+        with:
+          toolchain: stable
+      - name: farrier, built from its pinned commit until its first release
+        run: |
+          cargo install --quiet --locked --git "$FARRIER_GIT" --rev "$FARRIER_REV" --root "$RUNNER_TEMP/farrier" farrier
+          echo "$RUNNER_TEMP/farrier/bin" >> "$GITHUB_PATH"
+      - name: build
+        env:
+          BUILD_ENV: ${{ inputs.build-env }}
+        run: |
+          while IFS= read -r line; do [ -n "$line" ] && export "${line?}"; done <<< "$BUILD_ENV"
+          build_var="$(tr 'a-z-' 'A-Z_' <<< "$BIN")_BUILD"
+          export "$build_var=$SHA"
+          cargo build --release --locked -p "$BIN"
+          mkdir dist
+          cp "target/release/$BIN" "dist/$BIN-$TRIPLE"
+      - name: version check
+        if: inputs.version-check
+        run: |
+          want=$(cargo pkgid -p "$BIN" | sed 's/.*[#@]//')
+          case "$TAG" in v*) [ "$TAG" = "v$want" ] || { echo "tag $TAG, package version $want"; exit 1; } ;; esac
+          got=$("dist/$BIN-$TRIPLE" --version | tail -n 1)
+          case "$got " in *" $want "*) ;; *) echo "--version says '$got', the package is $want"; exit 1 ;; esac
+      - name: sign and notarize (macOS)
+        if: runner.os == 'macOS' && inputs.publish
+        env:
+          CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+          ASC_KEY: ${{ secrets.ASC_API_KEY_P8 }}
+          ASC_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_ISSUER: ${{ secrets.ASC_API_ISSUER_ID }}
+        run: |
+          keychain="$RUNNER_TEMP/release.keychain-db"
+          printf '%s' "$CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$CERT_PASSWORD" "$keychain"
+          security set-keychain-settings -lut 3600 "$keychain"
+          security unlock-keychain -p "$CERT_PASSWORD" "$keychain"
+          security import "$RUNNER_TEMP/cert.p12" -k "$keychain" -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$CERT_PASSWORD" "$keychain"
+          security list-keychains -d user -s "$keychain"
+          rm -f "$RUNNER_TEMP/cert.p12"
+          codesign --force --timestamp --options runtime --identifier "$BIN" \
+            --keychain "$keychain" --sign "Developer ID Application" "dist/$BIN-$TRIPLE"
+          (umask 077 && printf '%s' "$ASC_KEY" > "$RUNNER_TEMP/asc.p8")
+          ditto -c -k "dist/$BIN-$TRIPLE" "$RUNNER_TEMP/$BIN.zip"
+          xcrun notarytool submit "$RUNNER_TEMP/$BIN.zip" --wait \
+            --key "$RUNNER_TEMP/asc.p8" --key-id "$ASC_KEY_ID" --issuer "$ASC_ISSUER"
+          rm -f "$RUNNER_TEMP/asc.p8"
+      - name: farrier release verify (this asset)
+        if: runner.os != 'macOS' || inputs.publish
+        run: |
+          keys=()
+          for k in $KEYS; do keys+=(--key "$k"); done
+          farrier release verify dist --repo "$REPO" --tag "$TAG" --sha "$SHA" --bin "$BIN" "${keys[@]}"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-${{ matrix.triple }}
+          path: dist/${{ inputs.bin }}-${{ matrix.triple }}
+          if-no-files-found: error
+
+  publish:
+    needs: [meta, build]
+    if: always() && needs.meta.result == 'success' && (needs.build.result == 'success' || (inputs.allow-partial && needs.build.result == 'failure'))
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.publish && inputs.environment || '' }}
+    timeout-minutes: 30
+    env:
+      SHA: ${{ needs.meta.outputs.sha }}
+      TAG: ${{ needs.meta.outputs.tag }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ needs.meta.outputs.sha }}
+      - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
+        with:
+          toolchain: stable
+      - name: farrier, built from its pinned commit until its first release
+        run: |
+          cargo install --quiet --locked --git "$FARRIER_GIT" --rev "$FARRIER_REV" --root "$RUNNER_TEMP/farrier" farrier
+          echo "$RUNNER_TEMP/farrier/bin" >> "$GITHUB_PATH"
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          path: dist
+          pattern: release-*
+          merge-multiple: true
+      - name: SHA256SUMS
+        run: |
+          compgen -G "dist/$BIN-*" > /dev/null
+          chmod +x dist/"$BIN"-*
+          (cd dist && sha256sum "$BIN"-* > SHA256SUMS)
+          cat dist/SHA256SUMS
+      - name: sign SHA256SUMS
+        env:
+          SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+          PUBLISH: ${{ inputs.publish }}
+        run: |
+          sudo apt-get install -y minisign > /dev/null
+          umask 077
+          key="$RUNNER_TEMP/release.key"
+          if [ "$PUBLISH" = true ]; then
+            printf '%s\n' "$SIGNING_KEY" > "$key"
+          else
+            minisign -G -W -p "$RUNNER_TEMP/throwaway.pub" -s "$key"
+            echo "KEYS=$RUNNER_TEMP/throwaway.pub" >> "$GITHUB_ENV"
+          fi
+          minisign -S -s "$key" -m dist/SHA256SUMS -t "$REPO $TAG $SHA"
+          rm -f "$key"
+      - name: farrier release verify (the release)
+        run: |
+          keys=()
+          for k in $KEYS; do keys+=(--key "$k"); done
+          farrier release verify dist --repo "$REPO" --tag "$TAG" --sha "$SHA" --bin "$BIN" "${keys[@]}"
+      - name: the checker refuses a changed checksum line (dry run)
+        if: ${{ !inputs.publish }}
+        run: |
+          keys=()
+          for k in $KEYS; do keys+=(--key "$k"); done
+          cp dist/SHA256SUMS "$RUNNER_TEMP/SHA256SUMS"
+          if [ "$(head -c 1 dist/SHA256SUMS)" = 0 ]; then c=1; else c=0; fi
+          sed -i "1s/^./$c/" dist/SHA256SUMS
+          if cmp -s dist/SHA256SUMS "$RUNNER_TEMP/SHA256SUMS"; then exit 1; fi
+          if farrier release verify dist --repo "$REPO" --tag "$TAG" --sha "$SHA" --bin "$BIN" "${keys[@]}"; then
+            echo "the checker accepted a changed checksum line"
+            exit 1
+          fi
+          echo "the checker refused the changed checksum line"
+      - name: publish
+        if: inputs.publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRERELEASE: ${{ needs.meta.outputs.prerelease }}
+        run: |
+          pre=()
+          if [ "$PRERELEASE" = true ]; then pre=(--prerelease); fi
+          gh release create "$TAG" dist/* --repo "$REPO" --target "$SHA" --title "$TAG" --notes "$SHA" "${pre[@]}"
+      - name: prune old prereleases
+        if: inputs.publish && inputs.prune-days > 0
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DAYS: ${{ inputs.prune-days }}
+        run: |
+          cutoff=$(date -u -d "$DAYS days ago" +%Y-%m-%dT%H:%M:%SZ)
+          gh release list --repo "$REPO" --limit 200 --json tagName,isPrerelease,createdAt \
+            --jq ".[] | select(.isPrerelease and .createdAt < \"$cutoff\") | .tagName" |
+            while read -r old; do gh release delete "$old" --repo "$REPO" --cleanup-tag --yes; done

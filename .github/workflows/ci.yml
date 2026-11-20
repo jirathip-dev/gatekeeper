@@ -12,3 +12,50 @@ jobs:
     uses: ./.github/workflows/gates.yml
     secrets:
       private-names: ${{ secrets.GATEKEEPER_PRIVATE_NAMES }}
+
+  version:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      new: ${{ steps.version.outputs.new }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - id: version
+        run: |
+          version=$(sed -n '/^\[workspace.package\]/,/^\[/s/^version = "\(.*\)"/\1/p' Cargo.toml)
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --tags origin "refs/tags/v$version" > /dev/null; then
+            echo "new=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "new=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  release-dry:
+    if: github.event_name == 'pull_request'
+    needs: version
+    uses: ./.github/workflows/release.yml
+    with:
+      bin: gatekeeper
+      tag: ${{ needs.version.outputs.tag }}
+      version-check: true
+      publish: false
+
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.version.outputs.new == 'true'
+    needs: [gates, version]
+    permissions:
+      contents: write
+    uses: ./.github/workflows/release.yml
+    with:
+      bin: gatekeeper
+      branch: main
+      tag: ${{ needs.version.outputs.tag }}
+      version-check: true
+    secrets:
+      MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+      MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+      ASC_API_KEY_P8: ${{ secrets.ASC_API_KEY_P8 }}
+      ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+      ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
+      RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
