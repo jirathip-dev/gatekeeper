@@ -142,6 +142,24 @@ fn usage_and_config_errors_exit_2() {
         assert_eq!(code, 2, "{out}");
         assert!(out.contains("go together"), "{out}");
     }
+    let swift = "integration = \"staging\"\npin = \"checkout\"\npacks = [\"swift\"]\n";
+    for (name, config, says) in [
+        ("check-swift-no-table", swift.to_owned(), "go together"),
+        (
+            "check-swift-no-package",
+            format!("{swift}[swift]\nsources = [\"Sources\"]\n"),
+            "at least one of packages or projects",
+        ),
+        (
+            "check-tools-unpinned",
+            format!("{CONFIG}[tools]\nnope = \"bin/nope\"\n"),
+            "[tools] nope is no pinned tool",
+        ),
+    ] {
+        let (code, out) = gk(&repo(name, &config, &[]), &["list"], &[]);
+        assert_eq!(code, 2, "{out}");
+        assert!(out.contains(says), "{out}");
+    }
 }
 
 #[test]

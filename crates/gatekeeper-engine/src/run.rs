@@ -3,10 +3,10 @@ use crate::runner::{self, Ended};
 use crate::{Error, Result, VERSION, fetch, kept, packs};
 use gatekeeper_model::{
     Decision, Failure, Gate, GateReport, Host, Job, JobReport, Millis, Outcome, PackId, Plan,
-    Planned, Report, Shard, Skip, Step, TsPack, judge,
+    Planned, Platform, Report, Shard, Skip, Step, SwiftPack, TsPack, judge,
 };
 use std::cell::OnceCell;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{self, File};
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
@@ -19,6 +19,8 @@ pub struct CheckCx<'a> {
     pub cache: &'a Path,
     pub manifest: &'a str,
     pub ts: Option<&'a TsPack>,
+    pub swift: Option<&'a SwiftPack>,
+    pub tools: &'a BTreeMap<String, PathBuf>,
     pub base: Option<&'a str>,
     pub note: &'a OnceCell<String>,
 }
@@ -29,6 +31,18 @@ impl CheckCx<'_> {
         self.ts.ok_or_else(|| {
             Error("the ts pack's checks need [ts] in .gatekeeper/config.toml".into())
         })
+    }
+
+    /// # Errors
+    pub fn swift(&self) -> Result<&SwiftPack> {
+        self.swift.ok_or_else(|| {
+            Error("the swift pack's checks need [swift] in .gatekeeper/config.toml".into())
+        })
+    }
+
+    /// # Errors
+    pub fn tool(&self, name: &str) -> Result<PathBuf> {
+        fetch::resolve(name, self.cache, self.tools)
     }
 }
 
@@ -45,6 +59,21 @@ pub struct RunCtx {
     /// The reports and kept files of the leg an `after` job waits for, downloaded in CI.
     pub after_reports: Option<PathBuf>,
     pub ts: Option<TsPack>,
+    pub swift: Option<SwiftPack>,
+    /// `[tools]`: the tools this repo builds itself, by absolute path.
+    pub tools: BTreeMap<String, PathBuf>,
+    /// The platform this host is: a gate of another fails `needs <platform>`.
+    pub platform: Platform,
+}
+
+/// The platform this binary runs on.
+#[must_use]
+pub fn platform() -> Platform {
+    if cfg!(target_os = "macos") {
+        Platform::Macos
+    } else {
+        Platform::Linux
+    }
 }
 
 fn millis(d: Duration) -> Millis {
@@ -111,7 +140,7 @@ fn run_line(run: &str, (gate, vars): (&Gate, &[(&str, String)]), cx: &RunCtx) ->
         line = line.replace(var, value);
     }
     for tool in fetch::named_in(run) {
-        let bin = fetch::tool(tool, &cx.cache)?;
+        let bin = fetch::resolve(tool, &cx.cache, &cx.tools)?;
         line = line.replace(&format!("{{tool:{tool}}}"), &bin.to_string_lossy());
     }
     Ok(line)
@@ -134,7 +163,7 @@ fn step(
                 Err(Failure::Exit(127))
             }
         },
-        Step::Tool { tool, args } => match fetch::tool(tool, &cx.cache) {
+        Step::Tool { tool, args } => match fetch::resolve(tool, &cx.cache, &cx.tools) {
             Ok(bin) => ended(
                 runner::logged(&bin, &expand(args, cx), &cx.root, log, deadline),
                 log,
@@ -152,6 +181,8 @@ fn step(
                 cache: &cx.cache,
                 manifest: &cx.manifest,
                 ts: cx.ts.as_ref(),
+                swift: cx.swift.as_ref(),
+                tools: &cx.tools,
                 base: cx.base.as_deref(),
                 note,
             };
@@ -166,6 +197,20 @@ fn step(
             }
         }
     }
+}
+
+fn here(gate: &Gate, cx: &RunCtx, log: &mut File) -> std::result::Result<(), Failure> {
+    if gate.platform != Platform::Macos || cx.platform == Platform::Macos {
+        return Ok(());
+    }
+    writeln!(
+        log,
+        "needs macos: {} runs on a macOS host, this one is {}; queue it to a macOS host",
+        gate.id,
+        cx.platform.runner()
+    )
+    .ok();
+    Err(Failure::CannotRunHere(Platform::Macos))
 }
 
 pub(crate) fn gate(
@@ -185,10 +230,11 @@ pub(crate) fn gate(
     ];
     let at = (gate, &vars[..]);
     let summary = OnceCell::new();
-    let result = gate
-        .steps
-        .iter()
-        .try_for_each(|s| step(s, at, cx, &mut log, deadline, &mut listed, &summary))
+    let result = here(gate, cx, &mut log)
+        .and_then(|()| {
+            let mut steps = gate.steps.iter();
+            steps.try_for_each(|s| step(s, at, cx, &mut log, deadline, &mut listed, &summary))
+        })
         .and_then(|()| {
             let mut stale = listed.stale().peekable();
             let none = stale.peek().is_none();

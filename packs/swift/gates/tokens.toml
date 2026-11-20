@@ -1,0 +1,8 @@
+about = "no raw colour or raw size in the [swift] tokens folders but the values and files .gatekeeper/tokens-allowed.txt lists and the shrink-only baseline; runs on any platform"
+fix = "take the colour or size from a scheme or style token; a value every view may use goes in .gatekeeper/tokens-allowed.txt with its reason; once one is fixed, shrink the list: ./.gatekeeper/run baseline swift/tokens"
+budget_secs = 10
+platform = "any"
+paths = ["**/*.swift", ".gatekeeper/tokens-allowed.txt", ".gatekeeper/baseline/swift-tokens.txt", ".gatekeeper/config.toml"]
+
+[[step]]
+check = "swift-tokens"

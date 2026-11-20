@@ -71,11 +71,12 @@ enum PackId { Core, Rust, Swift, Ts, Supabase, Local }
 struct GateId { pack: PackId, name: GateName }
 
 struct RustPack { manifest: PathBuf }
-struct SwiftPack { packages: Vec<PathBuf>, projects: Vec<XcodeProject>, sources: Vec<PathBuf>, tokens: Vec<PathBuf> }
+struct SwiftPack { packages: Vec<PathBuf>, projects: Vec<XcodeProject>, sources: Vec<PathBuf>, tokens: Vec<PathBuf>, extra: Vec<RuleId> }
+struct XcodeProject { path: PathBuf, scheme: String, destination: Option<String> }
 struct TsPack { projects: Vec<PathBuf>, install: String }
 struct SupabasePack { dir: PathBuf }
 
-enum ToolSource { Pinned, Run(String) }
+enum ToolSource { Pinned, Run(PathBuf) }
 
 struct ScopeConfig { graphs: BTreeSet<GraphKind>, ignore: Vec<Glob> }
 enum GraphKind { Pnpm, Cargo, SwiftPm }
@@ -84,7 +85,9 @@ struct Leg { platform: Platform, setup: BTreeSet<Toolchain>, needs: BTreeSet<Cap
 
 `Pin::Checkout` is valid only in a repo whose workspace builds `gatekeeper`. `[pin]` holds no commit: the binary
 knows the commit it was built from, and `core/pin` compares that with each `uses:` line. `ToolSource::Run` is for
-the one repo that builds a pinned tool itself: drover checks its own tree with its own build. A pack listed in
+the one repo that builds a pinned tool itself: drover checks its own tree with its own build, and gatekeeper's
+swift selftest runs anti-slop-swift built from `packs/swift/anti-slop`. In the config it is `[tools] <tool> = "<path>"`,
+the path from the repo root; `selftest` uses it for the fixture cases too. A pack listed in
 `packs` needs its table (`rust` needs none: the manifest defaults to `Cargo.toml`); a table without its pack is an
 error. `scope` and `legs` arrive with G10; an `after` leg must itself have no `after`.
 

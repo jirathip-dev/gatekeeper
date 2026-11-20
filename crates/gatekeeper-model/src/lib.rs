@@ -20,19 +20,27 @@ use std::fmt;
 pub enum PackId {
     Core,
     Rust,
+    Swift,
     Ts,
     Supabase,
     Local,
 }
 
 impl PackId {
-    pub const BUILT_IN: [PackId; 4] = [PackId::Core, PackId::Rust, PackId::Ts, PackId::Supabase];
+    pub const BUILT_IN: [PackId; 5] = [
+        PackId::Core,
+        PackId::Rust,
+        PackId::Swift,
+        PackId::Ts,
+        PackId::Supabase,
+    ];
 
     #[must_use]
     pub fn as_str(self) -> &'static str {
         match self {
             PackId::Core => "core",
             PackId::Rust => "rust",
+            PackId::Swift => "swift",
             PackId::Ts => "ts",
             PackId::Supabase => "supabase",
             PackId::Local => "local",
@@ -133,6 +141,9 @@ pub struct Config {
     #[serde(default)]
     pub legs: BTreeMap<String, Leg>,
     pub ts: Option<TsPack>,
+    pub swift: Option<SwiftPack>,
+    #[serde(default)]
+    pub tools: BTreeMap<String, String>,
 }
 
 /// Which gatekeeper runs: this checkout's build, or a release by version and per-target sha256.
@@ -168,6 +179,30 @@ pub struct RustPack {
 pub struct TsPack {
     pub projects: Vec<String>,
     pub install: String,
+}
+
+/// `[swift]`: the packages and Xcode projects that build strict, the folders anti-slop lints and the token lint reads, the extra rules on.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SwiftPack {
+    #[serde(default)]
+    pub packages: Vec<String>,
+    #[serde(default)]
+    pub projects: Vec<XcodeProject>,
+    pub sources: Vec<String>,
+    #[serde(default)]
+    pub tokens: Vec<String>,
+    #[serde(default)]
+    pub extra: Vec<String>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct XcodeProject {
+    pub path: String,
+    pub scheme: String,
+    #[serde(default)]
+    pub destination: Option<String>,
 }
 
 /// What `check` and `list` narrow the configured gates to.

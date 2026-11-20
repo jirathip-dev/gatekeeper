@@ -5,6 +5,9 @@ use std::{env, fs, io};
 fn walk(dir: &Path, out: &mut Vec<PathBuf>) -> io::Result<()> {
     for entry in fs::read_dir(dir)? {
         let path = entry?.path();
+        if path.ends_with("swift/anti-slop") {
+            continue;
+        }
         if path.is_dir() {
             walk(&path, out)?;
         } else {

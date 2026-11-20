@@ -56,6 +56,9 @@ fn check_on_the_base_fixture_with_every_gate_stubbed_takes_under_200_ms() {
         manifest: "Cargo.toml".into(),
         after_reports: None,
         ts: None,
+        swift: None,
+        tools: std::collections::BTreeMap::new(),
+        platform: run::platform(),
     };
     let report = run::run(&plan, &cx, &mut |_, _| {}).expect("run");
     let took = start.elapsed();

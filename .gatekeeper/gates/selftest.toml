@@ -1,5 +1,5 @@
-about = "gatekeeper selftest: every gate of every pack passes its base and fails each of its cases"
+about = "gatekeeper selftest of the linux packs: every gate passes its base and fails each of its cases"
 fix = "make the gate fail its case with the case's expect line, or fix the base; a gate with no failing case is refused"
 budget_secs = 300
 setup = ["rust", "node"]
-run = "./.gatekeeper/run selftest"
+run = "./.gatekeeper/run selftest --pack 'core rust ts supabase'"

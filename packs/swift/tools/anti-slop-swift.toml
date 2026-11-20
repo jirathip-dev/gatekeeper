@@ -1,0 +1,14 @@
+version = "1.0.0"
+
+[build]
+targets = ["aarch64-apple-darwin"]
+budget_minutes = 30
+bin = "bin/anti-slop"
+script = """
+src="$GITHUB_WORKSPACE/packs/swift/anti-slop"
+test "$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD:packs/swift/anti-slop)" = "b5aec72565ae0a94c6d17f355a884f2a75ea6d30"
+swift build -c release --package-path "$src" --scratch-path build
+mkdir -p "$OUT/bin"
+cp build/release/anti-slop "$OUT/bin/anti-slop"
+"$OUT/bin/anti-slop" --list-rules
+"""

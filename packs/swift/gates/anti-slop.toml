@@ -1,0 +1,7 @@
+about = "the prebuilt anti-slop-swift over the [swift] sources: the 19 shared rules always, and the [swift] extra rules the repo switches on"
+fix = "rewrite the line the rule names: unwrap with guard let, name the real type, bind and handle the error; a // SAFETY: line right above states the invariant a forced operation relies on; a rule is never switched off"
+budget_secs = 30
+paths = ["**/*.swift", ".gatekeeper/config.toml"]
+
+[[step]]
+check = "anti-slop"
