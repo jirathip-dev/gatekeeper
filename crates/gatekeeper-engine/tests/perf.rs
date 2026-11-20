@@ -60,7 +60,7 @@ fn check_on_the_base_fixture_with_every_gate_stubbed_takes_under_200_ms() {
     let report = run::run(&plan, &cx, &mut |_, _| {}).expect("run");
     let took = start.elapsed();
     let gates: Vec<_> = report.jobs.iter().flat_map(|j| &j.gates).collect();
-    assert_eq!(gates.len(), 9);
+    assert_eq!(gates.len(), 10);
     assert!(gates.iter().all(|g| !g.outcome.fails()));
     assert!(cx.out.join("report.json").is_file());
     assert!(took < Duration::from_millis(200), "took {took:?}");
