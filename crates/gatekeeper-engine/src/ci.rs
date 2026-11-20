@@ -123,18 +123,22 @@ pub fn done(plan: &Plan, reports: &Path) -> Result<(String, Vec<String>)> {
         }
         all.extend(report.jobs.into_iter().flat_map(|j| j.gates));
     }
-    let t = CacheTotals::of(&all);
-    if t.cached + t.rechecked + t.refused > 0 {
-        let share = t.saved.0 * 100 / (t.ran.0 + t.saved.0).max(1);
-        writeln!(
-            table,
-            "\ncache: {} of {} gates cached · ran {} · saved {} ({share} %) · {} rechecked, {} differed · {} records refused",
-            t.cached, t.gates, secs(t.ran), secs(t.saved), t.rechecked, t.differed, t.refused
-        )
-        .ok();
+    if let Some(line) = cache_line(&CacheTotals::of(&all)) {
+        writeln!(table, "\ncache: {line}").ok();
     }
     table.push_str(&selected);
     Ok((table, problems))
+}
+
+/// `2 of 4 gates cached · ran 1.0s · saved 41.0s (97 %) · 1 rechecked, 0 differed · 0 refused`, when the cache did anything.
+#[must_use]
+pub fn cache_line(t: &CacheTotals) -> Option<String> {
+    let share = t.saved.0 * 100 / (t.ran.0 + t.saved.0).max(1);
+    let (ran, saved) = (secs(t.ran), secs(t.saved));
+    (t.cached + t.rechecked + t.refused > 0).then(|| format!(
+        "{} of {} gates cached · ran {ran} · saved {saved} ({share} %) · {} rechecked, {} differed · {} refused",
+        t.cached, t.gates, t.rechecked, t.differed, t.refused
+    ))
 }
 
 fn proved(g: &GateReport) -> String {

@@ -29,9 +29,8 @@ pub fn mode(
                     read: reads(vec![Tier::Integration, own]),
                     write: Some(own),
                 },
-                PullRequests::Read if full => CacheMode::Off(Off::FullRun),
                 PullRequests::Read => CacheMode::Use {
-                    read: vec![Tier::Integration],
+                    read: reads(vec![Tier::Integration]),
                     write: None,
                 },
             }

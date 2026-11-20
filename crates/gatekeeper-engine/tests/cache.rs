@@ -2,7 +2,7 @@ use gatekeeper_engine::cache::{self, Ident, Results};
 use gatekeeper_engine::fetch::{self, ToolFile};
 use gatekeeper_engine::plan;
 use gatekeeper_engine::run::{self, RunCtx};
-use gatekeeper_model::{CacheMode, Config, Engine, Event, Filter, Host, PlatformId, RunRef};
+use gatekeeper_model::{CacheMode, Config, Event, Filter, Host, RunRef};
 use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::fs;
@@ -192,13 +192,8 @@ fn results(config: &Config, run: &Run, root: &Path, store: &Path, i: u64) -> Opt
         salt: i.to_string(),
         run: ci,
         ident: Ident {
-            engine: Engine::Checkout {
-                binary: run.engine.clone().unwrap_or("e1".into()),
-            },
-            platform: PlatformId {
-                target: "t".into(),
-                os: run.platform.clone().unwrap_or("os1".into()),
-            },
+            engine: run.engine.clone().unwrap_or("e1".into()),
+            platform: run.platform.clone().unwrap_or("os1".into()),
             probes: run.versions.clone().into(),
         },
         inputs: cache::inputs::read(root).expect("inputs"),

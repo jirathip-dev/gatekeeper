@@ -142,22 +142,16 @@ impl CacheTotals {
         let mut t = CacheTotals::default();
         for g in gates {
             t.gates += 1;
-            match (&g.outcome, &g.cache) {
-                (Outcome::Cached(hit), _) => {
-                    t.cached += 1;
-                    t.saved.0 += hit.took.0;
+            match &g.outcome {
+                Outcome::Cached(hit) => {
+                    (t.cached, t.saved.0) = (t.cached + 1, t.saved.0 + hit.took.0);
                 }
-                (Outcome::Failed(Failure::CacheMismatch(_)), _) => {
-                    t.rechecked += 1;
-                    t.differed += 1;
-                }
-                (_, Some(CacheNote::Rechecked(_))) => t.rechecked += 1,
-                (_, Some(CacheNote::Refused(_))) => t.refused += 1,
-                _ => {}
+                _ => t.ran.0 += g.took.0,
             }
-            if !matches!(g.outcome, Outcome::Cached(_)) {
-                t.ran.0 += g.took.0;
-            }
+            let differed = matches!(g.outcome, Outcome::Failed(Failure::CacheMismatch(_)));
+            t.differed += u32::from(differed);
+            t.rechecked += u32::from(matches!(g.cache, Some(CacheNote::Rechecked(_))));
+            t.refused += u32::from(matches!(g.cache, Some(CacheNote::Refused(_))));
         }
         t
     }

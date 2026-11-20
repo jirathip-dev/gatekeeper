@@ -5,8 +5,8 @@ mod report;
 mod scope;
 
 pub use cache::{
-    CacheConfig, CacheMode, CacheNote, Engine, Event, Hit, Key, KeyParts, Off, PlatformId, Proof,
-    PullRequests, Record, Refusal, RunRef, Tier, Unkeyed,
+    CacheConfig, CacheMode, CacheNote, Event, Hit, Key, KeyParts, Off, Proof, PullRequests, Record,
+    Refusal, RunRef, Tier, Unkeyed,
 };
 pub use gate::{Capability, Gate, GateFile, PackFile, Platform, Step, Toolchain, Upload};
 pub use glob::Glob;

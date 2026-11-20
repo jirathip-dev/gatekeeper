@@ -16,7 +16,7 @@ use gatekeeper_model::{
     Shard, Tier,
 };
 use key::Keyed;
-use lookup::{Lookup, Policy};
+use lookup::Lookup;
 use std::path::{Path, PathBuf};
 use store::Ran;
 
@@ -44,9 +44,9 @@ pub(crate) fn gate(
     let at = (shard, &planned.projects[..]);
     let (key, parts) = match key::keyed(&planned.gate, at, &res.ident, &res.inputs, root)? {
         Keyed::No(why) => {
-            let mut report = run()?;
-            report.cache = Some(CacheNote::Unkeyed(why));
-            return Ok(report);
+            let report = run()?;
+            let cache = Some(CacheNote::Unkeyed(why));
+            return Ok(GateReport { cache, ..report });
         }
         Keyed::Key(key, parts) => (key, parts),
     };
@@ -54,20 +54,15 @@ pub(crate) fn gate(
         .read
         .iter()
         .filter_map(|t| Some((*t, store::read(&res.store, *t, &key)?.ok())));
-    let policy = Policy {
-        now: res.now,
-        max_age_secs: u64::from(res.config.max_age_days.get()) * 86_400,
-        recheck: res.config.recheck,
-        salt: &res.salt,
-    };
-    let (recheck, note) = match lookup::lookup(&key, &parts, found.collect(), &policy) {
+    let (recheck, note) = match lookup::lookup(&key, &parts, found.collect(), res) {
         Lookup::Hit(record) => {
             let hit = Hit {
                 proof: record.proof,
                 took: record.took,
             };
+            let projects = planned.projects.clone();
             return Ok(GateReport {
-                projects: planned.projects.clone(),
+                projects,
                 ..unrun(planned, Outcome::Cached(hit))
             });
         }
@@ -78,23 +73,26 @@ pub(crate) fn gate(
             }
             (None, Some(CacheNote::Refused(why)))
         }
-        Lookup::Recheck(tier, record) => {
-            let note = CacheNote::Rechecked(record.proof.clone());
-            (Some((tier, record.proof)), Some(note))
-        }
+        Lookup::Recheck(tier, r) => (
+            Some((tier, r.proof.clone())),
+            Some(CacheNote::Rechecked(r.proof)),
+        ),
     };
-    let mut report = run()?;
-    report.cache = note;
+    let mut report = GateReport {
+        cache: note,
+        ..run()?
+    };
     if let (Some((tier, proof)), Outcome::Failed(_)) = (recheck, &report.outcome) {
         store::remove(&res.store, tier, &key);
         report.outcome = Outcome::Failed(Failure::CacheMismatch(proof));
     }
     if let Some(tier) = res.write {
+        let (commit, run) = (res.inputs.commit.clone(), res.run.clone());
         let proof = Proof {
             tier,
             at: res.now,
-            commit: res.inputs.commit.clone(),
-            run: res.run.clone(),
+            commit,
+            run,
         };
         if let Some(ran) = Ran::of(&report, key, *parts, proof) {
             store::write(&res.store, &ran)?;

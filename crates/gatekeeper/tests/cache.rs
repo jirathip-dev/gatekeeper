@@ -102,7 +102,10 @@ fn a_second_check_prints_cached_with_its_proof() {
     let head = git(&root, &["rev-parse", "HEAD"]);
     let (code, first) = gk(&root, &["check"], &[]);
     assert_eq!(code, 0, "{first}");
-    assert!(first.contains("· cache reads host, writes host"), "{first}");
+    assert!(
+        first.contains("· cache reads [\"host\"] writes [\"host\"]"),
+        "{first}"
+    );
     assert!(first.contains("ok    local/keyed"), "{first}");
     let (code, second) = gk(&root, &["check"], &[]);
     assert_eq!(code, 0, "{second}");
@@ -110,11 +113,13 @@ fn a_second_check_prints_cached_with_its_proof() {
         .lines()
         .find(|l| l.starts_with("cached local/keyed"))
         .unwrap_or_else(|| panic!("no cached row:\n{second}"));
-    assert!(row.contains("lane run "), "{row}");
-    assert!(row.ends_with(&format!(" at {}", &head[..7])), "{row}");
+    assert!(
+        row.ends_with(&format!("   lane run at {}", &head[..7])),
+        "{row}"
+    );
     assert!(second.contains("ok    local/bare"), "{second}");
     assert!(
-        second.contains("2 gates passed · 1 cached, saved"),
+        second.contains("2 gates passed · 1 of 2 gates cached · ran "),
         "{second}"
     );
     let (_, off) = gk(&root, &["check", "--no-cache"], &[]);
@@ -132,7 +137,7 @@ fn a_cached_pass_that_fails_now_is_loud() {
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("FAIL  local/keyed"), "{out}");
     assert!(
-        out.contains("      cached pass does not hold: it passed in lane run "),
+        out.contains("      cached pass does not hold: it passed in lane run at "),
         "{out}"
     );
     assert!(
@@ -240,7 +245,7 @@ fn ci_done_counts_the_cache() {
     let (code, first) = gk(&root, &check, &borrowed(&pr));
     assert_eq!(code, 0, "{first}");
     assert!(
-        first.contains("cache reads integration pr-41, writes pr-41"),
+        first.contains("cache reads [\"integration\", \"pr-41\"] writes [\"pr-41\"]"),
         "{first}"
     );
     assert!(root.join("cache/results/pr-41").is_dir(), "{first}");
@@ -271,7 +276,7 @@ fn ci_done_counts_the_cache() {
         "{table}"
     );
     assert!(
-        table.contains("0 rechecked, 0 differed · 0 records refused"),
+        table.contains("0 rechecked, 0 differed · 0 refused"),
         "{table}"
     );
     let fork = pull_request(&root, "someone/r");

@@ -42,28 +42,15 @@ pub struct Key(pub String);
 #[serde(deny_unknown_fields)]
 pub struct KeyParts {
     pub schema: u32,
-    pub engine: Engine,
+    pub engine: String,
     pub gate: GateId,
     pub gate_file: String,
     pub shard: Shard,
     pub projects: Vec<String>,
-    pub platform: PlatformId,
+    pub platform: String,
     pub versions: BTreeMap<String, String>,
     pub tools: BTreeMap<String, String>,
     pub inputs: String,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum Engine {
-    Release { version: String, build: String },
-    Checkout { binary: String },
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PlatformId {
-    pub target: String,
-    pub os: String,
 }
 
 /// Why a gate has no key and always runs.
@@ -80,27 +67,24 @@ pub enum Unkeyed {
 impl Unkeyed {
     #[must_use]
     pub fn of(gate: &Gate) -> Option<Unkeyed> {
-        let arg = |a: &str| {
+        let reads = |a: &str| {
             gate.steps.iter().any(|s| match s {
                 Step::Tool { args, .. } => args.iter().any(|x| x == a),
                 Step::Run { run } => run.contains(a),
                 Step::Check { .. } => false,
             })
         };
-        let bare = |s: &Step| matches!(s, Step::Run { .. });
-        if !gate.cache {
-            Some(Unkeyed::OptedOut)
-        } else if arg("{--base}") {
-            Some(Unkeyed::ReadsBase)
-        } else if arg("{--pr-body}") {
-            Some(Unkeyed::ReadsPullRequest)
-        } else if !gate.uploads.is_empty() {
-            Some(Unkeyed::KeepsFiles)
-        } else if gate.setup.is_empty() && gate.versions.is_empty() && gate.steps.iter().any(bare) {
-            Some(Unkeyed::NoVersion)
-        } else {
-            None
-        }
+        let runs = gate.steps.iter().any(|s| matches!(s, Step::Run { .. }));
+        let bare = runs && gate.setup.is_empty() && gate.versions.is_empty();
+        [
+            (!gate.cache, Unkeyed::OptedOut),
+            (reads("{--base}"), Unkeyed::ReadsBase),
+            (reads("{--pr-body}"), Unkeyed::ReadsPullRequest),
+            (!gate.uploads.is_empty(), Unkeyed::KeepsFiles),
+            (bare, Unkeyed::NoVersion),
+        ]
+        .into_iter()
+        .find_map(|(hit, why)| hit.then_some(why))
     }
 }
 
@@ -161,34 +145,13 @@ pub struct RunRef {
     pub attempt: u32,
 }
 
-fn utc(secs: u64) -> String {
-    let days = i64::try_from(secs / 86_400).unwrap_or_default() + 719_468;
-    let doe = days.rem_euclid(146_097);
-    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let (day, month) = (doy - (153 * mp + 2) / 5 + 1, (mp + 2) % 12 + 1);
-    let (h, m) = (secs % 86_400 / 3600, secs % 3600 / 60);
-    format!("{month:02}-{day:02} {h:02}:{m:02}")
-}
-
 impl fmt::Display for Proof {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let commit = self.commit.as_deref().map(|c| c.get(..7).unwrap_or(c));
+        let commit = self.commit.as_deref();
+        let commit = commit.map_or("a dirty tree", |c| c.get(..7).unwrap_or(c));
         match &self.run {
-            None => write!(
-                f,
-                "lane run {} at {}",
-                utc(self.at),
-                commit.unwrap_or("a dirty tree")
-            ),
-            Some(r) => write!(
-                f,
-                "run {} · {} · {}",
-                r.run,
-                self.tier,
-                commit.unwrap_or("-")
-            ),
+            None => write!(f, "lane run at {commit}"),
+            Some(r) => write!(f, "run {} · {} · {commit}", r.run, self.tier),
         }
     }
 }
@@ -216,28 +179,23 @@ pub enum Off {
     NotConfigured,
     Flag,
     Fork,
-    FullRun,
     NotAPullRequest,
 }
 
 impl fmt::Display for CacheMode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let names = |t: &[Tier]| t.iter().map(ToString::to_string).collect::<Vec<_>>();
         match self {
             CacheMode::Off(Off::NotConfigured) => f.write_str("cache off"),
             CacheMode::Off(Off::Flag) => f.write_str("cache off: --no-cache"),
             CacheMode::Off(Off::Fork) => f.write_str("cache off: a fork"),
-            CacheMode::Off(Off::FullRun) => f.write_str("cache off: a full run"),
             CacheMode::Off(Off::NotAPullRequest) => f.write_str("cache off: not a pull request"),
-            CacheMode::Use { read, write } => {
-                let read: Vec<String> = read.iter().map(ToString::to_string).collect();
-                let write = write.map_or("nothing".into(), |t| t.to_string());
-                let read = if read.is_empty() {
-                    "nothing".into()
-                } else {
-                    read.join(" ")
-                };
-                write!(f, "cache reads {read}, writes {write}")
-            }
+            CacheMode::Use { read, write } => write!(
+                f,
+                "cache reads {:?} writes {:?}",
+                names(read),
+                names(write.as_slice())
+            ),
         }
     }
 }

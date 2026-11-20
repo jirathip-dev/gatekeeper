@@ -1,9 +1,7 @@
 use gatekeeper_engine::cache::{self, Ident, Results};
 use gatekeeper_engine::run::{self, RunCtx};
 use gatekeeper_engine::{packs, plan};
-use gatekeeper_model::{
-    CacheConfig, Config, Engine, Filter, Graph, Host, Outcome, PlatformId, Report, Step, Tier,
-};
+use gatekeeper_model::{CacheConfig, Config, Filter, Graph, Host, Outcome, Report, Step, Tier};
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -73,11 +71,8 @@ fn results(root: &Path) -> Results {
         salt: "0".into(),
         run: None,
         ident: Ident {
-            engine: Engine::Checkout { binary: "e".into() },
-            platform: PlatformId {
-                target: "t".into(),
-                os: "os".into(),
-            },
+            engine: "e".into(),
+            platform: "t os".into(),
             probes: probes
                 .map(|(c, o)| (c.to_owned(), o.to_owned()))
                 .into_iter()

@@ -1,5 +1,5 @@
 use crate::cli::{self, Args, say};
-use gatekeeper_engine::ci::secs;
+use gatekeeper_engine::ci::{self, secs};
 use gatekeeper_engine::run::{self, RunCtx};
 use gatekeeper_engine::{Error, VERSION, config, plan};
 use gatekeeper_model::{
@@ -179,18 +179,8 @@ pub fn run(args: &[String]) -> ExitCode {
         .jobs
         .first()
         .map_or_else(String::new, |j| secs(j.setup));
-    let totals = CacheTotals::of(gates.clone());
-    let cached = match &totals {
-        t if t.cached + t.rechecked + t.refused == 0 => String::new(),
-        t => format!(
-            " · {} cached, saved {} · {} rechecked, {} differed · {} refused",
-            t.cached,
-            secs(t.saved),
-            t.rechecked,
-            t.differed,
-            t.refused
-        ),
-    };
+    let cached = ci::cache_line(&CacheTotals::of(gates.clone()));
+    let cached = cached.map_or_else(String::new, |l| format!(" · {l}"));
     if failed.is_empty() {
         say(&format!(
             "{} gates passed{cached} · setup {setup}",

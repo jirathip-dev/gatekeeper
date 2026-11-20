@@ -189,10 +189,6 @@ pub fn results(
         run,
         attempt: var("GITHUB_RUN_ATTEMPT").parse().unwrap_or(1),
     });
-    let salt = run.as_ref().map_or_else(
-        || (now / 60).to_string(),
-        |r| format!("{}-{}", r.run, r.attempt),
-    );
     let image = env::var("ImageOS").ok();
     let os = image.map(|i| format!("{i} {}", var("ImageVersion")));
     let results = Results {
@@ -201,7 +197,7 @@ pub fn results(
         write: *write,
         config: cfg.clone(),
         now,
-        salt,
+        salt: (now / 60).to_string(),
         run,
         ident: Ident::current(root, os)?,
         inputs: cache::inputs::read(root)?,

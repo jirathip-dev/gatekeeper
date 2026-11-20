@@ -88,6 +88,9 @@ fn no_pull_request_writes_the_integration_tier_and_no_push_reads() {
     );
     assert_eq!(
         mode(Some(&config("read")), &pr, true, false, "staging"),
-        CacheMode::Off(Off::FullRun)
+        CacheMode::Use {
+            read: Vec::new(),
+            write: None
+        }
     );
 }
