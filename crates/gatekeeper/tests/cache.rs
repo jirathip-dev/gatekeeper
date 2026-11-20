@@ -4,6 +4,8 @@ use std::process::Command;
 
 const CONFIG: &str = "packs = []\nintegration = \"staging\"\npin = \"checkout\"\n\n[cache]\n";
 const KEYED: &str = "about = \"passes\"\nfix = \"none\"\nbudget_secs = 5\nrun = \"test ! -e target/flag\"\nversions = [\"echo 1\"]\n";
+const SURE: &str =
+    "packs = []\nintegration = \"staging\"\npin = \"checkout\"\n\n[cache]\nrecheck = 1000000\n";
 const BARE: &str = "about = \"bare\"\nfix = \"none\"\nbudget_secs = 5\nrun = \"true\"\n";
 
 fn git(root: &Path, args: &[&str]) -> String {
@@ -98,7 +100,7 @@ fn borrowed<'a>(env: &'a [(&'static str, String)]) -> Vec<(&'static str, &'a str
 
 #[test]
 fn a_second_check_prints_cached_with_its_proof() {
-    let root = repo("cache-second", CONFIG, &[("keyed", KEYED), ("bare", BARE)]);
+    let root = repo("cache-second", SURE, &[("keyed", KEYED), ("bare", BARE)]);
     let head = git(&root, &["rev-parse", "HEAD"]);
     let (code, first) = gk(&root, &["check"], &[]);
     assert_eq!(code, 0, "{first}");
@@ -191,7 +193,7 @@ fn entry(plan: &str) -> serde_json::Value {
 
 #[test]
 fn ci_plan_names_the_tiers_of_its_trigger() {
-    let root = repo("cache-plan", CONFIG, &[("keyed", KEYED)]);
+    let root = repo("cache-plan", SURE, &[("keyed", KEYED)]);
     let pr = pull_request(&root, "o/r");
     let (code, plan) = gk(&root, &["ci", "plan"], &borrowed(&pr));
     assert_eq!(code, 0, "{plan}");
@@ -239,7 +241,7 @@ fn ci_plan_names_the_tiers_of_its_trigger() {
 
 #[test]
 fn ci_done_counts_the_cache() {
-    let root = repo("cache-done", CONFIG, &[("keyed", KEYED)]);
+    let root = repo("cache-done", SURE, &[("keyed", KEYED)]);
     let pr = pull_request(&root, "o/r");
     let check = ["check", "--results", "cache/results"];
     let (code, first) = gk(&root, &check, &borrowed(&pr));
