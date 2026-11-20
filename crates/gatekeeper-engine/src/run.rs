@@ -83,6 +83,24 @@ fn ended(r: Result<Ended>, log: &mut File) -> std::result::Result<(), Failure> {
     }
 }
 
+fn with_tools(
+    mut line: String,
+    run: &str,
+    cx: &RunCtx,
+    log: &mut File,
+) -> std::result::Result<String, Failure> {
+    for tool in fetch::named_in(run) {
+        match fetch::tool(tool, &cx.cache) {
+            Ok(bin) => line = line.replace(&format!("{{tool:{tool}}}"), &bin.to_string_lossy()),
+            Err(e) => {
+                writeln!(log, "{e}").ok();
+                return Err(Failure::MissingTool(tool.to_owned()));
+            }
+        }
+    }
+    Ok(line)
+}
+
 fn step(
     step: &Step,
     (gate, vars): (&Gate, &[(&str, String)]),
@@ -104,6 +122,7 @@ fn step(
             for (var, value) in vars {
                 line = line.replace(var, value);
             }
+            let line = with_tools(line, run, cx, log)?;
             ended(runner::shell(&line, &cx.root, log, deadline), log)
         }
         Step::Tool { tool, args } => match fetch::tool(tool, &cx.cache) {

@@ -134,3 +134,54 @@ fn an_npm_tarball_whose_sha256_differs_is_refused_and_nothing_is_installed() {
         .any(|e| e.path().join("node_modules/tool/bin/run.js").exists());
     assert!(!installed);
 }
+
+fn built_archive(dir: &Path) -> (String, Vec<u8>) {
+    let out = dir.join("out");
+    fs::create_dir_all(out.join("bin")).expect("out");
+    fs::write(out.join("bin/sqlx"), "#!/bin/sh\necho built\n").expect("bin");
+    let archive = dir.join("sqlx-cli-0.8.6-target.tar.gz");
+    let made = Command::new("tar")
+        .args([
+            "-czf",
+            &archive.to_string_lossy(),
+            "-C",
+            &out.to_string_lossy(),
+            ".",
+        ])
+        .status()
+        .expect("tar runs");
+    assert!(made.success());
+    (
+        format!("file://{}", archive.display()),
+        fs::read(&archive).expect("archive"),
+    )
+}
+
+#[test]
+fn a_built_tools_archive_is_fetched_by_its_pin_and_refused_with_a_wrong_checksum() {
+    let dir = scratch("fetch-built");
+    let (url, bytes) = built_archive(&dir);
+    let cache = dir.join("cache");
+    let wrong = Asset {
+        url: url.clone(),
+        sha256: "f".repeat(64),
+        bin: Some("bin/sqlx".into()),
+    };
+    let err = asset_path(&wrong, &cache).expect_err("a wrong checksum must be refused");
+    assert!(err.0.contains("refused"), "{err}");
+    assert!(
+        !cache
+            .join("tools")
+            .join("f".repeat(64))
+            .join("bin/sqlx")
+            .exists()
+    );
+    let right = Asset {
+        url,
+        sha256: sha256_hex(&bytes),
+        bin: Some("bin/sqlx".into()),
+    };
+    let bin = asset_path(&right, &cache).expect("fetched");
+    let out = Command::new(&bin).output().expect("the bin runs");
+    assert_eq!(String::from_utf8_lossy(&out.stdout), "built\n");
+}

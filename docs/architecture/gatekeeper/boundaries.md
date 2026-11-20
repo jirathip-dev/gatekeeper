@@ -21,7 +21,8 @@ packs/<pack>/scripts/        pack scripts (release signing, the migration apply 
 packs/core/files/run         the wrapper every consumer holds as `.gatekeeper/run`
 packs/swift/anti-slop/       the one anti-slop-swift, built per release and shipped as a tool asset
 release.pub                  the public half of the release signing key, compiled in
-.github/workflows/           gates.yml, release.yml, testflight.yml, supabase-deploy.yml, ci.yml (calls gates.yml)
+.github/workflows/           gates.yml, release.yml, testflight.yml, supabase-deploy.yml, ci.yml (calls gates.yml),
+                             tools.yml (builds each tool file's [build] once per version)
 skill/gatekeeper/            generated from the gate files
 ```
 
@@ -50,7 +51,9 @@ Rules that follow, each with its enforcer:
   crates. A check on a release is added in farrier, never in `release.yml`. Enforcer: review against this table.
 - **One pinned version of every tool.** drover, farrier, actionlint, cargo-deny, oxlint, knip and anti-slop-swift
   are fetched by `fetch.rs` from `packs/*/tools/*.toml`, on a lane's host and on a runner alike. The repo's own
-  toolchains (Rust from `rust-toolchain.toml`, Node from `.node-version`, Xcode) are the repo's.
+  toolchains (Rust from `rust-toolchain.toml`, Node from `.node-version`, Xcode) are the repo's. A tool with no upstream
+  binary has a `[build]` table in its tool file; `tools.yml` builds it once per version and recipe, publishes it
+  with a `SHA256SUMS` and never replaces it; a `run` line names it as `{tool:<name>}`.
 - **One wrapper.** The file in a consumer equals `packs/core/files/run` of its pinned version. Enforcer:
   `core/pin`.
 - **The cli parses, the engine decides.** The CI environment (event, base, PR body, cache hit, runner kind, the

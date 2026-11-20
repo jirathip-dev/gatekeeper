@@ -1,4 +1,4 @@
-use crate::{Error, Result, check};
+use crate::{Error, Result, check, fetch};
 use gatekeeper_model::{Config, Gate, GateFile, GateId, PackFile, PackId, Platform, Step, is_name};
 use std::collections::BTreeSet;
 use std::fs;
@@ -20,11 +20,19 @@ pub(crate) fn text(path: &str) -> Option<&'static str> {
     std::str::from_utf8(bytes).ok()
 }
 
+pub(crate) fn tool_files() -> impl Iterator<Item = (&'static str, &'static str, &'static str)> {
+    embedded::FILES.iter().filter_map(|(path, _)| {
+        let (pack_dir, file) = path.split_once("/tools/")?;
+        let name = file.strip_suffix(".toml")?;
+        (!pack_dir.contains('/') && !name.contains('/')).then_some((name, *path, text(path)?))
+    })
+}
+
 #[must_use]
 pub(crate) fn tool_file(name: &str) -> Option<(&'static str, &'static str)> {
-    let suffix = format!("/tools/{name}.toml");
-    let (path, _) = embedded::FILES.iter().find(|(p, _)| p.ends_with(&suffix))?;
-    Some((path, text(path)?))
+    tool_files()
+        .find(|(n, _, _)| *n == name)
+        .map(|(_, path, text)| (path, text))
 }
 
 pub(crate) fn materialize(prefix: &str, dest: &Path) -> Result<()> {
@@ -61,6 +69,11 @@ fn parse_gate(id: GateId, path: &str, text: &str, pack: &PackFile) -> Result<Gat
             }
             Step::Tool { tool, .. } if tool_file(tool).is_none() => {
                 return Err(Error(format!("{path}: no pinned tool `{tool}`")));
+            }
+            Step::Run { run } => {
+                if let Some(tool) = fetch::named_in(run).find(|t| tool_file(t).is_none()) {
+                    return Err(Error(format!("{path}: {{tool:{tool}}} is no pinned tool")));
+                }
             }
             _ => {}
         }
