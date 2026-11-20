@@ -1,6 +1,6 @@
 use gatekeeper_engine::run::{self, RunCtx};
 use gatekeeper_engine::{packs, plan};
-use gatekeeper_model::{Config, Filter, Host, Step};
+use gatekeeper_model::{Config, Filter, Graph, Host, Step};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
@@ -37,7 +37,14 @@ fn check_on_the_base_fixture_with_every_gate_stubbed_takes_under_200_ms() {
     for gate in &mut gates {
         gate.steps = vec![Step::Run { run: "true".into() }];
     }
-    let plan = plan::plan(&config, gates, Host::Lane, &Filter::default()).expect("plan");
+    let plan = plan::plan(
+        &config,
+        gates,
+        &|_| Host::Lane,
+        &Graph::default(),
+        &Filter::default(),
+    )
+    .expect("plan");
     let cx = RunCtx {
         out: run::out_dir(&root),
         root: root.clone(),
@@ -47,11 +54,13 @@ fn check_on_the_base_fixture_with_every_gate_stubbed_takes_under_200_ms() {
         host: Host::Lane,
         job_start: None,
         manifest: "Cargo.toml".into(),
+        after_reports: None,
+        ts: None,
     };
     let report = run::run(&plan, &cx, &mut |_, _| {}).expect("run");
     let took = start.elapsed();
     let gates: Vec<_> = report.jobs.iter().flat_map(|j| &j.gates).collect();
-    assert_eq!(gates.len(), 8);
+    assert_eq!(gates.len(), 10);
     assert!(gates.iter().all(|g| !g.outcome.fails()));
     assert!(cx.out.join("report.json").is_file());
     assert!(took < Duration::from_millis(200), "took {took:?}");

@@ -42,8 +42,10 @@ fn skill_md(packs: &[(PackId, String)]) -> String {
 
 fn pack_md(pack: PackId, about: &str, gates: &[Gate]) -> String {
     let list = gates.iter().map(|g| {
+        let rule = g.rule.iter().zip(1..).map(|(l, i)| format!("{i}. {l}\n")).collect::<Vec<_>>().concat();
+        let rule = if rule.is_empty() { rule } else { format!("\n{rule}") };
         format!(
-            "\n## {}\n\n{}\n\n- fix: {}\n- budget: {}s\n- rerun: `{}`\n- what a failure looks like: [{}](../{})\n",
+            "\n## {}\n\n{}\n{rule}\n- fix: {}\n- budget: {}s\n- rerun: `{}`\n- what a failure looks like: [{}](../{})\n",
             g.id,
             g.about,
             g.fix,
@@ -59,7 +61,11 @@ fn pack_md(pack: PackId, about: &str, gates: &[Gate]) -> String {
 fn case_change(prefix: &str) -> String {
     packs::under(prefix)
         .map(|(rel, bytes)| match (rel, std::str::from_utf8(bytes)) {
-            ("expect", _) => String::new(),
+            ("message", Ok(text)) => format!(
+                "Commits with the message:\n\n```\n{}\n```\n\n",
+                text.trim_end()
+            ),
+            ("expect" | "passes", _) => String::new(),
             ("remove", Ok(text)) => text
                 .lines()
                 .filter(|l| !l.is_empty())
@@ -83,6 +89,9 @@ fn example_md(gate: &Gate) -> String {
     );
     let cases = selftest::cases(gate).into_iter().map(|case| {
         let prefix = format!("{}/fixtures/{}/{case}/", gate.id.pack, gate.id.name());
+        if selftest::passes(gate, case) {
+            return format!("\n## {case}\n\n{}The gate passes.\n", case_change(&prefix));
+        }
         format!(
             "\n## {case}\n\n{}The gate fails and its log prints `{}`.\n\nFix: {}. Rerun: `{}`\n",
             case_change(&prefix),

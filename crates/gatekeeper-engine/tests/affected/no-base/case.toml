@@ -1,0 +1,10 @@
+trigger = { everything = "no-base" }
+expect = { all = "no-base" }
+ignore = ["docs/**"]
+
+[graph]
+"apps/web" = ["packages/ui"]
+"apps/admin" = ["packages/ui"]
+"packages/ui" = ["packages/core"]
+"packages/core" = []
+

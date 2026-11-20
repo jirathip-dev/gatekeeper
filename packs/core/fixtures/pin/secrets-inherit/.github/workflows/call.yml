@@ -1,0 +1,8 @@
+name: call
+on: push
+permissions:
+  contents: read
+jobs:
+  local:
+    uses: ./.github/workflows/ok.yml
+    secrets: inherit

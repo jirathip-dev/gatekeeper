@@ -1,11 +1,11 @@
 use crate::run::{self, RunCtx};
-use crate::{Error, Result, packs, runner};
-use gatekeeper_model::{Gate, GateId, Host, PackId};
+use crate::{Error, Result, config, packs, runner};
+use gatekeeper_model::{Gate, GateId, Host, PackId, Shard};
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-/// One gate's fixture run: how many failing cases it has and what went wrong.
+/// One gate's fixture run: how many cases it has and what went wrong.
 pub struct GateResult {
     pub id: GateId,
     pub cases: usize,
@@ -31,6 +31,8 @@ fn commit(dir: &Path, message: &str) -> Result<String> {
         .to_owned())
 }
 
+pub(crate) const CASE_META: [&str; 4] = ["expect", "message", "passes", "remove"];
+
 fn lay_case(prefix: &str, dir: &Path) -> Result<()> {
     for (rel, bytes) in packs::under(prefix) {
         if rel == "remove" {
@@ -41,7 +43,7 @@ fn lay_case(prefix: &str, dir: &Path) -> Result<()> {
                 let path = dir.join(gone);
                 fs::remove_file(&path).map_err(|e| Error::at(&path, e))?;
             }
-        } else if rel != "expect" {
+        } else if !CASE_META.contains(&rel) {
             let path = dir.join(rel);
             if let Some(parent) = path.parent() {
                 fs::create_dir_all(parent).map_err(|e| Error::at(parent, e))?;
@@ -65,9 +67,18 @@ fn run_case(gate: &Gate, case: Option<&str>, out: &Path, cache: &Path) -> Result
     runner::ok("git", &["init", "-q"], &dir)?;
     let base = commit(&dir, "base")?;
     if let Some(case) = case {
-        lay_case(&format!("{pack}/fixtures/{}/{case}/", gate.id.name()), &dir)?;
-        commit(&dir, case)?;
+        let prefix = format!("{pack}/fixtures/{}/{case}/", gate.id.name());
+        lay_case(&prefix, &dir)?;
+        commit(
+            &dir,
+            packs::text(&format!("{prefix}message")).unwrap_or(case),
+        )?;
     }
+    let config = dir
+        .join(config::PATH)
+        .exists()
+        .then(|| config::load(&dir))
+        .transpose()?;
     let cx = RunCtx {
         out: run::out_dir(&dir),
         root: dir.clone(),
@@ -76,10 +87,15 @@ fn run_case(gate: &Gate, case: Option<&str>, out: &Path, cache: &Path) -> Result
         pr_body: None,
         host: Host::Lane,
         job_start: None,
-        manifest: "Cargo.toml".into(),
+        manifest: config
+            .as_ref()
+            .map_or("Cargo.toml", config::manifest)
+            .to_owned(),
+        ts: config.and_then(|c| c.ts),
+        after_reports: None,
     };
     fs::create_dir_all(&cx.out).map_err(|e| Error::at(&cx.out, e))?;
-    let report = run::gate(gate, &cx)?;
+    let report = run::gate(gate, Shard::ONE, &[], &cx)?;
     let log = fs::read_to_string(dir.join(&report.log)).unwrap_or_default();
     Ok((report.outcome.fails(), log))
 }
@@ -91,6 +107,11 @@ pub(crate) fn cases(gate: &Gate) -> BTreeSet<&'static str> {
         .collect()
 }
 
+pub(crate) fn passes(gate: &Gate, case: &str) -> bool {
+    let path = format!("{}/fixtures/{}/{case}/passes", gate.id.pack, gate.id.name());
+    packs::text(&path).is_some()
+}
+
 pub(crate) fn expect(gate: &Gate, case: &str) -> String {
     let path = format!("{}/fixtures/{}/{case}/expect", gate.id.pack, gate.id.name());
     packs::text(&path).unwrap_or_default().trim().to_owned()
@@ -100,7 +121,7 @@ pub(crate) fn expect(gate: &Gate, case: &str) -> String {
 pub fn gate(gate: &Gate, out: &Path, cache: &Path) -> Result<GateResult> {
     let cases = cases(gate);
     let mut problems = Vec::new();
-    if cases.is_empty() {
+    if cases.iter().all(|case| passes(gate, case)) {
         problems.push("no failing fixture case".to_owned());
     }
     let (failed, log) = run_case(gate, None, out, cache)?;
@@ -109,7 +130,17 @@ pub fn gate(gate: &Gate, out: &Path, cache: &Path) -> Result<GateResult> {
     }
     for case in &cases {
         let want = expect(gate, case);
-        match run_case(gate, Some(case), out, cache)? {
+        let run = run_case(gate, Some(case), out, cache)?;
+        if passes(gate, case) {
+            if run.0 {
+                problems.push(format!(
+                    "{case}: failed; it must pass\n{}",
+                    run.1.trim_end()
+                ));
+            }
+            continue;
+        }
+        match run {
             (false, _) => problems.push(format!("{case}: passed; it must fail")),
             (true, log) if want.is_empty() || !log.contains(&want) => problems.push(format!(
                 "{case}: failed without printing `{want}`\n{}",

@@ -1,0 +1,10 @@
+trigger = { change = ["docs/guide.md", "packages/core/lib.ts"] }
+expect = { projects = ["apps/admin", "apps/web", "packages/core", "packages/ui"] }
+ignore = ["docs/**"]
+
+[graph]
+"apps/web" = ["packages/ui"]
+"apps/admin" = ["packages/ui"]
+"packages/ui" = ["packages/core"]
+"packages/core" = []
+

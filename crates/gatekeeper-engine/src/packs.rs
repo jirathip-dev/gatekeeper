@@ -40,8 +40,7 @@ pub(crate) fn materialize(prefix: &str, dest: &Path) -> Result<()> {
 
 fn parse_gate(id: GateId, path: &str, text: &str, pack: &PackFile) -> Result<Gate> {
     let file: GateFile = toml::from_str(text).map_err(|e| Error(format!("{path}: {e}")))?;
-    let gate = Gate::from_file(id, file, pack)
-        .ok_or_else(|| Error(format!("{path}: give `run` or `[[step]]`, not both")))?;
+    let gate = Gate::from_file(id, file, pack).map_err(|e| Error(format!("{path}: {e}")))?;
     for (i, upload) in gate.uploads.iter().enumerate() {
         let twice = gate
             .uploads

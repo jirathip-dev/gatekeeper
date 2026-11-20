@@ -1,5 +1,5 @@
 use crate::{Error, Result, VERSION};
-use gatekeeper_model::{Config, Pin};
+use gatekeeper_model::{Config, PackId, Pin};
 use std::path::Path;
 
 pub const PATH: &str = ".gatekeeper/config.toml";
@@ -20,6 +20,11 @@ pub fn load(root: &Path) -> Result<Config> {
         if let Some((target, _)) = pin.sha256.iter().find(|(_, s)| bad(s)) {
             return Err(Error(format!("{PATH}: [pin] {target} is not a sha256")));
         }
+    }
+    if config.packs.contains(&PackId::Ts) != config.ts.is_some() {
+        return Err(Error(format!(
+            "{PATH}: the ts pack and its [ts] table (projects, install) go together"
+        )));
     }
     Ok(config)
 }

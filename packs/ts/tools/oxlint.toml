@@ -1,0 +1,19 @@
+version = "1.94.0"
+bin = "oxlint/bin/oxlint"
+
+[[package]]
+name = "oxlint"
+url = "https://registry.npmjs.org/oxlint/-/oxlint-1.94.0.tgz"
+sha256 = "dff939298221a34824c21dae117ef5dad63462d9352244659b0e7dd43be14779"
+
+[[package]]
+name = "@oxlint/binding-darwin-arm64"
+url = "https://registry.npmjs.org/@oxlint/binding-darwin-arm64/-/binding-darwin-arm64-1.94.0.tgz"
+sha256 = "bf6931904a58229b3bab3a2259e4d70c92b925f47ce62fbdaf65db8d344d0bd9"
+target = "aarch64-apple-darwin"
+
+[[package]]
+name = "@oxlint/binding-linux-x64-gnu"
+url = "https://registry.npmjs.org/@oxlint/binding-linux-x64-gnu/-/binding-linux-x64-gnu-1.94.0.tgz"
+sha256 = "169fcc427dfd4b0e95625d941d023ac2c89a9cb1bb94e78b087e3339870ef47c"
+target = "x86_64-unknown-linux-gnu"

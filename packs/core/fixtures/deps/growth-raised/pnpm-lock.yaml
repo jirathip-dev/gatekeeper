@@ -1,0 +1,62 @@
+lockfileVersion: '9.0'
+
+importers:
+
+  .:
+    devDependencies:
+      typescript:
+        specifier: 5.6.3
+        version: 5.6.3
+
+packages:
+
+  js-tokens@4.0.0:
+    resolution: {integrity: sha512-0}
+
+  loose-envify@1.4.0:
+    resolution: {integrity: sha512-0}
+
+  react@18.3.1:
+    resolution: {integrity: sha512-0}
+
+  typescript@5.6.3:
+    resolution: {integrity: sha512-0}
+
+  chart-part-1@1.0.0:
+    resolution: {integrity: sha512-0}
+
+  chart-part-2@1.0.0:
+    resolution: {integrity: sha512-0}
+
+  chart-part-3@1.0.0:
+    resolution: {integrity: sha512-0}
+
+  chart-part-4@1.0.0:
+    resolution: {integrity: sha512-0}
+
+  chart-part-5@1.0.0:
+    resolution: {integrity: sha512-0}
+
+  chart-part-6@1.0.0:
+    resolution: {integrity: sha512-0}
+
+  chart-part-7@1.0.0:
+    resolution: {integrity: sha512-0}
+
+  chart-part-8@1.0.0:
+    resolution: {integrity: sha512-0}
+
+  chart-part-9@1.0.0:
+    resolution: {integrity: sha512-0}
+
+  chart-part-10@1.0.0:
+    resolution: {integrity: sha512-0}
+
+  chart-part-11@1.0.0:
+    resolution: {integrity: sha512-0}
+
+snapshots:
+
+  react@18.3.1:
+    dependencies:
+      loose-envify: 1.4.0

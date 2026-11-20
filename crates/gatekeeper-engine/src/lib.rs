@@ -3,11 +3,14 @@ pub(crate) mod check;
 pub mod ci;
 pub mod config;
 pub mod fetch;
+pub mod graph;
 pub(crate) mod kept;
 pub mod packs;
+pub mod pin;
 pub mod plan;
 pub mod run;
 pub(crate) mod runner;
+pub mod scope;
 pub mod selftest;
 pub mod skill;
 
@@ -33,3 +36,6 @@ impl fmt::Display for Error {
 pub type Result<T> = std::result::Result<T, Error>;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+/// The commit this binary was built from, stamped by the release build as `GATEKEEPER_BUILD`.
+pub const BUILD: Option<&str> = option_env!("GATEKEEPER_BUILD");

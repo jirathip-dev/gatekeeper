@@ -1,0 +1,3 @@
+about = "tsc strict, oxlint with the bans and the anti-slop rules, knip's unused-code ratchet"
+platform = "linux"
+setup = ["node"]

@@ -1,0 +1,5 @@
+about = "seeds the snapshot the first leg made"
+fix = "none"
+budget_secs = 5
+leg = "a-seed"
+run = "test -f snap/db.txt"
