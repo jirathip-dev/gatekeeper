@@ -14,12 +14,14 @@ fn decide(gate: &Gate, host: Host, changed: Option<&BTreeSet<String>>) -> Decisi
     if !changed.is_none_or(in_scope) {
         return Decision::Skip(Skip::OutOfScope);
     }
-    match host {
-        Host::Lane if gate.needs.contains(&Capability::Containers) => {
-            Decision::Skip(Skip::CiOnly(Capability::Containers))
-        }
-        _ => Decision::Run,
-    }
+    ci_only(gate, host).map_or(Decision::Run, Decision::Skip)
+}
+
+/// `Skip::CiOnly` when the gate needs containers and this is a lane's host.
+#[must_use]
+pub fn ci_only(gate: &Gate, host: Host) -> Option<Skip> {
+    (host == Host::Lane && gate.needs.contains(&Capability::Containers))
+        .then_some(Skip::CiOnly(Capability::Containers))
 }
 
 /// # Errors

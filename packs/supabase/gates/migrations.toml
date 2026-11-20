@@ -1,0 +1,5 @@
+about = "static, no database: each file under supabase/migrations is <14-digit UTC timestamp>_<name>.sql with a real time and a unique version; on a pull request each new file is newer than the base's newest and its policies call (select auth.uid()), never bare auth.uid()"
+fix = "rename the file with a new timestamp newer than every migration on the base, or wrap auth.uid() as (select auth.uid()); never edit a migration the base already has"
+budget_secs = 10
+paths = ["supabase/migrations/**"]
+run = "node {scripts}/check.mjs {--base}"

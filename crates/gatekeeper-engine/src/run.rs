@@ -2,8 +2,8 @@ use crate::baseline::{self, Baseline};
 use crate::runner::{self, Ended};
 use crate::{Error, Result, VERSION, fetch, kept, packs};
 use gatekeeper_model::{
-    Decision, Failure, Gate, GateReport, Host, JobReport, Millis, Outcome, Plan, Report, Step,
-    judge,
+    Decision, Failure, Gate, GateReport, Host, JobReport, Millis, Outcome, PackId, Plan, Report,
+    Step, judge,
 };
 use std::collections::BTreeSet;
 use std::fs::{self, File};
@@ -54,6 +54,20 @@ fn expand(args: &[String], cx: &RunCtx) -> Vec<String> {
     out
 }
 
+fn pack_dir(pack: PackId, dir: &str, out: &Path) -> Result<PathBuf> {
+    let to = out.join("pack").join(pack.as_str()).join(dir);
+    packs::materialize(&format!("{pack}/{dir}/"), &to)?;
+    Ok(to)
+}
+
+/// # Errors
+pub fn script(root: &Path, pack: PackId, script: &str, args: &[String]) -> Result<i32> {
+    let path = pack_dir(pack, "scripts", &out_dir(root))?.join(script);
+    let mut all = vec![path.to_string_lossy().into_owned()];
+    all.extend_from_slice(args);
+    runner::attached("node", &all, root)
+}
+
 fn ended(r: Result<Ended>, log: &mut File) -> std::result::Result<(), Failure> {
     match r {
         Ok(Ended::Exit(0)) => Ok(()),
@@ -76,13 +90,23 @@ fn step(
 ) -> std::result::Result<(), Failure> {
     match step {
         Step::Run { run } => {
-            let files = cx.out.join("pack").join(gate.id.pack.as_str());
-            let prefix = format!("{}/files/", gate.id.pack);
-            if let Err(e) = packs::materialize(&prefix, &files) {
-                writeln!(log, "{e}").ok();
-                return Err(Failure::Exit(127));
+            let base = cx
+                .base
+                .as_ref()
+                .map_or(String::new(), |b| format!("--base {b}"));
+            let mut line = run.replace("{--base}", &base);
+            for dir in ["files", "scripts"] {
+                let key = format!("{{{dir}}}");
+                if line.contains(&key) {
+                    match pack_dir(gate.id.pack, dir, &cx.out) {
+                        Ok(to) => line = line.replace(&key, &to.to_string_lossy()),
+                        Err(e) => {
+                            writeln!(log, "{e}").ok();
+                            return Err(Failure::Exit(127));
+                        }
+                    }
+                }
             }
-            let line = run.replace("{files}", &files.to_string_lossy());
             ended(runner::shell(&line, &cx.root, log, deadline), log)
         }
         Step::Tool { tool, args } => match fetch::tool(tool, &cx.cache) {

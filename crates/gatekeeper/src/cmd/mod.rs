@@ -4,10 +4,13 @@ pub mod ci;
 pub mod list;
 pub mod selftest;
 pub mod skill;
+pub mod supabase;
 
 use std::process::ExitCode;
 
-pub const VERBS: &[&str] = &["baseline", "check", "ci", "list", "selftest", "skill"];
+pub const VERBS: &[&str] = &[
+    "baseline", "check", "ci", "list", "selftest", "skill", "supabase",
+];
 
 pub fn run(name: &str, args: &[String]) -> Option<ExitCode> {
     match name {
@@ -17,6 +20,7 @@ pub fn run(name: &str, args: &[String]) -> Option<ExitCode> {
         "list" => Some(list::run(args)),
         "selftest" => Some(selftest::run(args)),
         "skill" => Some(skill::run(args)),
+        "supabase" => Some(supabase::run(args)),
         _ => None,
     }
 }

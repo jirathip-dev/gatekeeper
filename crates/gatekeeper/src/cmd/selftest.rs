@@ -4,6 +4,10 @@ use gatekeeper_model::PackId;
 use std::process::ExitCode;
 
 fn show(r: &GateResult) {
+    if let Some(why) = r.skipped {
+        say(&format!("skip  {:<18} {why}", r.id));
+        return;
+    }
     if r.problems.is_empty() {
         say(&format!(
             "ok    {:<18} clean and {} failing cases",
@@ -32,7 +36,13 @@ pub fn run(args: &[String]) -> ExitCode {
         Ok(root) => root,
         Err(e) => return cli::usage_error(&e),
     };
-    match selftest::run(&packs, &selftest::out_dir(&root), &cli::cache(), &mut show) {
+    match selftest::run(
+        &packs,
+        cli::host(),
+        &selftest::out_dir(&root),
+        &cli::cache(),
+        &mut show,
+    ) {
         Ok(results) => {
             let bad = results.iter().filter(|r| !r.problems.is_empty()).count();
             say(&format!("{} gates, {bad} failed", results.len()));

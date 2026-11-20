@@ -18,25 +18,28 @@ use std::fmt;
 pub enum PackId {
     Core,
     Rust,
+    Supabase,
     Local,
 }
 
 impl PackId {
-    pub const BUILT_IN: [PackId; 2] = [PackId::Core, PackId::Rust];
+    pub const BUILT_IN: [PackId; 3] = [PackId::Core, PackId::Rust, PackId::Supabase];
 
     #[must_use]
     pub fn as_str(self) -> &'static str {
         match self {
             PackId::Core => "core",
             PackId::Rust => "rust",
+            PackId::Supabase => "supabase",
             PackId::Local => "local",
         }
     }
 
     #[must_use]
     pub fn parse(s: &str) -> Option<PackId> {
-        [PackId::Core, PackId::Rust, PackId::Local]
+        PackId::BUILT_IN
             .into_iter()
+            .chain([PackId::Local])
             .find(|p| p.as_str() == s)
     }
 }
