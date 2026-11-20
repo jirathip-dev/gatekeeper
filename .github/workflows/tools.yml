@@ -1,0 +1,134 @@
+name: tools
+on:
+  pull_request:
+    paths: ["packs/*/tools/*.toml", .github/workflows/tools.yml]
+  push:
+    branches: [staging, main]
+    paths: ["packs/*/tools/*.toml", .github/workflows/tools.yml]
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      releases: ${{ steps.plan.outputs.releases }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'EOF' > plan.json
+          import glob, hashlib, json, os, tomllib
+          plan = []
+          for path in sorted(glob.glob("packs/*/tools/*.toml")):
+              with open(path, "rb") as f:
+                  tool = tomllib.load(f)
+              if "build" not in tool:
+                  continue
+              name = os.path.basename(path)[: -len(".toml")]
+              key = hashlib.sha256(json.dumps([tool["version"], tool["build"]], sort_keys=True).encode()).hexdigest()[:12]
+              plan.append({"name": name, "path": path, "version": tool["version"], "tag": f"tool-{name}-{tool['version']}-{key}", "build": tool["build"]})
+          print(json.dumps(plan))
+          EOF
+          releases='[]'
+          include='[]'
+          while read -r tool; do
+            tag=$(jq -r .tag <<< "$tool")
+            if gh release view "$tag" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+              echo "$tag: published already, not rebuilt"
+              continue
+            fi
+            releases=$(jq -c --argjson t "$tool" '. + [$t | {name, version, tag, bin: .build.bin}]' <<< "$releases")
+            include=$(jq -c --argjson t "$tool" --argjson runner '{"x86_64-unknown-linux-gnu": "ubuntu-latest", "aarch64-unknown-linux-gnu": "ubuntu-24.04-arm", "aarch64-apple-darwin": "macos-latest"}' \
+              '. + [$t.build.targets[] | {name: $t.name, path: $t.path, version: $t.version, target: ., os: $runner[.], budget: $t.build.budget_minutes}]' <<< "$include")
+          done < <(jq -c '.[]' plan.json)
+          if jq -e '.[] | select(.os == null)' <<< "$include" > /dev/null; then echo "a recipe names a target with no runner"; exit 1; fi
+          {
+            echo "matrix={\"include\":$include}"
+            echo "releases=$releases"
+          } >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: plan
+    if: needs.plan.outputs.releases != '[]'
+    name: build ${{ matrix.name }} ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: ${{ matrix.budget }}
+    env:
+      TOOL: ${{ matrix.name }}
+      RECIPE: ${{ matrix.path }}
+      VERSION: ${{ matrix.version }}
+      TARGET: ${{ matrix.target }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
+        with:
+          toolchain: stable
+      - name: build
+        run: |
+          export OUT="$RUNNER_TEMP/out"
+          mkdir -p "$OUT" "$RUNNER_TEMP/work" dist
+          python3 -c 'import sys, tomllib; print(tomllib.load(open(sys.argv[1], "rb"))["build"]["script"])' "$RECIPE" > "$RUNNER_TEMP/build.sh"
+          (cd "$RUNNER_TEMP/work" && bash -euo pipefail "$RUNNER_TEMP/build.sh")
+          tar -czf "dist/$TOOL-$VERSION-$TARGET.tar.gz" -C "$OUT" .
+          tar -tzf "dist/$TOOL-$VERSION-$TARGET.tar.gz"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: tool-${{ matrix.name }}-${{ matrix.target }}
+          path: dist/${{ matrix.name }}-${{ matrix.version }}-${{ matrix.target }}.tar.gz
+          if-no-files-found: error
+
+  publish:
+    needs: [plan, build]
+    if: github.event_name == 'push' && needs.plan.outputs.releases != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      RELEASES: ${{ needs.plan.outputs.releases }}
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          path: dist
+          pattern: tool-*
+          merge-multiple: true
+      - name: publish, each version once, never replaced
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          while read -r tool; do
+            name=$(jq -r .name <<< "$tool")
+            version=$(jq -r .version <<< "$tool")
+            tag=$(jq -r .tag <<< "$tool")
+            bin=$(jq -r .bin <<< "$tool")
+            mkdir "$tag"
+            mv dist/"$name-$version"-*.tar.gz "$tag/"
+            (cd "$tag" && sha256sum -- *.tar.gz > SHA256SUMS && cat SHA256SUMS)
+            gh release create "$tag" "$tag"/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+              --title "$name $version" --notes "built from packs/*/tools/$name.toml at $GITHUB_SHA" --latest=false
+            {
+              echo "### pin for \`$name.toml\`"
+              echo '```toml'
+              while read -r sum file; do
+                target=${file#"$name-$version-"}
+                echo "[asset.${target%.tar.gz}]"
+                echo "url = \"https://github.com/$GITHUB_REPOSITORY/releases/download/$tag/$file\""
+                echo "sha256 = \"$sum\""
+                echo "bin = \"$bin\""
+              done < "$tag/SHA256SUMS"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          done < <(jq -c '.[]' <<< "$RELEASES")
