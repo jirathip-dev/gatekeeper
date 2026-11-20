@@ -80,7 +80,11 @@ impl Args {
             .value("--gate")
             .map(|g| GateId::try_from(g.to_owned()).map_err(Error))
             .transpose()?;
-        Ok(Filter { packs, gate })
+        Ok(Filter {
+            packs,
+            gate,
+            changed: None,
+        })
     }
 }
 

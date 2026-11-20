@@ -98,7 +98,7 @@ jobs:
           path: |
             target/gatekeeper/
             !target/gatekeeper/check/
-            !target/gatekeeper/files/
+            !target/gatekeeper/pack/
             !target/gatekeeper/selftest/
           if-no-files-found: ignore
 

@@ -1,0 +1,13 @@
+about = "writes a report, then fails"
+fix = "none"
+budget_secs = 5
+
+[[step]]
+run = "mkdir -p target/report && echo broken > target/report/index.html && exit 4"
+
+[[step]]
+run = "echo never > target/report/later.html"
+
+[[upload]]
+name = "report"
+paths = ["target/report/*"]

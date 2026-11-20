@@ -107,4 +107,13 @@ pub struct GateReport {
     pub took: Millis,
     pub budget: Secs,
     pub log: String,
+    #[serde(default)]
+    pub kept: Vec<Kept>,
+}
+
+/// An upload's files, by their repo paths; a copy of each is under `files/<name>/` of the out folder.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Kept {
+    pub name: String,
+    pub files: Vec<String>,
 }

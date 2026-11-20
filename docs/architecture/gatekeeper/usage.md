@@ -176,7 +176,7 @@ paths = ["target/ui/390/*.png"]
 
 ```
 ok    local/ui         41.0s / 120s
-      files: ui-390 (6) target/ui/390/
+      files: ui-390 (6) target/gatekeeper/files/ui-390/
 ```
 
 In CI the same six files are in the job's artifact, `gates-local`, under `files/ui-390/`, beside `report.json` and
@@ -186,7 +186,7 @@ the logs. They are kept whether the gate passed or failed.
 
 ```
 $ ./.gatekeeper/run baseline ts/oxlint
-.gatekeeper/baseline/ts-oxlint.txt: 3369 findings in 417 files
+.gatekeeper/baseline/ts-oxlint.txt: 3369 findings
 ```
 
 A listed finding passes, a new one fails, and a fixed one must leave the list (`stale: shrink the baseline`).

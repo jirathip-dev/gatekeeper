@@ -193,3 +193,141 @@ fn ci_plan_emits_one_leg_per_pack_and_done_fails_a_missing_or_failed_report() {
     assert_eq!(code, 1);
     assert!(out.contains("FAIL local/c-ok: OVER"), "{out}");
 }
+
+fn git(root: &Path, args: &[&str]) -> String {
+    let out = Command::new("git")
+        .args([
+            "-c",
+            "user.name=t",
+            "-c",
+            "user.email=t@localhost",
+            "-c",
+            "commit.gpgsign=false",
+        ])
+        .args(args)
+        .current_dir(root)
+        .output()
+        .expect("git runs");
+    assert!(out.status.success(), "git {args:?}: {out:?}");
+    String::from_utf8_lossy(&out.stdout).trim().to_owned()
+}
+
+const WEB: &str =
+    "about = \"web\"\nfix = \"none\"\nbudget_secs = 5\nrun = \"true\"\npaths = [\"web/**\"]\n";
+const SRC: &str =
+    "about = \"src\"\nfix = \"none\"\nbudget_secs = 5\nrun = \"true\"\npaths = [\"src/*.rs\"]\n";
+
+#[test]
+fn a_gate_with_no_changed_file_in_its_paths_is_skipped_unless_all_or_no_base() {
+    let root = repo("scope", CONFIG, &[("web", WEB), ("src", SRC), ("c-ok", OK)]);
+    git(&root, &["init", "-q"]);
+    git(&root, &["add", "-A"]);
+    git(&root, &["commit", "-q", "-m", "base"]);
+    let base = git(&root, &["rev-parse", "HEAD"]);
+    fs::create_dir_all(root.join("src")).expect("src");
+    fs::write(root.join("src/a.rs"), "").expect("a.rs");
+    let (code, out) = gk(&root, &["check", "--base", &base], &[]);
+    assert_eq!(code, 0, "{out}");
+    assert!(out.contains("· 1 files changed ·"), "{out}");
+    let skip = out
+        .lines()
+        .find(|l| l.starts_with("skip  local/web"))
+        .expect("web skipped");
+    assert!(
+        skip.ends_with("no changed file matches its paths"),
+        "{skip}"
+    );
+    assert!(out.contains("ok    local/src"), "{out}");
+    assert!(out.contains("ok    local/c-ok"), "{out}");
+    git(&root, &["update-ref", "refs/remotes/origin/staging", &base]);
+    let (_, lane) = gk(&root, &["check"], &[]);
+    assert!(lane.contains("skip  local/web"), "{lane}");
+    let ci = [("GITHUB_ACTIONS", "true")];
+    let all = ["check", "--all"];
+    for (args, env) in [(&all[..], &[][..]), (&["check"][..], &ci[..])] {
+        let (code, out) = gk(&root, args, env);
+        assert_eq!(code, 0, "{out}");
+        assert!(out.contains("ok    local/web"), "{args:?} {env:?}\n{out}");
+        assert!(out.contains("· every gate ·"), "{out}");
+    }
+    git(&root, &["update-ref", "-d", "refs/remotes/origin/staging"]);
+    let (_, no_base) = gk(&root, &["check"], &[]);
+    assert!(no_base.contains("base none · every gate"), "{no_base}");
+    assert!(no_base.contains("ok    local/web"), "{no_base}");
+}
+
+const FLOOR: &str = "about = \"the deny floor\"\nfix = \"deny it\"\nbudget_secs = 5\n\n[[step]]\ncheck = \"deny-floor\"\n";
+const DENY: &str = "[advisories]\nyanked = \"deny\"\n[bans]\nmultiple-versions = \"deny\"\nwildcards = \"allow\"\n[sources]\nunknown-registry = \"deny\"\nunknown-git = \"warn\"\n";
+
+#[test]
+fn a_baseline_passes_listed_findings_fails_new_and_stale_ones_and_only_shrinks() {
+    let root = repo("baseline", CONFIG, &[("floor", FLOOR)]);
+    let file = root.join(".gatekeeper/baseline/local-floor.txt");
+    let deny = root.join("deny.toml");
+    fs::write(&deny, DENY).expect("deny");
+    let (code, out) = gk(&root, &["check"], &[]);
+    assert_eq!(code, 1, "{out}");
+    assert!(out.contains("bans.wildcards is \"allow\""), "{out}");
+
+    let (code, out) = gk(&root, &["baseline", "local/floor"], &[]);
+    assert_eq!(code, 0, "{out}");
+    assert!(
+        out.contains(".gatekeeper/baseline/local-floor.txt: 2 findings"),
+        "{out}"
+    );
+    let (code, out) = gk(&root, &["check"], &[]);
+    assert_eq!(code, 0, "{out}");
+
+    let fixed = DENY.replace("wildcards = \"allow\"", "wildcards = \"deny\"");
+    fs::write(&deny, format!("{fixed}[licenses]\nallow = [\"WTFPL\"]\n")).expect("deny");
+    let (code, out) = gk(&root, &["check"], &[]);
+    assert_eq!(code, 1, "{out}");
+    assert!(out.contains("licence WTFPL is outside"), "{out}");
+    fs::write(&deny, &fixed).expect("deny");
+    let (code, out) = gk(&root, &["check"], &[]);
+    assert_eq!(code, 1, "{out}");
+    assert!(
+        out.contains("stale: shrink the baseline (./.gatekeeper/run baseline local/floor): deny.toml: bans.wildcards"),
+        "{out}"
+    );
+
+    fs::write(&deny, format!("{fixed}[licenses]\nallow = [\"WTFPL\"]\n")).expect("deny");
+    let (code, out) = gk(&root, &["baseline", "local/floor"], &[]);
+    assert_eq!(code, 1, "{out}");
+    assert!(out.contains("new   deny.toml: licence WTFPL"), "{out}");
+    let listed = fs::read_to_string(&file).expect("baseline");
+    assert_eq!(listed.lines().count(), 1, "{listed}");
+    assert!(listed.contains("sources.unknown-git"), "{listed}");
+
+    fs::write(
+        &deny,
+        fixed.replace("unknown-git = \"warn\"", "unknown-git = \"deny\""),
+    )
+    .expect("deny");
+    let (code, out) = gk(&root, &["baseline", "local/floor"], &[]);
+    assert_eq!(code, 0, "{out}");
+    assert!(!file.exists());
+    assert_eq!(gk(&root, &["check"], &[]).0, 0);
+    assert_eq!(gk(&root, &["baseline", "local/nope"], &[]).0, 2);
+}
+
+const SHOTS: &str = "about = \"ui\"\nfix = \"none\"\nbudget_secs = 5\nrun = \"mkdir -p shots && echo a > shots/a.png; exit 1\"\n\n[[upload]]\nname = \"ui-390\"\npaths = [\"shots/*.png\"]\n\n[[upload]]\nname = \"db\"\npaths = [\"db/*.dump\"]\n";
+
+#[test]
+fn a_lane_sees_where_a_failed_gates_kept_files_are_and_what_matched_nothing() {
+    let root = repo("kept-lane", CONFIG, &[("ui", SHOTS)]);
+    let (code, out) = gk(&root, &["check"], &[]);
+    assert_eq!(code, 1, "{out}");
+    assert!(
+        out.contains("      files: ui-390 (1) target/gatekeeper/files/ui-390/\n"),
+        "{out}"
+    );
+    assert!(
+        out.contains("      files: db (0) nothing matched db/*.dump\n"),
+        "{out}"
+    );
+    assert!(
+        root.join("target/gatekeeper/files/ui-390/shots/a.png")
+            .is_file()
+    );
+}
