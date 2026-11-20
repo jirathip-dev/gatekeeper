@@ -1,6 +1,6 @@
 use crate::run::{self, RunCtx};
-use crate::{Error, Result, config, packs, runner};
-use gatekeeper_model::{Gate, GateId, Host, PackId, Shard};
+use crate::{Error, Result, config, packs, plan, runner};
+use gatekeeper_model::{Gate, GateId, Host, PackId, Shard, Skip};
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -10,6 +10,7 @@ pub struct GateResult {
     pub id: GateId,
     pub cases: usize,
     pub problems: Vec<String>,
+    pub skipped: Option<Skip>,
 }
 
 const GIT: [&str; 6] = [
@@ -153,12 +154,14 @@ pub fn gate(gate: &Gate, out: &Path, cache: &Path) -> Result<GateResult> {
         id: gate.id.clone(),
         cases: cases.len(),
         problems,
+        skipped: None,
     })
 }
 
 /// # Errors
 pub fn run(
     packs: &[PackId],
+    host: Host,
     out: &Path,
     cache: &Path,
     seen: &mut dyn FnMut(&GateResult),
@@ -166,7 +169,15 @@ pub fn run(
     let mut results = Vec::new();
     for pack in packs {
         for g in packs::pack_gates(*pack)? {
-            let result = gate(&g, out, cache)?;
+            let result = match plan::ci_only(&g, host) {
+                Some(skip) => GateResult {
+                    id: g.id.clone(),
+                    cases: cases(&g).len(),
+                    problems: Vec::new(),
+                    skipped: Some(skip),
+                },
+                None => gate(&g, out, cache)?,
+            };
             seen(&result);
             results.push(result);
         }

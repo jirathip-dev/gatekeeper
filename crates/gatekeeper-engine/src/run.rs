@@ -2,8 +2,8 @@ use crate::baseline::{self, Baseline};
 use crate::runner::{self, Ended};
 use crate::{Error, Result, VERSION, fetch, kept, packs};
 use gatekeeper_model::{
-    Decision, Failure, Gate, GateReport, Host, Job, JobReport, Millis, Outcome, Plan, Planned,
-    Report, Shard, Skip, Step, TsPack, judge,
+    Decision, Failure, Gate, GateReport, Host, Job, JobReport, Millis, Outcome, PackId, Plan,
+    Planned, Report, Shard, Skip, Step, TsPack, judge,
 };
 use std::cell::OnceCell;
 use std::collections::BTreeSet;
@@ -71,6 +71,20 @@ fn expand(args: &[String], cx: &RunCtx) -> Vec<String> {
     out
 }
 
+fn pack_dir(pack: PackId, dir: &str, out: &Path) -> Result<PathBuf> {
+    let to = out.join("pack").join(pack.as_str()).join(dir);
+    packs::materialize(&format!("{pack}/{dir}/"), &to)?;
+    Ok(to)
+}
+
+/// # Errors
+pub fn script(root: &Path, pack: PackId, script: &str, args: &[String]) -> Result<i32> {
+    let path = pack_dir(pack, "scripts", &out_dir(root))?.join(script);
+    let mut all = vec![path.to_string_lossy().into_owned()];
+    all.extend_from_slice(args);
+    runner::attached("node", &all, root)
+}
+
 fn ended(r: Result<Ended>, log: &mut File) -> std::result::Result<(), Failure> {
     match r {
         Ok(Ended::Exit(0)) => Ok(()),
@@ -83,20 +97,22 @@ fn ended(r: Result<Ended>, log: &mut File) -> std::result::Result<(), Failure> {
     }
 }
 
-fn with_tools(
-    mut line: String,
-    run: &str,
-    cx: &RunCtx,
-    log: &mut File,
-) -> std::result::Result<String, Failure> {
+fn run_line(run: &str, (gate, vars): (&Gate, &[(&str, String)]), cx: &RunCtx) -> Result<String> {
+    let base = cx
+        .base
+        .as_ref()
+        .map_or(String::new(), |b| format!("--base {b}"));
+    let mut line = run.replace("{--base}", &base);
+    for dir in ["files", "scripts"] {
+        let to = pack_dir(gate.id.pack, dir, &cx.out)?;
+        line = line.replace(&format!("{{{dir}}}"), &to.to_string_lossy());
+    }
+    for (var, value) in vars {
+        line = line.replace(var, value);
+    }
     for tool in fetch::named_in(run) {
-        match fetch::tool(tool, &cx.cache) {
-            Ok(bin) => line = line.replace(&format!("{{tool:{tool}}}"), &bin.to_string_lossy()),
-            Err(e) => {
-                writeln!(log, "{e}").ok();
-                return Err(Failure::MissingTool(tool.to_owned()));
-            }
-        }
+        let bin = fetch::tool(tool, &cx.cache)?;
+        line = line.replace(&format!("{{tool:{tool}}}"), &bin.to_string_lossy());
     }
     Ok(line)
 }
@@ -111,20 +127,13 @@ fn step(
     note: &OnceCell<String>,
 ) -> std::result::Result<(), Failure> {
     match step {
-        Step::Run { run } => {
-            let files = cx.out.join("pack").join(gate.id.pack.as_str());
-            let prefix = format!("{}/files/", gate.id.pack);
-            if let Err(e) = packs::materialize(&prefix, &files) {
+        Step::Run { run } => match run_line(run, (gate, vars), cx) {
+            Ok(line) => ended(runner::shell(&line, &cx.root, log, deadline), log),
+            Err(e) => {
                 writeln!(log, "{e}").ok();
-                return Err(Failure::Exit(127));
+                Err(Failure::Exit(127))
             }
-            let mut line = run.replace("{files}", &files.to_string_lossy());
-            for (var, value) in vars {
-                line = line.replace(var, value);
-            }
-            let line = with_tools(line, run, cx, log)?;
-            ended(runner::shell(&line, &cx.root, log, deadline), log)
-        }
+        },
         Step::Tool { tool, args } => match fetch::tool(tool, &cx.cache) {
             Ok(bin) => ended(
                 runner::logged(&bin, &expand(args, cx), &cx.root, log, deadline),

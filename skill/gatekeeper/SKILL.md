@@ -18,6 +18,7 @@ description: Read, fix and rerun a failing gatekeeper gate (gatekeeper 1.0.0).
 - [core](packs/core.md): the line cap, the rules file, arch-check, actionlint, the dependency list
 - [rust](packs/rust.md): fmt, clippy with the shared lints, cargo-deny, the banned-API fixtures
 - [ts](packs/ts.md): tsc strict, oxlint with the bans and the anti-slop rules, knip's unused-code ratchet
+- [supabase](packs/supabase.md): the migration files' names, order and policy rule, and pgTAP on a local stack (CI only on a lane's host)
 
 ## Pinned tools
 
@@ -28,5 +29,6 @@ A gate's `run` line names one as `{tool:<name>}`: gatekeeper fetches it by versi
 - `libde265` 1.0.16, built by gatekeeper for x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu, aarch64-apple-darwin (`lib/pkgconfig/libde265.pc`)
 - `sqlx-cli` 0.8.6, built by gatekeeper for x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu, aarch64-apple-darwin (`bin/sqlx`)
 - `cargo-deny` 0.22.0
+- `supabase` 3.2.0
 - `knip` 6.47.0
 - `oxlint` 1.94.0

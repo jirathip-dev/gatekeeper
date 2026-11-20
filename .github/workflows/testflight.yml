@@ -1,0 +1,161 @@
+name: testflight
+on:
+  workflow_call:
+    inputs:
+      project:
+        description: the .xcodeproj or .xcworkspace to archive, a path in the repo
+        type: string
+        required: true
+      scheme:
+        description: the scheme to archive
+        type: string
+        required: true
+      platforms:
+        description: the platforms to build, as a JSON list of ios, macos, tvos, visionos
+        type: string
+        default: '["ios"]'
+      upload:
+        description: send the build to TestFlight; false archives and exports it, and uploads nothing
+        type: boolean
+        default: false
+      sign:
+        description: export signs the unsigned archive while exporting; archive signs while archiving
+        type: string
+        default: export
+      xcode:
+        description: the Xcode version to select, as in /Applications/Xcode_<xcode>.app; empty keeps the runner's
+        type: string
+        default: ""
+      runner:
+        description: the macOS runner label
+        type: string
+        default: macos-latest
+      prepare:
+        description: a script of the repo's, a path in it, run before anything else
+        type: string
+        default: ""
+      environment:
+        description: the environment holding the App Store Connect secrets
+        type: string
+        default: testflight
+    secrets:
+      ASC_KEY_P8:
+        required: true
+      ASC_KEY_ID:
+        required: true
+      ASC_ISSUER_ID:
+        required: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  testflight:
+    name: testflight ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: ${{ fromJSON(inputs.platforms) }}
+    runs-on: ${{ inputs.runner }}
+    environment: ${{ inputs.environment }}
+    timeout-minutes: 60
+    env:
+      PROJECT: ${{ inputs.project }}
+      SCHEME: ${{ inputs.scheme }}
+      PLATFORM: ${{ matrix.platform }}
+      UPLOAD: ${{ inputs.upload }}
+      SIGN: ${{ inputs.sign }}
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: prepare
+        if: inputs.prepare != ''
+        env:
+          PREPARE: ${{ inputs.prepare }}
+        run: '"./$PREPARE"'
+      - name: inputs
+        run: |
+          case "$SIGN" in export | archive) ;; *) echo "sign: export or archive, not $SIGN"; exit 2 ;; esac
+          case "$PLATFORM" in
+            ios) dest=iOS api=IOS ;;
+            macos) dest=macOS api=MAC_OS ;;
+            tvos) dest=tvOS api=TV_OS ;;
+            visionos) dest=visionOS api=VISION_OS ;;
+            *) echo "platforms: ios, macos, tvos or visionos, not $PLATFORM"; exit 2 ;;
+          esac
+          kind=-project
+          case "$PROJECT" in *.xcworkspace) kind=-workspace ;; esac
+          {
+            echo "DEST=generic/platform=$dest"
+            echo "API_PLATFORM=$api"
+            echo "KIND=$kind"
+          } >> "$GITHUB_ENV"
+      - name: select Xcode
+        if: inputs.xcode != ''
+        env:
+          XCODE: ${{ inputs.xcode }}
+        run: sudo xcode-select -s "/Applications/Xcode_$XCODE.app"
+      - name: the App Store Connect key
+        env:
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          ENVIRONMENT: ${{ inputs.environment }}
+        run: |
+          for s in ASC_KEY_P8 ASC_KEY_ID ASC_ISSUER_ID; do
+            [ -n "${!s}" ] || { echo "$s is empty in the $ENVIRONMENT environment"; exit 2; }
+          done
+          key="$RUNNER_TEMP/asc.p8"
+          (umask 077 && printf '%s\n' "$ASC_KEY_P8" > "$key")
+          echo "ASC_KEY_PATH=$key" >> "$GITHUB_ENV"
+      - name: the token script, from the gatekeeper commit the caller pins
+        run: |
+          shas=$(grep -rhoE 'jirathip-dev/gatekeeper/\.github/workflows/testflight\.yml@[0-9a-f]{40}' .github/workflows | sed 's/.*@//' | sort -u)
+          [ "$(wc -w <<< "$shas")" -eq 1 ] || { echo "want one pinned testflight.yml commit, found: $shas"; exit 2; }
+          curl -fsSL -o "$RUNNER_TEMP/asc-token.swift" \
+            "https://raw.githubusercontent.com/jirathip-dev/gatekeeper/$shas/packs/swift/scripts/asc-token.swift"
+      - name: build number, one above App Store Connect's latest
+        run: |
+          token=$(swift "$RUNNER_TEMP/asc-token.swift")
+          echo "::add-mask::$token"
+          api=https://api.appstoreconnect.apple.com/v1
+          bundle=$(xcodebuild -showBuildSettings -json "$KIND" "$PROJECT" -scheme "$SCHEME" -destination "$DEST" |
+            jq -r '[.[].buildSettings.PRODUCT_BUNDLE_IDENTIFIER | select(.)][0]')
+          app=$(curl -fsSg -H "Authorization: Bearer $token" "$api/apps?filter[bundleId]=$bundle&limit=1" | jq -r '.data[0].id // empty')
+          [ -n "$app" ] || { echo "no App Store Connect app for $bundle"; exit 1; }
+          latest=$(curl -fsSg -H "Authorization: Bearer $token" \
+            "$api/builds?filter[app]=$app&filter[preReleaseVersion.platform]=$API_PLATFORM&sort=-uploadedDate&limit=1&fields[builds]=version" |
+            jq -r '.data[0].attributes.version // "0"')
+          echo "BUILD=$(( ${latest%%.*} + 1 ))" >> "$GITHUB_ENV"
+      - name: archive
+        run: |
+          unsigned=()
+          if [ "$SIGN" = export ]; then unsigned=(CODE_SIGNING_ALLOWED=NO); fi
+          xcodebuild archive "$KIND" "$PROJECT" -scheme "$SCHEME" -destination "$DEST" \
+            -archivePath "$RUNNER_TEMP/app.xcarchive" CURRENT_PROJECT_VERSION="$BUILD" "${unsigned[@]}" \
+            -allowProvisioningUpdates -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+      - name: ${{ inputs.upload && 'export and upload' || 'export' }}
+        run: |
+          destination='export'
+          if [ "$UPLOAD" = true ]; then destination=upload; fi
+          cat > "$RUNNER_TEMP/export.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+          <key>method</key><string>app-store-connect</string>
+          <key>destination</key><string>$destination</string>
+          <key>signingStyle</key><string>automatic</string>
+          </dict></plist>
+          EOF
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/app.xcarchive" \
+            -exportPath "$RUNNER_TEMP/export" -exportOptionsPlist "$RUNNER_TEMP/export.plist" \
+            -allowProvisioningUpdates -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+          echo "build $BUILD of $SCHEME ($PLATFORM): $destination" >> "$GITHUB_STEP_SUMMARY"
+      - name: remove the key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/asc.p8"

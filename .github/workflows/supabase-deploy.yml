@@ -1,0 +1,48 @@
+name: supabase-deploy
+on:
+  workflow_call:
+    inputs:
+      target:
+        description: dev or prod; prod applies only from a fresh checkout of main, dev from the integration branch
+        type: string
+        required: true
+      environment:
+        description: the caller's GitHub environment that holds vars.SUPABASE_PROJECT_REF and guards production; empty uses the target's name
+        type: string
+        default: ""
+    secrets:
+      SUPABASE_ACCESS_TOKEN:
+        description: a Supabase access token for the project's Management API
+        required: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: supabase-deploy-${{ inputs.target }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: ${{ inputs.environment || inputs.target }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: supabase/migrations
+        run: ./.gatekeeper/run check --gate supabase/migrations --all
+      - name: apply
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+          TARGET: ${{ inputs.target }}
+        run: ./.gatekeeper/run supabase apply --target "$TARGET"
