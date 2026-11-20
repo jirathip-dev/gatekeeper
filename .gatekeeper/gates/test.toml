@@ -1,0 +1,5 @@
+about = "cargo test: the engine's plan, budget, fetch and perf cases, the wrapper"
+fix = "fix the failing test the log names"
+budget_secs = 120
+setup = ["rust"]
+run = "cargo test --workspace --all-features --locked"

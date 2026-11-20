@@ -1,0 +1,4 @@
+host = { kind = "self-hosted" }
+took_ms = 2001
+budget_secs = 2
+expect = "slow"

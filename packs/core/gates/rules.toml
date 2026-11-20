@@ -1,0 +1,7 @@
+about = "drover lesson-check: every active check in .drover/rules.md passes"
+fix = "fix what the named check reports, or retire the check in a lesson PR"
+budget_secs = 5
+
+[[step]]
+tool = "drover"
+args = ["lesson-check", "--rules", ".drover/rules.md"]

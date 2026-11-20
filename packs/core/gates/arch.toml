@@ -1,0 +1,7 @@
+about = "drover arch-check: the layers, bans, sizes, frozen and generated files and comments in .drover/arch.toml"
+fix = "follow the rule the finding names; rerun the generator, never hand-edit a generated file"
+budget_secs = 45
+
+[[step]]
+tool = "drover"
+args = ["arch-check", "{--base}", "{--pr-body}"]

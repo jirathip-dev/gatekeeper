@@ -1,0 +1,4 @@
+host = { kind = "github-hosted", warm_cache = false }
+took_ms = 2001
+budget_secs = 2
+expect = "slow"

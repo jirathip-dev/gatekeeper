@@ -1,0 +1,192 @@
+mod gate;
+mod report;
+
+pub use gate::{Capability, Gate, GateFile, PackFile, Platform, Step, Toolchain};
+pub use report::{
+    BudgetMode, Failure, GateReport, Host, JobReport, Millis, Outcome, Report, judge,
+};
+
+use serde::{Deserialize, Serialize};
+use std::collections::{BTreeMap, BTreeSet};
+use std::fmt;
+
+/// A pack of gates: a built-in one, or `local` for the repo's own `.gatekeeper/gates/`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum PackId {
+    Core,
+    Rust,
+    Local,
+}
+
+impl PackId {
+    pub const BUILT_IN: [PackId; 2] = [PackId::Core, PackId::Rust];
+
+    #[must_use]
+    pub fn as_str(self) -> &'static str {
+        match self {
+            PackId::Core => "core",
+            PackId::Rust => "rust",
+            PackId::Local => "local",
+        }
+    }
+
+    #[must_use]
+    pub fn parse(s: &str) -> Option<PackId> {
+        [PackId::Core, PackId::Rust, PackId::Local]
+            .into_iter()
+            .find(|p| p.as_str() == s)
+    }
+}
+
+impl fmt::Display for PackId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+/// `pack/name`, the name lowercase letters, digits and dashes.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(try_from = "String", into = "String")]
+pub struct GateId {
+    pub pack: PackId,
+    name: String,
+}
+
+impl GateId {
+    #[must_use]
+    pub fn new(pack: PackId, name: &str) -> Option<GateId> {
+        let ok = !name.is_empty()
+            && name
+                .bytes()
+                .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-');
+        ok.then(|| GateId {
+            pack,
+            name: name.to_owned(),
+        })
+    }
+
+    #[must_use]
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    #[must_use]
+    pub fn file_stem(&self) -> String {
+        format!("{}-{}", self.pack, self.name)
+    }
+}
+
+impl TryFrom<String> for GateId {
+    type Error = String;
+
+    fn try_from(s: String) -> Result<GateId, String> {
+        s.split_once('/')
+            .and_then(|(p, n)| GateId::new(PackId::parse(p)?, n))
+            .ok_or_else(|| format!("`{s}` is not a gate id (pack/name)"))
+    }
+}
+
+impl From<GateId> for String {
+    fn from(id: GateId) -> String {
+        id.to_string()
+    }
+}
+
+impl fmt::Display for GateId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.pad(&format!("{}/{}", self.pack, self.name))
+    }
+}
+
+/// Whole seconds: a budget.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct Secs(pub u32);
+
+/// `.gatekeeper/config.toml`, parsed once at the edge; an unknown key is an error.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Config {
+    pub packs: BTreeSet<PackId>,
+    pub integration: String,
+    pub pin: Pin,
+    #[serde(default)]
+    pub budgets: BTreeMap<GateId, Secs>,
+    #[serde(default)]
+    pub rust: Option<RustPack>,
+}
+
+/// Which gatekeeper runs: this checkout's build, or a release by version and per-target sha256.
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub enum Pin {
+    Checkout(CheckoutWord),
+    Release(ReleasePin),
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum CheckoutWord {
+    Checkout,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ReleasePin {
+    pub version: String,
+    #[serde(flatten)]
+    pub sha256: BTreeMap<String, String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RustPack {
+    pub manifest: String,
+}
+
+/// What `check` and `list` narrow the configured gates to.
+#[derive(Debug, Default)]
+pub struct Filter {
+    pub packs: BTreeSet<PackId>,
+    pub gate: Option<GateId>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct Plan {
+    pub jobs: Vec<Job>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct Job {
+    pub leg: PackId,
+    pub platform: Platform,
+    pub setup: BTreeSet<Toolchain>,
+    pub gates: Vec<Planned>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct Planned {
+    pub gate: Gate,
+    pub decision: Decision,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Decision {
+    Run,
+    Skip(Skip),
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Skip {
+    CiOnly(Capability),
+}
+
+impl fmt::Display for Skip {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Skip::CiOnly(c) => write!(f, "CI only on a lane's host: needs {c}"),
+        }
+    }
+}

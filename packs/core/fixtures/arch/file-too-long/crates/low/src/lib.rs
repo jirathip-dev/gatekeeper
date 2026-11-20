@@ -1,0 +1,27 @@
+pub fn low() -> u32 {
+    1
+}
+
+pub fn f0() {}
+
+pub fn f1() {}
+
+pub fn f2() {}
+
+pub fn f3() {}
+
+pub fn f4() {}
+
+pub fn f5() {}
+
+pub fn f6() {}
+
+pub fn f7() {}
+
+pub fn f8() {}
+
+pub fn f9() {}
+
+pub fn f10() {}
+
+pub fn f11() {}

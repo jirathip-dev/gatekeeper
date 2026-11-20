@@ -1,0 +1,9 @@
+about = "the 12 clippy denies, unsafe_code forbid and pedantic warn are in [workspace.lints]; clippy refuses each banned-API file under them"
+fix = "put the lint back in [workspace.lints] at the floor's level; a floor that is wrong is changed in gatekeeper"
+budget_secs = 30
+
+[[step]]
+check = "lint-floor"
+
+[[step]]
+check = "banned-apis"
