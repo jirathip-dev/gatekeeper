@@ -1,0 +1,17 @@
+gate = { run = "true", paths = ["src/**"], versions = ["echo 1"] }
+files = { "src/a.txt" = "one" }
+cache = {}
+
+[[run]]
+trigger = "lane"
+expect = "ok"
+
+[[run]]
+trigger = "lane"
+edit = { "target/src/ignored.txt" = "not an input" }
+expect = "cached"
+
+[[run]]
+trigger = "lane"
+edit = { "src/new.txt" = "untracked" }
+expect = "ok"

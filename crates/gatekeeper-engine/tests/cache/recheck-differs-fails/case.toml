@@ -1,0 +1,13 @@
+gate = { run = "test ! -e target/undeclared", versions = ["echo 1"] }
+cache = { recheck = 1 }
+
+[[run]]
+trigger = "lane"
+expect = "ok"
+
+[[run]]
+trigger = "lane"
+edit = { "target/undeclared" = "an ignored file the gate reads" }
+expect = "FAIL"
+contains = "cache-mismatch"
+expect_store = { host = 0 }

@@ -1,0 +1,17 @@
+gate = { run = "true", setup = ["rust"] }
+cache = {}
+
+[[run]]
+trigger = "lane"
+versions = { "rustc -Vv" = "rustc 1.91.0" }
+expect = "ok"
+
+[[run]]
+trigger = "lane"
+versions = { "rustc -Vv" = "rustc 1.91.0" }
+expect = "cached"
+
+[[run]]
+trigger = "lane"
+versions = { "rustc -Vv" = "rustc 1.92.0" }
+expect = "ok"

@@ -1,0 +1,18 @@
+gate = { run = "test -f src/a.txt", paths = ["src/**"], versions = ["echo 1"] }
+files = { "src/a.txt" = "one", "docs/b.md" = "one" }
+cache = {}
+
+[[run]]
+trigger = "lane"
+expect = "ok"
+expect_store = { host = 1 }
+
+[[run]]
+trigger = "lane"
+edit = { "docs/b.md" = "two" }
+expect = "cached"
+
+[[run]]
+trigger = "lane"
+edit = { "src/a.txt" = "two" }
+expect = "ok"

@@ -1,0 +1,25 @@
+gate = { run = "true", paths = ["src/**"], versions = ["echo 1"] }
+files = { "src/a.txt" = "one" }
+cache = {}
+
+[[run]]
+trigger = "push staging"
+expect = "ok"
+expect_store = { integration = 1 }
+
+[[run]]
+trigger = "pr 41"
+expect = "cached"
+contains = "integration"
+
+[[run]]
+trigger = "pr 41"
+edit = { "src/a.txt" = "two" }
+expect = "ok"
+same = ["integration"]
+expect_store = { "pr-41" = 1 }
+
+[[run]]
+trigger = "pr 41"
+expect = "cached"
+contains = "pull-request"

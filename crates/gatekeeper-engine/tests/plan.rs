@@ -82,6 +82,7 @@ fn run_case(case: &Path) {
         manifest: "Cargo.toml".into(),
         after_reports: expect.after_reports.then(|| case.join("reports")),
         ts: None,
+        results: None,
         swift: None,
         tools: std::collections::BTreeMap::new(),
         platform: run::platform(),

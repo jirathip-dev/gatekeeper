@@ -42,6 +42,14 @@ pub struct GateFile {
     pub upload: Vec<Upload>,
     #[serde(default)]
     pub rule: Vec<String>,
+    #[serde(default)]
+    pub versions: Vec<String>,
+    #[serde(default = "yes")]
+    pub cache: bool,
+}
+
+fn yes() -> bool {
+    true
 }
 
 /// Files a gate keeps after its last step, pass or fail: `[[upload]]`.
@@ -68,9 +76,19 @@ pub struct Gate {
     pub shards: Shards,
     pub uploads: Vec<Upload>,
     pub rule: Vec<String>,
+    pub versions: Vec<String>,
+    pub cache: bool,
 }
 
 impl Gate {
+    /// Whether a change to `file` can change this gate's result: path scope and the cache's inputs alike.
+    #[must_use]
+    pub fn reads(&self, file: &str) -> bool {
+        self.paths.is_empty()
+            || file.starts_with(".gatekeeper/")
+            || self.paths.iter().any(|g| g.matches(file))
+    }
+
     /// # Errors
     pub fn from_file(id: GateId, file: GateFile, pack: &PackFile) -> Result<Gate, &'static str> {
         let steps = match (file.run, file.step) {
@@ -97,6 +115,8 @@ impl Gate {
             shards: file.shards,
             uploads: file.upload,
             rule: file.rule,
+            versions: file.versions,
+            cache: file.cache,
         })
     }
 }
@@ -141,6 +161,17 @@ impl Platform {
 pub enum Toolchain {
     Rust,
     Node,
+}
+
+impl Toolchain {
+    /// The command whose output names this toolchain's version in a result's key.
+    #[must_use]
+    pub fn probe(self) -> &'static str {
+        match self {
+            Toolchain::Rust => "rustc -Vv",
+            Toolchain::Node => "node --version",
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]

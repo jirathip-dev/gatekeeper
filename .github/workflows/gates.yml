@@ -55,7 +55,9 @@ jobs:
           SCOPE: ${{ inputs.scope }}
         run: |
           case "$SCOPE" in auto | full) ;; *) echo "scope: auto or full, not $SCOPE"; exit 2 ;; esac
-          ./.gatekeeper/run ci plan --pack "$PACKS" --runners "$RUNNERS" >> "$GITHUB_OUTPUT"
+          set -- ci plan --pack "$PACKS" --runners "$RUNNERS"
+          if [ "$SCOPE" = full ]; then set -- "$@" --all; fi
+          ./.gatekeeper/run "$@" >> "$GITHUB_OUTPUT"
 
   leg:
     needs: plan
@@ -90,17 +92,31 @@ jobs:
         with:
           path: ~/.cache/gatekeeper
           key: gatekeeper-tools-${{ runner.os }}-${{ hashFiles('.gatekeeper/config.toml', 'packs/*/tools/*.toml') }}
+      - if: matrix.results-integration != ''
+        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: ${{ runner.temp }}/gatekeeper-results/integration
+          key: ${{ matrix.results-integration }}
+          restore-keys: ${{ matrix.results-integration }}
+      - if: matrix.results-own != ''
+        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: ${{ runner.temp }}/gatekeeper-results/${{ matrix.results-tier }}
+          key: ${{ matrix.results-own }}
+          restore-keys: ${{ matrix.results-own }}
       - name: gates
         env:
           GATEKEEPER_CACHE_HIT: ${{ steps.rust-cache.outputs.cache-hit || steps.tools.outputs.cache-hit }}
           LEG: ${{ matrix.leg }}
           SHARD: ${{ matrix.shard }}
           AFTER: ${{ matrix.after }}
+          TIER: ${{ matrix.results-tier }}
           SCOPE: ${{ inputs.scope }}
           BASE: ${{ github.event.pull_request.base.sha }}
           PR_BODY: ${{ github.event.pull_request.body }}
         run: |
-          set -- check --leg "$LEG"
+          set -- check --leg "$LEG" --results "$RUNNER_TEMP/gatekeeper-results"
+          if [ -n "$TIER" ]; then mkdir -p "$RUNNER_TEMP/gatekeeper-results/$TIER"; fi
           if [ -n "$SHARD" ]; then set -- "$@" --shard "$SHARD"; fi
           if [ -n "$AFTER" ]; then set -- "$@" --after-reports "$RUNNER_TEMP/after"; fi
           if [ "$SCOPE" = full ]; then set -- "$@" --all; fi
@@ -109,6 +125,11 @@ jobs:
             set -- "$@" --base "$BASE" --pr-body "$RUNNER_TEMP/pr-body.md"
           fi
           ./.gatekeeper/run "$@"
+      - if: always() && matrix.results-save != ''
+        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: ${{ runner.temp }}/gatekeeper-results/${{ matrix.results-tier }}
+          key: ${{ matrix.results-save }}${{ github.run_id }}-${{ github.run_attempt }}
       - if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -160,17 +181,31 @@ jobs:
         with:
           path: ~/.cache/gatekeeper
           key: gatekeeper-tools-${{ runner.os }}-${{ hashFiles('.gatekeeper/config.toml', 'packs/*/tools/*.toml') }}
+      - if: matrix.results-integration != ''
+        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: ${{ runner.temp }}/gatekeeper-results/integration
+          key: ${{ matrix.results-integration }}
+          restore-keys: ${{ matrix.results-integration }}
+      - if: matrix.results-own != ''
+        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: ${{ runner.temp }}/gatekeeper-results/${{ matrix.results-tier }}
+          key: ${{ matrix.results-own }}
+          restore-keys: ${{ matrix.results-own }}
       - name: gates
         env:
           GATEKEEPER_CACHE_HIT: ${{ steps.rust-cache.outputs.cache-hit || steps.tools.outputs.cache-hit }}
           LEG: ${{ matrix.leg }}
           SHARD: ${{ matrix.shard }}
           AFTER: ${{ matrix.after }}
+          TIER: ${{ matrix.results-tier }}
           SCOPE: ${{ inputs.scope }}
           BASE: ${{ github.event.pull_request.base.sha }}
           PR_BODY: ${{ github.event.pull_request.body }}
         run: |
-          set -- check --leg "$LEG"
+          set -- check --leg "$LEG" --results "$RUNNER_TEMP/gatekeeper-results"
+          if [ -n "$TIER" ]; then mkdir -p "$RUNNER_TEMP/gatekeeper-results/$TIER"; fi
           if [ -n "$SHARD" ]; then set -- "$@" --shard "$SHARD"; fi
           if [ -n "$AFTER" ]; then set -- "$@" --after-reports "$RUNNER_TEMP/after"; fi
           if [ "$SCOPE" = full ]; then set -- "$@" --all; fi
@@ -179,6 +214,11 @@ jobs:
             set -- "$@" --base "$BASE" --pr-body "$RUNNER_TEMP/pr-body.md"
           fi
           ./.gatekeeper/run "$@"
+      - if: always() && matrix.results-save != ''
+        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: ${{ runner.temp }}/gatekeeper-results/${{ matrix.results-tier }}
+          key: ${{ matrix.results-save }}${{ github.run_id }}-${{ github.run_attempt }}
       - if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:

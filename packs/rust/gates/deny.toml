@@ -1,6 +1,7 @@
 about = "deny.toml holds the floor (yanked, duplicates, wildcards, unknown sources denied; shared licences), then cargo deny check"
 fix = "deny what the floor denies, pin the dependency to a version, or drop the crate whose licence is outside the list"
 budget_secs = 20
+cache = false
 
 [[step]]
 check = "deny-floor"

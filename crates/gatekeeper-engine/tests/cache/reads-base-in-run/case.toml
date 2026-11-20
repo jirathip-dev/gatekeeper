@@ -1,0 +1,12 @@
+gate = { run = "true {--base}", versions = ["echo 1"] }
+cache = {}
+
+[[run]]
+trigger = "lane"
+expect = "ok"
+contains = "reads-base"
+
+[[run]]
+trigger = "lane"
+expect = "ok"
+expect_store = { host = 0 }

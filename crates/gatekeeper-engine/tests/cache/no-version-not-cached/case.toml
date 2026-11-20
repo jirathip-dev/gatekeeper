@@ -1,0 +1,12 @@
+gate = { run = "true" }
+cache = {}
+
+[[run]]
+trigger = "lane"
+expect = "ok"
+contains = "no-version"
+expect_store = { host = 0 }
+
+[[run]]
+trigger = "lane"
+expect = "ok"

@@ -1,4 +1,5 @@
 pub mod baseline;
+pub mod cache;
 pub(crate) mod check;
 pub mod ci;
 pub mod config;
@@ -39,3 +40,6 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// The commit this binary was built from, stamped by the release build as `GATEKEEPER_BUILD`.
 pub const BUILD: Option<&str> = option_env!("GATEKEEPER_BUILD");
+
+/// A hash of the sources and packs this binary was built from: a checkout's identity in a result's key.
+pub const SOURCE: &str = env!("GATEKEEPER_SOURCE");

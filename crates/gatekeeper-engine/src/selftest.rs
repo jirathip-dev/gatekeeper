@@ -100,6 +100,7 @@ fn run_case(gate: &Gate, case: Option<&str>, out: &Path, bench: &Bench) -> Resul
             .as_ref()
             .map_or("Cargo.toml", config::manifest)
             .to_owned(),
+        results: None,
         ts: config.as_ref().and_then(|c| c.ts.clone()),
         swift: config.and_then(|c| c.swift),
         tools: bench.tools.clone(),

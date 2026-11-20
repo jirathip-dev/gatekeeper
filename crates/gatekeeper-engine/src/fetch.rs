@@ -103,11 +103,33 @@ pub(crate) fn named_in(line: &str) -> impl Iterator<Item = &str> {
         .filter_map(|rest| Some(rest.split_once('}')?.0))
 }
 
-pub(crate) fn tool(name: &str, cache: &Path) -> Result<PathBuf> {
+fn parsed(name: &str) -> Result<(ToolFile, &'static str)> {
     let (path, text) =
         packs::tool_file(name).ok_or_else(|| Error(format!("no pinned tool `{name}`")))?;
     let file = parse(path, text)?;
     let target = host_target().ok_or_else(|| Error("no pinned tools for this platform".into()))?;
+    Ok((file, target))
+}
+
+pub(crate) fn pin(name: &str) -> Result<String> {
+    let (file, target) = parsed(name)?;
+    Ok(match file {
+        ToolFile::Binary(f) => f
+            .asset
+            .get(target)
+            .map_or_else(String::new, |a| a.sha256.clone()),
+        ToolFile::Node(f) => f
+            .package
+            .iter()
+            .filter(|p| p.target.as_deref().is_none_or(|t| t == target))
+            .map(|p| p.sha256.as_str())
+            .collect::<Vec<_>>()
+            .join(" "),
+    })
+}
+
+pub(crate) fn tool(name: &str, cache: &Path) -> Result<PathBuf> {
+    let (file, target) = parsed(name)?;
     match file {
         ToolFile::Binary(file) => {
             let asset = file

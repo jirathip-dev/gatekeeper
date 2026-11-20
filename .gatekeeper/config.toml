@@ -12,3 +12,6 @@ anti-slop-swift = "target/anti-slop/debug/anti-slop"
 [legs.macos]
 platform = "macos"
 setup = ["rust"]
+
+[cache]
+recheck = 1

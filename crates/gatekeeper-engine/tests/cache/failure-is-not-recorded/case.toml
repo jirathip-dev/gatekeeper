@@ -1,0 +1,17 @@
+gate = { run = "test -f src/fixed.txt", versions = ["echo 1"] }
+cache = {}
+
+[[run]]
+trigger = "lane"
+expect = "FAIL"
+expect_store = { host = 0 }
+
+[[run]]
+trigger = "lane"
+expect = "FAIL"
+
+[[run]]
+trigger = "lane"
+edit = { "src/fixed.txt" = "now it passes" }
+expect = "ok"
+expect_store = { host = 1 }

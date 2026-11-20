@@ -1,12 +1,18 @@
+mod cache;
 mod gate;
 mod glob;
 mod report;
 mod scope;
 
+pub use cache::{
+    CacheConfig, CacheMode, CacheNote, Event, Hit, Key, KeyParts, Off, Proof, PullRequests, Record,
+    Refusal, RunRef, Tier, Unkeyed,
+};
 pub use gate::{Capability, Gate, GateFile, PackFile, Platform, Step, Toolchain, Upload};
 pub use glob::Glob;
 pub use report::{
-    BudgetMode, Failure, GateReport, Host, JobReport, Kept, Millis, Outcome, Report, judge,
+    BudgetMode, CacheTotals, Failure, GateReport, Host, JobReport, Kept, Millis, Outcome, Report,
+    judge,
 };
 pub use scope::{Affected, Graph, GraphKind, Leg, ScopeConfig, Shard, Shards, Trigger, Widened};
 
@@ -141,6 +147,8 @@ pub struct Config {
     #[serde(default)]
     pub legs: BTreeMap<String, Leg>,
     pub ts: Option<TsPack>,
+    #[serde(default)]
+    pub cache: Option<CacheConfig>,
     pub swift: Option<SwiftPack>,
     #[serde(default)]
     pub tools: BTreeMap<String, String>,

@@ -18,9 +18,8 @@ fn selected(gate: &Gate, graph: &Graph, affected: Option<&Affected>) -> Vec<Stri
 }
 
 fn decide(gate: &Gate, host: Host, trigger: &Trigger, projects: &[String]) -> Decision {
-    let hit = |f: &String| gate.paths.iter().any(|g| g.matches(f));
     let in_scope = match trigger {
-        Trigger::Change(files) => gate.paths.is_empty() || files.iter().any(hit),
+        Trigger::Change(files) => gate.paths.is_empty() || files.iter().any(|f| gate.reads(f)),
         Trigger::Everything(_) => true,
     };
     if !in_scope {

@@ -1,0 +1,11 @@
+gate = { run = "true", versions = ["echo 1"] }
+cache = { pull_requests = "read" }
+
+[[run]]
+trigger = "pr 41"
+expect = "ok"
+expect_store = { "pr-41" = 0, integration = 0 }
+
+[[run]]
+trigger = "pr 41"
+expect = "ok"

@@ -1,0 +1,10 @@
+gate = { run = "true", versions = ["echo 1"] }
+
+[[run]]
+trigger = "lane"
+expect = "ok"
+
+[[run]]
+trigger = "lane"
+expect = "ok"
+expect_store = { host = 0 }

@@ -1,0 +1,13 @@
+gate = { run = "true", versions = ["echo 1"], upload = [{ name = "shots", paths = ["src/**"] }] }
+files = { "src/a.txt" = "one" }
+cache = {}
+
+[[run]]
+trigger = "lane"
+expect = "ok"
+contains = "keeps-files"
+
+[[run]]
+trigger = "lane"
+expect = "ok"
+expect_store = { host = 0 }

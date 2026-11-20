@@ -1,5 +1,8 @@
 use gatekeeper_engine::Error;
-use gatekeeper_model::{Filter, GateId, Host, PackId, Shard, Trigger};
+use gatekeeper_engine::cache::{self, Ident, Results};
+use gatekeeper_model::{
+    CacheMode, Config, Event, Filter, GateId, Host, Off, PackId, RunRef, Shard, Trigger,
+};
 use std::env;
 use std::io::Write as _;
 use std::path::PathBuf;
@@ -127,4 +130,77 @@ pub fn cache() -> PathBuf {
         .or_else(|| env::var_os("HOME").map(|h| PathBuf::from(h).join(".cache")))
         .unwrap_or_else(env::temp_dir);
     base.join("gatekeeper")
+}
+
+/// Which run this is: a lane's, or the GitHub event; a pull request whose head repo is unknown counts as a fork.
+pub fn event() -> Event {
+    if var("GITHUB_ACTIONS") != "true" {
+        return Event::Lane;
+    }
+    match var("GITHUB_EVENT_NAME").as_str() {
+        "pull_request" => {
+            let gh_ref = var("GITHUB_REF");
+            let number = gh_ref
+                .strip_prefix("refs/pull/")
+                .and_then(|r| r.split('/').next());
+            let Some(number) = number.and_then(|n| n.parse().ok()) else {
+                return Event::Other;
+            };
+            let payload = std::fs::read_to_string(var("GITHUB_EVENT_PATH")).unwrap_or_default();
+            let payload: serde_json::Value = serde_json::from_str(&payload).unwrap_or_default();
+            let head = payload.pointer("/pull_request/head/repo/full_name");
+            let fork = head.and_then(serde_json::Value::as_str) != Some(&var("GITHUB_REPOSITORY"));
+            Event::PullRequest { number, fork }
+        }
+        "push" => Event::Push {
+            branch: var("GITHUB_REF_NAME"),
+        },
+        _ => Event::Other,
+    }
+}
+
+/// The run's cache mode, and with it on, where records live and what proves a pass: `--results` in CI, the host folder on a lane.
+pub fn results(
+    config: &Config,
+    args: &Args,
+    root: &std::path::Path,
+) -> Result<(CacheMode, Option<Results>), Error> {
+    let event = event();
+    let (full, off) = (args.has("--all"), args.has("--no-cache"));
+    let mode = cache::mode(
+        config.cache.as_ref(),
+        &event,
+        full,
+        off,
+        &config.integration,
+    );
+    let store = match (args.value("--results"), &event) {
+        (Some(dir), _) => PathBuf::from(dir),
+        (None, Event::Lane) => self::cache().join("results"),
+        (None, _) => return Ok((CacheMode::Off(Off::NotConfigured), None)),
+    };
+    let (CacheMode::Use { read, write }, Some(cfg)) = (&mode, &config.cache) else {
+        return Ok((mode, None));
+    };
+    let now = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH);
+    let now = now.map_or(0, |d| d.as_secs());
+    let run = var("GITHUB_RUN_ID").parse().ok().map(|run| RunRef {
+        repo: var("GITHUB_REPOSITORY"),
+        run,
+        attempt: var("GITHUB_RUN_ATTEMPT").parse().unwrap_or(1),
+    });
+    let image = env::var("ImageOS").ok();
+    let os = image.map(|i| format!("{i} {}", var("ImageVersion")));
+    let results = Results {
+        store,
+        read: read.clone(),
+        write: *write,
+        config: cfg.clone(),
+        now,
+        salt: (now / 60).to_string(),
+        run,
+        ident: Ident::current(root, os, &gatekeeper_engine::config::tools(config, root)),
+        inputs: cache::inputs::read(root)?,
+    };
+    Ok((mode, Some(results)))
 }

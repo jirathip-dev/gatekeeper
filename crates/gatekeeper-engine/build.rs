@@ -1,4 +1,5 @@
 use std::fmt::Write as _;
+use std::hash::{DefaultHasher, Hasher};
 use std::path::{Path, PathBuf};
 use std::{env, fs, io};
 
@@ -36,6 +37,30 @@ fn main() -> io::Result<()> {
         .map_err(io::Error::other)?;
     }
     src.push_str("];\n");
+    let mut sources = Vec::new();
+    for dir in [
+        "../../packs",
+        "../gatekeeper-engine/src",
+        "../gatekeeper-model/src",
+        "../gatekeeper/src",
+    ] {
+        let dir = manifest.join(dir).canonicalize()?;
+        println!("cargo::rerun-if-changed={}", dir.display());
+        walk(&dir, &mut sources)?;
+    }
+    sources.push(manifest.join("../../Cargo.lock").canonicalize()?);
+    sources.sort();
+    let mut hash = DefaultHasher::new();
+    for file in &sources {
+        hash.write(
+            file.strip_prefix(packs.join(".."))
+                .unwrap_or(file)
+                .to_string_lossy()
+                .as_bytes(),
+        );
+        hash.write(&fs::read(file)?);
+    }
+    println!("cargo::rustc-env=GATEKEEPER_SOURCE={:016x}", hash.finish());
     let out = PathBuf::from(env::var("OUT_DIR").map_err(io::Error::other)?);
     fs::write(out.join("packs.rs"), src)
 }
