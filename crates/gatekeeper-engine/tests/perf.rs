@@ -47,6 +47,7 @@ fn check_on_the_base_fixture_with_every_gate_stubbed_takes_under_200_ms() {
         host: Host::Lane,
         job_start: None,
         manifest: "Cargo.toml".into(),
+        ts: None,
     };
     let report = run::run(&plan, &cx, &mut |_, _| {}).expect("run");
     let took = start.elapsed();

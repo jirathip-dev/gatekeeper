@@ -83,6 +83,7 @@ fn prepare(args: &Args, root: &Path) -> Result<(Plan, RunCtx, Option<usize>), Er
         host,
         job_start: cli::job_start(),
         manifest: config::manifest(&config).to_owned(),
+        ts: config.ts.clone(),
     };
     Ok((plan, cx, filter.changed.map(|c| c.len())))
 }

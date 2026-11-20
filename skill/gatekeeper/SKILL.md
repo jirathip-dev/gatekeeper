@@ -17,3 +17,4 @@ description: Read, fix and rerun a failing gatekeeper gate (gatekeeper 0.1.0).
 
 - [core](packs/core.md): the line cap, the rules file, arch-check, actionlint, the dependency list
 - [rust](packs/rust.md): fmt, clippy with the shared lints, cargo-deny, the banned-API fixtures
+- [ts](packs/ts.md): tsc strict, oxlint with the bans and the anti-slop rules, knip's unused-code ratchet

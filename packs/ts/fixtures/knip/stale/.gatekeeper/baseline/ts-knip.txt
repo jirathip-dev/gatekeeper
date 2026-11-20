@@ -1,0 +1,1 @@
+src/gone.ts: files: src/gone.ts

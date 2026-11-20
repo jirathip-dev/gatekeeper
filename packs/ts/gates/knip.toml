@@ -1,0 +1,6 @@
+about = "pinned knip with the repo's own knip config: no unused file, export or dependency beyond the baseline"
+fix = "delete the unused file, export or dependency knip names; once one is fixed, shrink the list: ./.gatekeeper/run baseline ts/knip"
+budget_secs = 60
+
+[[step]]
+check = "knip"

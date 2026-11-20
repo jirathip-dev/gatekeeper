@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "strictNullChecks": false,
+    "noEmit": true,
+    "target": "es2022",
+    "module": "preserve",
+    "lib": ["es2022", "dom"],
+    "skipLibCheck": true
+  },
+  "include": ["src"]
+}
