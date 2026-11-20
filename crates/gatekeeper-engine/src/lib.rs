@@ -1,7 +1,9 @@
+pub mod baseline;
 pub(crate) mod check;
 pub mod ci;
 pub mod config;
 pub mod fetch;
+pub(crate) mod kept;
 pub mod packs;
 pub mod plan;
 pub mod run;

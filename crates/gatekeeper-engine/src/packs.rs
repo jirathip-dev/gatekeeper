@@ -1,5 +1,5 @@
 use crate::{Error, Result, check};
-use gatekeeper_model::{Config, Gate, GateFile, GateId, PackFile, PackId, Platform, Step};
+use gatekeeper_model::{Config, Gate, GateFile, GateId, PackFile, PackId, Platform, Step, is_name};
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
@@ -42,6 +42,19 @@ fn parse_gate(id: GateId, path: &str, text: &str, pack: &PackFile) -> Result<Gat
     let file: GateFile = toml::from_str(text).map_err(|e| Error(format!("{path}: {e}")))?;
     let gate = Gate::from_file(id, file, pack)
         .ok_or_else(|| Error(format!("{path}: give `run` or `[[step]]`, not both")))?;
+    for (i, upload) in gate.uploads.iter().enumerate() {
+        let twice = gate
+            .uploads
+            .iter()
+            .skip(i + 1)
+            .any(|u| u.name == upload.name);
+        if !is_name(&upload.name) || twice || upload.paths.is_empty() {
+            return Err(Error(format!(
+                "{path}: [[upload]] `{}` needs a unique name of lowercase letters, digits and dashes, and paths",
+                upload.name
+            )));
+        }
+    }
     for step in &gate.steps {
         match step {
             Step::Check { check } if !check::NAMES.contains(&check.as_str()) => {

@@ -2,7 +2,7 @@ use crate::cli::{self, Args, say};
 use gatekeeper_engine::ci::secs;
 use gatekeeper_engine::run::{self, RunCtx};
 use gatekeeper_engine::{Error, VERSION, config, packs, plan};
-use gatekeeper_model::{Gate, GateReport, Outcome, Plan};
+use gatekeeper_model::{Gate, GateReport, Host, Outcome, Plan};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -24,6 +24,27 @@ fn show(root: &Path, gate: &Gate, r: &GateReport) {
                 secs(r.took),
                 r.budget.0
             ));
+            for kept in &r.kept {
+                let dir = format!(
+                    "{}/files/{}/",
+                    r.log.rsplit_once('/').map_or("", |(d, _)| d),
+                    kept.name
+                );
+                let globs: Vec<String> = gate
+                    .uploads
+                    .iter()
+                    .filter(|u| u.name == kept.name)
+                    .flat_map(|u| u.paths.iter().map(ToString::to_string))
+                    .collect();
+                match kept.files.len() {
+                    0 => say(&format!(
+                        "      files: {} (0) nothing matched {}",
+                        kept.name,
+                        globs.join(" ")
+                    )),
+                    n => say(&format!("      files: {} ({n}) {dir}", kept.name)),
+                }
+            }
             if outcome.fails() {
                 for line in tail(root, &r.log) {
                     say(&format!("      {line}"));
@@ -38,15 +59,18 @@ fn show(root: &Path, gate: &Gate, r: &GateReport) {
     }
 }
 
-fn prepare(args: &Args, root: &Path) -> Result<(Plan, RunCtx), Error> {
+fn prepare(args: &Args, root: &Path) -> Result<(Plan, RunCtx, Option<usize>), Error> {
     let config = config::load(root)?;
     let gates = packs::configured(&config, root)?;
     let host = cli::host();
-    let plan = plan::plan(&config, gates, host, &args.filter()?)?;
-    let base = args
-        .value("--base")
-        .map(str::to_owned)
-        .or_else(|| run::default_base(root, &config.integration));
+    let given = args.value("--base").map(str::to_owned);
+    let pushed = host != Host::Lane && given.is_none();
+    let base = given.or_else(|| run::default_base(root, &config.integration));
+    let mut filter = args.filter()?;
+    if !args.has("--all") && !pushed {
+        filter.changed = base.as_deref().map(|b| run::changed(root, b)).transpose()?;
+    }
+    let plan = plan::plan(&config, gates, host, &filter)?;
     let cx = RunCtx {
         root: root.to_path_buf(),
         out: run::out_dir(root),
@@ -57,7 +81,7 @@ fn prepare(args: &Args, root: &Path) -> Result<(Plan, RunCtx), Error> {
         job_start: cli::job_start(),
         manifest: config::manifest(&config).to_owned(),
     };
-    Ok((plan, cx))
+    Ok((plan, cx, filter.changed.map(|c| c.len())))
 }
 
 /// `check [--pack P] [--gate ID] [--base REV] [--pr-body FILE] [--all]`: plan and run every planned gate.
@@ -71,7 +95,7 @@ pub fn run(args: &[String]) -> ExitCode {
         Ok(root) => root,
         Err(e) => return cli::usage_error(&e),
     };
-    let (plan, cx) = match parsed.and_then(|a| prepare(&a, &root)) {
+    let (plan, cx, changed) = match parsed.and_then(|a| prepare(&a, &root)) {
         Ok(ready) => ready,
         Err(e) => return cli::usage_error(&e),
     };
@@ -80,8 +104,9 @@ pub fn run(args: &[String]) -> ExitCode {
         .base
         .as_deref()
         .map_or("none", |b| b.get(..12).unwrap_or(b));
+    let scope = changed.map_or("every gate".to_owned(), |n| format!("{n} files changed"));
     say(&format!(
-        "gatekeeper {VERSION} · packs {} · base {base} · host {}",
+        "gatekeeper {VERSION} · packs {} · base {base} · {scope} · host {}",
         legs.join(" "),
         cx.host.label()
     ));

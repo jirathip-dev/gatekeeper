@@ -1,0 +1,2 @@
+fails = true
+kept = ["target/report/index.html"]

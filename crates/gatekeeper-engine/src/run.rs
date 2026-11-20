@@ -1,9 +1,11 @@
+use crate::baseline::{self, Baseline};
 use crate::runner::{self, Ended};
-use crate::{Error, Result, VERSION, check, fetch, packs};
+use crate::{Error, Result, VERSION, fetch, kept, packs};
 use gatekeeper_model::{
     Decision, Failure, Gate, GateReport, Host, JobReport, Millis, Outcome, Plan, Report, Step,
     judge,
 };
+use std::collections::BTreeSet;
 use std::fs::{self, File};
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
@@ -70,10 +72,11 @@ fn step(
     cx: &RunCtx,
     log: &mut File,
     deadline: Instant,
+    listed: &mut Baseline,
 ) -> std::result::Result<(), Failure> {
     match step {
         Step::Run { run } => {
-            let files = cx.out.join("files").join(gate.id.pack.as_str());
+            let files = cx.out.join("pack").join(gate.id.pack.as_str());
             let prefix = format!("{}/files/", gate.id.pack);
             if let Err(e) = packs::materialize(&prefix, &files) {
                 writeln!(log, "{e}").ok();
@@ -99,7 +102,7 @@ fn step(
                 scratch: &cx.out.join("check").join(check),
                 manifest: &cx.manifest,
             };
-            let findings = check::run(check, &cx).unwrap_or_else(|e| vec![e.0]);
+            let findings = listed.unlisted(baseline::findings(check, &cx));
             for f in &findings {
                 writeln!(log, "{f}").ok();
             }
@@ -117,11 +120,26 @@ pub(crate) fn gate(gate: &Gate, cx: &RunCtx) -> Result<GateReport> {
     let mut log = File::create(&path).map_err(|e| Error::at(&path, e))?;
     let start = Instant::now();
     let deadline = start + Duration::from_secs(u64::from(gate.budget.0).max(1) * 5);
+    let mut listed = Baseline::load(&cx.root, &gate.id)?;
     let result = gate
         .steps
         .iter()
-        .try_for_each(|s| step(s, gate, cx, &mut log, deadline));
+        .try_for_each(|s| step(s, gate, cx, &mut log, deadline, &mut listed))
+        .and_then(|()| {
+            let mut stale = listed.stale().peekable();
+            let none = stale.peek().is_none();
+            for line in stale {
+                writeln!(
+                    log,
+                    "stale: shrink the baseline (./.gatekeeper/run baseline {}): {line}",
+                    gate.id
+                )
+                .ok();
+            }
+            if none { Ok(()) } else { Err(Failure::Exit(1)) }
+        });
     let took = millis(start.elapsed());
+    let kept = kept::collect(gate, &cx.root, &cx.out)?;
     Ok(GateReport {
         id: gate.id.clone(),
         outcome: judge(result, took, gate.budget, cx.host),
@@ -132,6 +150,7 @@ pub(crate) fn gate(gate: &Gate, cx: &RunCtx) -> Result<GateReport> {
             .unwrap_or(&path)
             .to_string_lossy()
             .into_owned(),
+        kept,
     })
 }
 
@@ -159,6 +178,7 @@ pub fn run(plan: &Plan, cx: &RunCtx, seen: &mut dyn FnMut(&Gate, &GateReport)) -
                     took: Millis(0),
                     budget: planned.gate.budget,
                     log: String::new(),
+                    kept: Vec::new(),
                 },
             };
             seen(&planned.gate, &done);
@@ -188,4 +208,11 @@ pub fn default_base(root: &Path, integration: &str) -> Option<String> {
     let branch = format!("origin/{integration}");
     let out = runner::ok("git", &["merge-base", &branch, "HEAD"], root).ok()?;
     Some(out.trim().to_owned())
+}
+
+/// # Errors
+pub fn changed(root: &Path, base: &str) -> Result<BTreeSet<String>> {
+    let diff = runner::ok("git", &["diff", "--name-only", "--no-renames", base], root)?;
+    let new = runner::ok("git", &["ls-files", "--others", "--exclude-standard"], root)?;
+    Ok(diff.lines().chain(new.lines()).map(str::to_owned).collect())
 }

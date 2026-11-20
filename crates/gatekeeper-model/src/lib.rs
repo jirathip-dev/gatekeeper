@@ -1,9 +1,11 @@
 mod gate;
+mod glob;
 mod report;
 
-pub use gate::{Capability, Gate, GateFile, PackFile, Platform, Step, Toolchain};
+pub use gate::{Capability, Gate, GateFile, PackFile, Platform, Step, Toolchain, Upload};
+pub use glob::Glob;
 pub use report::{
-    BudgetMode, Failure, GateReport, Host, JobReport, Millis, Outcome, Report, judge,
+    BudgetMode, Failure, GateReport, Host, JobReport, Kept, Millis, Outcome, Report, judge,
 };
 
 use serde::{Deserialize, Serialize};
@@ -56,11 +58,7 @@ pub struct GateId {
 impl GateId {
     #[must_use]
     pub fn new(pack: PackId, name: &str) -> Option<GateId> {
-        let ok = !name.is_empty()
-            && name
-                .bytes()
-                .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-');
-        ok.then(|| GateId {
+        is_name(name).then(|| GateId {
             pack,
             name: name.to_owned(),
         })
@@ -97,6 +95,14 @@ impl fmt::Display for GateId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.pad(&format!("{}/{}", self.pack, self.name))
     }
+}
+
+/// A gate's or an upload's name: lowercase letters, digits and dashes.
+#[must_use]
+pub fn is_name(s: &str) -> bool {
+    !s.is_empty()
+        && s.bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
 }
 
 /// Whole seconds: a budget.
@@ -149,6 +155,8 @@ pub struct RustPack {
 pub struct Filter {
     pub packs: BTreeSet<PackId>,
     pub gate: Option<GateId>,
+    /// The files changed against the base; `None` (a push, no base, `--all`) runs every gate.
+    pub changed: Option<BTreeSet<String>>,
 }
 
 #[derive(Debug, Serialize)]
@@ -180,12 +188,14 @@ pub enum Decision {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Skip {
+    OutOfScope,
     CiOnly(Capability),
 }
 
 impl fmt::Display for Skip {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Skip::OutOfScope => f.write_str("no changed file matches its paths"),
             Skip::CiOnly(c) => write!(f, "CI only on a lane's host: needs {c}"),
         }
     }

@@ -1,0 +1,2 @@
+fails = false
+kept = ["target/ui/390/a.png", "target/ui/390/b.png"]

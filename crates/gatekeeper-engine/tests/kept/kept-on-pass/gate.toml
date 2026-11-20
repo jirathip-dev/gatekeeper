@@ -1,0 +1,8 @@
+about = "writes two screenshots and passes"
+fix = "none"
+budget_secs = 5
+run = "mkdir -p target/ui/390 && echo a > target/ui/390/a.png && echo b > target/ui/390/b.png && echo c > target/ui/390/c.txt"
+
+[[upload]]
+name = "ui-390"
+paths = ["target/ui/**/*.png"]

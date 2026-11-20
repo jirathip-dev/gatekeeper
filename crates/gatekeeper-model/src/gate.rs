@@ -1,4 +1,4 @@
-use crate::{GateId, Secs};
+use crate::{GateId, Glob, Secs};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::fmt;
@@ -28,6 +28,18 @@ pub struct GateFile {
     pub run: Option<String>,
     #[serde(default)]
     pub step: Vec<Step>,
+    #[serde(default)]
+    pub paths: Vec<Glob>,
+    #[serde(default)]
+    pub upload: Vec<Upload>,
+}
+
+/// Files a gate keeps after its last step, pass or fail: `[[upload]]`.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Upload {
+    pub name: String,
+    pub paths: Vec<Glob>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -40,6 +52,8 @@ pub struct Gate {
     pub setup: BTreeSet<Toolchain>,
     pub needs: BTreeSet<Capability>,
     pub steps: Vec<Step>,
+    pub paths: Vec<Glob>,
+    pub uploads: Vec<Upload>,
 }
 
 impl Gate {
@@ -60,6 +74,8 @@ impl Gate {
             setup: pack.setup.union(&file.setup).copied().collect(),
             needs: file.needs,
             steps,
+            paths: file.paths,
+            uploads: file.upload,
         })
     }
 }

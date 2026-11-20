@@ -13,6 +13,8 @@ fn always_passing(name: &str) -> Gate {
         setup: BTreeSet::new(),
         needs: BTreeSet::new(),
         steps: vec![Step::Run { run: "true".into() }],
+        paths: Vec::new(),
+        uploads: Vec::new(),
     }
 }
 

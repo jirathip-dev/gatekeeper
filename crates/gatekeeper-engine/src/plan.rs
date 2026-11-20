@@ -4,7 +4,16 @@ use gatekeeper_model::{
 };
 use std::collections::BTreeSet;
 
-fn decide(gate: &Gate, host: Host) -> Decision {
+fn decide(gate: &Gate, host: Host, changed: Option<&BTreeSet<String>>) -> Decision {
+    let in_scope = |files: &BTreeSet<String>| {
+        gate.paths.is_empty()
+            || files
+                .iter()
+                .any(|f| gate.paths.iter().any(|g| g.matches(f)))
+    };
+    if !changed.is_none_or(in_scope) {
+        return Decision::Skip(Skip::OutOfScope);
+    }
     match host {
         Host::Lane if gate.needs.contains(&Capability::Containers) => {
             Decision::Skip(Skip::CiOnly(Capability::Containers))
@@ -42,7 +51,7 @@ pub fn plan(config: &Config, mut gates: Vec<Gate>, host: Host, filter: &Filter) 
     };
     let mut jobs: Vec<Job> = Vec::new();
     for gate in gates.into_iter().filter(chosen) {
-        let decision = decide(&gate, host);
+        let decision = decide(&gate, host, filter.changed.as_ref());
         if !jobs.iter().any(|j| j.leg == gate.id.pack) {
             jobs.push(Job {
                 leg: gate.id.pack,

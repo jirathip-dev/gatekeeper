@@ -1,0 +1,8 @@
+about = "writes nothing its upload names"
+fix = "none"
+budget_secs = 5
+run = "true"
+
+[[upload]]
+name = "ui-390"
+paths = ["target/ui/390/*.png"]
