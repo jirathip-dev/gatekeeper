@@ -109,6 +109,8 @@ pub struct GateReport {
     pub log: String,
     #[serde(default)]
     pub kept: Vec<Kept>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub note: Option<String>,
 }
 
 /// An upload's files, by their repo paths; a copy of each is under `files/<name>/` of the out folder.

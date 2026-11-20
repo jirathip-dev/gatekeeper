@@ -24,6 +24,9 @@ fn show(root: &Path, gate: &Gate, r: &GateReport) {
                 secs(r.took),
                 r.budget.0
             ));
+            if let Some(note) = &r.note {
+                say(&format!("      {note}"));
+            }
             for kept in &r.kept {
                 let dir = format!(
                     "{}/files/{}/",
