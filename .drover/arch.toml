@@ -1,4 +1,4 @@
-generated = ["crates/gatekeeper/src/cmd/mod.rs", "crates/gatekeeper-engine/src/check/mod.rs"]
+generated = ["crates/gatekeeper/src/cmd/mod.rs", "crates/gatekeeper-engine/src/check/mod.rs", "skill/gatekeeper/**"]
 generate = "sh scripts/gen.sh"
 
 [[collect]]

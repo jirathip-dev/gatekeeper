@@ -84,14 +84,14 @@ fn run_case(gate: &Gate, case: Option<&str>, out: &Path, cache: &Path) -> Result
     Ok((report.outcome.fails(), log))
 }
 
-fn cases(gate: &Gate) -> BTreeSet<&'static str> {
+pub(crate) fn cases(gate: &Gate) -> BTreeSet<&'static str> {
     let prefix = format!("{}/fixtures/{}/", gate.id.pack, gate.id.name());
     packs::under(&prefix)
         .filter_map(|(rel, _)| rel.split_once('/').map(|(case, _)| case))
         .collect()
 }
 
-fn expect(gate: &Gate, case: &str) -> String {
+pub(crate) fn expect(gate: &Gate, case: &str) -> String {
     let path = format!("{}/fixtures/{}/{case}/expect", gate.id.pack, gate.id.name());
     packs::text(&path).unwrap_or_default().trim().to_owned()
 }
