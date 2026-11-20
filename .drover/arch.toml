@@ -1,0 +1,56 @@
+[[collect]]
+dir = "crates/gatekeeper/src/cmd"
+glob = "*.rs"
+
+[[collect]]
+dir = "crates/gatekeeper-engine/src/check"
+glob = "*.rs"
+
+[[collect]]
+dir = "packs"
+glob = "*/gates/*.toml"
+
+[[collect]]
+dir = "packs"
+glob = "*/fixtures/**"
+
+[[layer]]
+name = "model"
+paths = ["crates/gatekeeper-model/src/**"]
+mods = ["gatekeeper_model"]
+may_use = []
+
+[[layer]]
+name = "engine"
+paths = ["crates/gatekeeper-engine/src/**"]
+mods = ["gatekeeper_engine"]
+may_use = ["model"]
+
+[[layer]]
+name = "cli"
+paths = ["crates/gatekeeper/src/**"]
+may_use = ["engine", "model"]
+
+[[ban]]
+pattern = "Command::new"
+paths = ["crates/*/src/**"]
+except = ["crates/gatekeeper-engine/src/runner.rs"]
+reason = "start processes through the engine's runner"
+
+[[ban]]
+pattern = "cargo "
+paths = [".github/workflows/gates.yml"]
+reason = "a gate runs through gatekeeper check; the workflow only provisions"
+
+[[ban]]
+pattern = "secrets: inherit"
+paths = [".github/workflows/**"]
+reason = "a workflow names each secret it reads"
+
+[[size]]
+paths = ["crates/*/src/**/*.rs"]
+max_file_lines = 400
+max_fn_lines = 60
+
+[comments]
+policy = "strict"
