@@ -18,6 +18,10 @@ on:
 permissions:
   contents: read
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   plan:
     runs-on: ubuntu-latest
@@ -131,4 +135,4 @@ jobs:
           path: ${{ runner.temp }}/reports
       - env:
           PACKS: ${{ inputs.packs }}
-        run: ./.gatekeeper/run ci done --pack "$PACKS" --reports "$RUNNER_TEMP/reports" | tee -a "$GITHUB_STEP_SUMMARY"
+        run: ./.gatekeeper/run ci "done" --pack "$PACKS" --reports "$RUNNER_TEMP/reports" | tee -a "$GITHUB_STEP_SUMMARY"
