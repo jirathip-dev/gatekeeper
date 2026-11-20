@@ -1,5 +1,5 @@
-use crate::fetch::{self, sha256_hex};
-use crate::{BUILD, Error, Result, VERSION, runner};
+use crate::fetch;
+use crate::{BUILD, Result, SOURCE, VERSION, runner};
 use gatekeeper_model::{Gate, Step};
 use std::cell::RefCell;
 use std::collections::BTreeMap;
@@ -13,14 +13,12 @@ pub struct Ident {
 }
 
 impl Ident {
-    /// # Errors
-    pub fn current(root: &Path, os: Option<String>) -> Result<Ident> {
-        let engine = if let Some(build) = BUILD {
-            format!("release {VERSION} {build}")
-        } else {
-            let exe = std::env::current_exe().map_err(|e| Error(e.to_string()))?;
-            let bytes = std::fs::read(&exe).map_err(|e| Error::at(&exe, e))?;
-            format!("checkout {}", sha256_hex(&bytes))
+    /// This build on this host; `os` is the runner image when CI names one, else `uname -sr`.
+    #[must_use]
+    pub fn current(root: &Path, os: Option<String>) -> Ident {
+        let engine = match BUILD {
+            Some(build) => format!("release {VERSION} {build}"),
+            None => format!("checkout {SOURCE}"),
         };
         let probes = RefCell::default();
         let ident = Ident {
@@ -30,10 +28,10 @@ impl Ident {
         };
         let os = os.unwrap_or_else(|| ident.probe("uname -sr", root));
         let target = fetch::host_target().unwrap_or("other");
-        Ok(Ident {
+        Ident {
             platform: format!("{target} {os}"),
             ..ident
-        })
+        }
     }
 
     fn probe(&self, command: &str, root: &Path) -> String {

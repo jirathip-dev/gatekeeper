@@ -199,7 +199,7 @@ pub fn results(
         now,
         salt: (now / 60).to_string(),
         run,
-        ident: Ident::current(root, os)?,
+        ident: Ident::current(root, os),
         inputs: cache::inputs::read(root)?,
     };
     Ok((mode, Some(results)))
