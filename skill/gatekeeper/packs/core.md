@@ -44,6 +44,15 @@ every direct dependency of Cargo.toml, package.json and Package.swift (with thei
 - rerun: `./.gatekeeper/run check --gate core/deps`
 - what a failure looks like: [core-deps](../examples/core-deps.md)
 
+## core/pin
+
+every gatekeeper workflow call names the commit and version of the pinned release, passes each secret by name, and .gatekeeper/run is that release's wrapper
+
+- fix: run ./.gatekeeper/run pin <version>, never edit the pin by hand; pass each secret by name, never secrets: inherit
+- budget: 1s
+- rerun: `./.gatekeeper/run check --gate core/pin`
+- what a failure looks like: [core-pin](../examples/core-pin.md)
+
 ## core/rules
 
 drover lesson-check: every active check in .drover/rules.md passes

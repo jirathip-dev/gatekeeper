@@ -1,0 +1,1 @@
+secrets: inherit; pass each secret by name
