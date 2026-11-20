@@ -238,13 +238,13 @@ Every verb is started through the wrapper: `./.gatekeeper/run <verb>`.
 
 | Verb | What |
 |---|---|
-| `check [--pack P] [--leg L] [--shard I/N] [--gate ID] [--base REV] [--pr-body FILE] [--all]` | plan and run; `--all` ignores scope |
+| `check [--pack P] [--leg L] [--shard I/N] [--gate ID] [--base REV] [--pr-body FILE] [--after-reports DIR] [--all]` | plan and run; `--all` ignores scope; `--after-reports` holds the downloaded artifacts of the leg an `after` job waits for |
 | `list [--json]` | the planned gates with their budgets |
 | `pin <version>` | check that release's signed list, then write `[pin]`, every `uses: …@<sha> # v<version>` line and the wrapper |
 | `baseline <gate>` | rewrite a gate's baseline; after the first write it only shrinks |
 | `skill --to <dir>` | write the usage skill of this version |
 | `selftest [--pack P]` | every gate against its fixtures |
-| `ci plan`, `ci done` | the workflow's two calls |
+| `ci plan`, `ci done` | the workflow's two calls; `plan` prints `matrix=` (jobs that wait for none) and `after=` (jobs that wait for one leg) |
 | `release sign --identifier <bin> <file>` | codesign, notarize, verify (the release workflow's) |
 | `supabase status`, `supabase apply --target dev\|prod` | the migration ledger |
 

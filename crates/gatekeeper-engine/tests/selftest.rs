@@ -1,5 +1,5 @@
 use gatekeeper_engine::selftest;
-use gatekeeper_model::{Gate, GateId, PackId, Platform, Secs, Step};
+use gatekeeper_model::{Gate, GateId, PackId, Platform, Secs, Shards, Step};
 use std::collections::BTreeSet;
 use std::path::PathBuf;
 
@@ -14,6 +14,9 @@ fn always_passing(name: &str) -> Gate {
         needs: BTreeSet::new(),
         steps: vec![Step::Run { run: "true".into() }],
         paths: Vec::new(),
+        projects: Vec::new(),
+        leg: "core".into(),
+        shards: Shards::default(),
         uploads: Vec::new(),
         rule: Vec::new(),
     }

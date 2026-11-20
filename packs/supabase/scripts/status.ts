@@ -1,4 +1,7 @@
+import { parseArgs } from "node:util";
 import { compare, fail, ledgerApi, message } from "./migrations.ts";
+
+parseArgs({ options: { integration: { type: "string" } } });
 
 try {
   const { files, applied, pending, warnings } = await compare(process.cwd(), ledgerApi());

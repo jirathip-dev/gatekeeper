@@ -4,12 +4,13 @@ import { parseArgs } from "node:util";
 import { DIR, LEDGER, compare, fail, git, ledgerApi, message } from "./migrations.ts";
 
 const root = process.cwd();
-const { target, branch } = parseArgs({
-  options: { target: { type: "string" }, branch: { type: "string" } },
+const { target, integration } = parseArgs({
+  options: { target: { type: "string" }, integration: { type: "string" } },
 }).values;
-if ((target !== "dev" && target !== "prod") || !branch) {
-  fail("usage: apply.ts --target dev|prod --branch <deployed branch>");
+if ((target !== "dev" && target !== "prod") || !integration) {
+  fail("usage: supabase apply --target dev|prod");
 }
+const branch = target === "prod" ? "main" : integration;
 if (git(root, ["status", "--porcelain", "--", DIR])) {
   fail(`supabase apply: ${DIR} has uncommitted changes; apply only what ${branch} holds`);
 }

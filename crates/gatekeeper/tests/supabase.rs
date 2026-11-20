@@ -28,8 +28,11 @@ fn gk(name: &str, args: &[&str]) -> (i32, String) {
 #[test]
 fn apply_refuses_a_target_other_than_dev_or_prod() {
     let (code, out) = gk("supabase-bad-target", &["apply", "--target", "staging"]);
-    assert_eq!(code, 2, "{out}");
-    assert!(out.contains("apply needs --target dev|prod"), "{out}");
+    assert_eq!(code, 1, "{out}");
+    assert!(
+        out.contains("usage: supabase apply --target dev|prod"),
+        "{out}"
+    );
 }
 
 #[test]

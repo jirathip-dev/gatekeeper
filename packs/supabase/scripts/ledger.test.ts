@@ -86,7 +86,7 @@ async function script(cwd: string, name: string, args: string[] = [], env: Recor
   }
 }
 
-const apply = (cwd: string) => script(cwd, "apply.ts", ["--target", "dev", "--branch", "staging"]);
+const apply = (cwd: string) => script(cwd, "apply.ts", ["--target", "dev", "--integration", "staging"]);
 const A = "20260101000000_a.sql";
 const B = "20260102000000_b.sql";
 const C = "20260103000000_c.sql";
@@ -146,6 +146,14 @@ test("apply refuses a checkout behind its branch and sends nothing", async () =>
   assert.equal(ledger.queries.length, 0);
 });
 
+test("prod applies only from main", async () => {
+  const work = await repo({ [A]: "select 1;" });
+  const { code, out } = await script(work, "apply.ts", ["--target", "prod", "--integration", "staging"]);
+  assert.equal(code, 1);
+  assert.match(out, /origin\/main is missing; apply from a fresh checkout of main/);
+  assert.equal(ledger.queries.length, 0);
+});
+
 test("apply refuses uncommitted migrations", async () => {
   const work = await repo({ [A]: "select 1;" });
   writeFileSync(join(work, "supabase/migrations", B), "select 2;");
@@ -174,7 +182,7 @@ test("a ledger reply without versions is refused", async () => {
 test("both scripts refuse without a token", async () => {
   const work = await repo({ [A]: "select 1;" });
   for (const name of ["status.ts", "apply.ts"]) {
-    const args = name === "apply.ts" ? ["--target", "prod", "--branch", "staging"] : [];
+    const args = name === "apply.ts" ? ["--target", "dev", "--integration", "staging"] : [];
     const { code, out } = await script(work, name, args, { SUPABASE_ACCESS_TOKEN: "" });
     assert.equal(code, 1);
     assert.match(out, /set SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF/);

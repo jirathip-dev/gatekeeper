@@ -1,0 +1,9 @@
+about = "makes a database snapshot"
+fix = "none"
+budget_secs = 5
+leg = "z-db"
+run = "mkdir -p snap && echo rows > snap/db.txt"
+
+[[upload]]
+name = "snap"
+paths = ["snap/*"]
