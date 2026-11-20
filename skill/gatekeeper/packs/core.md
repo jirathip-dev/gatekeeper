@@ -29,6 +29,15 @@ drover cap-check: the counted lines under the cap in ci/cap.toml, and .drover/ru
 - rerun: `./.gatekeeper/run check --gate core/cap`
 - what a failure looks like: [core-cap](../examples/core-cap.md)
 
+## core/pin
+
+every gatekeeper workflow call names the commit and version of the pinned release, passes each secret by name, and .gatekeeper/run is that release's wrapper
+
+- fix: run ./.gatekeeper/run pin <version>, never edit the pin by hand; pass each secret by name, never secrets: inherit
+- budget: 1s
+- rerun: `./.gatekeeper/run check --gate core/pin`
+- what a failure looks like: [core-pin](../examples/core-pin.md)
+
 ## core/rules
 
 drover lesson-check: every active check in .drover/rules.md passes

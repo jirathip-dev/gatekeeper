@@ -33,3 +33,6 @@ impl fmt::Display for Error {
 pub type Result<T> = std::result::Result<T, Error>;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+/// The commit this binary was built from, stamped by the release build as `GATEKEEPER_BUILD`.
+pub const BUILD: Option<&str> = option_env!("GATEKEEPER_BUILD");
