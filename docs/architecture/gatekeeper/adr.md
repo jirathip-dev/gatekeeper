@@ -11,8 +11,8 @@ Open questions: may gatekeeper tag its own releases by version (v1.2.0) where th
 
 ## Status
 
-Proposed 2026-11-20, revised the same day on the owner's review (`README.md` maps each review point to its place).
-Nothing is built. Issues are filed after approval.
+Accepted 2026-11-20 by the owner, after one revision (`README.md` maps each review point to its place). Nothing
+is built. The issues below are filed now.
 
 ## Question
 
@@ -246,7 +246,8 @@ Release adoptions, one small issue in each repo, apart from its gates:
 ## `.drover/arch.toml` lines
 
 gatekeeper has no central list to freeze. Its three would-be lists never exist: gates and fixtures are globbed
-from `packs/`, and the two Rust module lists and the skill are generated. G1 adds, in gatekeeper:
+from `packs/`, and the two Rust module lists and the skill are generated. `.drover/arch.toml` holds these lines
+from #1 on, except the first two, which G1 adds with the justfile whose `just gen` they run:
 
 ```toml
 generated = ["crates/gatekeeper/src/cmd/mod.rs", "crates/gatekeeper-engine/src/check/mod.rs", "skill/gatekeeper/**"]
