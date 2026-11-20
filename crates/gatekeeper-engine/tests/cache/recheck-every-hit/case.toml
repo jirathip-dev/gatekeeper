@@ -1,0 +1,17 @@
+gate = { run = "true", versions = ["echo 1"] }
+cache = { recheck = 1 }
+
+[[run]]
+trigger = "lane"
+expect = "ok"
+
+[[run]]
+trigger = "lane"
+expect = "ok"
+contains = "rechecked"
+expect_store = { host = 1 }
+
+[[run]]
+trigger = "lane"
+expect = "ok"
+contains = "rechecked"

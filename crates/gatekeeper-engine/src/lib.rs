@@ -1,4 +1,5 @@
 pub mod baseline;
+pub mod cache;
 pub(crate) mod check;
 pub mod ci;
 pub mod config;

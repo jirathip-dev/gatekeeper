@@ -1,0 +1,17 @@
+gate = { run = "true", versions = ["echo 1"] }
+cache = {}
+
+[[run]]
+trigger = "lane"
+expect = "ok"
+
+[[run]]
+trigger = "lane"
+age_days = 13
+expect = "cached"
+
+[[run]]
+trigger = "lane"
+age_days = 15
+expect = "ok"
+contains = "expired"

@@ -91,6 +91,7 @@ fn run_case(gate: &Gate, case: Option<&str>, out: &Path, cache: &Path) -> Result
             .as_ref()
             .map_or("Cargo.toml", config::manifest)
             .to_owned(),
+        results: None,
         ts: config.and_then(|c| c.ts),
         after_reports: None,
     };

@@ -1,0 +1,12 @@
+gate = { run = "true", versions = ["echo 1"] }
+cache = {}
+
+[[run]]
+trigger = "pr 41"
+expect = "ok"
+expect_store = { "pr-41" = 1 }
+
+[[run]]
+trigger = "pr 42"
+expect = "ok"
+expect_store = { "pr-42" = 1 }

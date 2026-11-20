@@ -167,7 +167,7 @@ fn ci_plan_emits_one_leg_per_pack_and_done_fails_a_missing_or_failed_report() {
     assert_eq!(code, 0);
     assert_eq!(
         plan.trim(),
-        "matrix={\"include\":[{\"after\":\"\",\"artifact\":\"gates-local\",\"leg\":\"local\",\"node\":false,\"runs-on\":\"ubuntu-latest\",\"rust\":true,\"shard\":\"\"}]}\nafter={\"include\":[]}"
+        "matrix={\"include\":[{\"after\":\"\",\"artifact\":\"gates-local\",\"leg\":\"local\",\"node\":false,\"results-integration\":\"\",\"results-own\":\"\",\"results-save\":\"\",\"results-tier\":\"\",\"runs-on\":\"ubuntu-latest\",\"rust\":true,\"shard\":\"\"}]}\nafter={\"include\":[]}"
     );
     let ts = repo(
         "ci-ts",
@@ -178,7 +178,7 @@ fn ci_plan_emits_one_leg_per_pack_and_done_fails_a_missing_or_failed_report() {
     assert_eq!(code, 0, "{plan}");
     assert_eq!(
         plan.trim(),
-        "matrix={\"include\":[{\"after\":\"\",\"artifact\":\"gates-ts\",\"leg\":\"ts\",\"node\":true,\"runs-on\":\"ubuntu-latest\",\"rust\":true,\"shard\":\"\"}]}\nafter={\"include\":[]}"
+        "matrix={\"include\":[{\"after\":\"\",\"artifact\":\"gates-ts\",\"leg\":\"ts\",\"node\":true,\"results-integration\":\"\",\"results-own\":\"\",\"results-save\":\"\",\"results-tier\":\"\",\"runs-on\":\"ubuntu-latest\",\"rust\":true,\"shard\":\"\"}]}\nafter={\"include\":[]}"
     );
     let reports = root.join("reports");
     let (code, out) = gk(&root, &["ci", "done", "--reports", "reports"], &[]);
@@ -417,7 +417,7 @@ fn deps_fails_lockfile_growth_alike_on_a_lane_and_in_ci_checks_only_the_list_on_
         .find(|l| l.contains("local/deps"))
         .expect("row");
     assert!(
-        row.ends_with("| FAIL | lockfiles: Cargo.lock 1 -> 12 (+11) |"),
+        row.ends_with("| FAIL | lockfiles: Cargo.lock 1 -> 12 (+11) |  |"),
         "{row}"
     );
     git(&root, &["update-ref", "-d", "refs/remotes/origin/staging"]);

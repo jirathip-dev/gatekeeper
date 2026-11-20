@@ -1,0 +1,16 @@
+gate = { step = [{ tool = "actionlint" }] }
+fake_tool = "actionlint"
+cache = {}
+
+[[run]]
+trigger = "lane"
+expect = "ok"
+
+[[run]]
+trigger = "lane"
+expect = "cached"
+
+[[run]]
+trigger = "lane"
+versions = { "tool actionlint" = "another pinned sha256" }
+expect = "ok"

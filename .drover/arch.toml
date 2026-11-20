@@ -17,6 +17,10 @@ glob = "*/gates/*.toml"
 dir = "packs"
 glob = "*/fixtures/**"
 
+[[collect]]
+dir = "crates/gatekeeper-engine/tests/cache"
+glob = "*/case.toml"
+
 [[layer]]
 name = "model"
 paths = ["crates/gatekeeper-model/src/**"]
@@ -49,6 +53,16 @@ reason = "a gate runs through gatekeeper check; the workflow only provisions"
 pattern = "secrets: inherit"
 paths = [".github/workflows/**"]
 reason = "a workflow names each secret it reads"
+
+[[ban]]
+pattern = "env::var"
+paths = ["crates/gatekeeper-engine/src/**", "crates/gatekeeper-model/src/**"]
+reason = "the cli reads the environment once and passes typed values"
+
+[[ban]]
+pattern = "github.event_name"
+paths = [".github/workflows/gates.yml"]
+reason = "ci plan decides which runs read and write the result cache; the workflow only moves the folder"
 
 [[size]]
 paths = ["crates/*/src/**/*.rs"]

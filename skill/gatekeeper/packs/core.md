@@ -8,6 +8,7 @@ pinned actionlint on .github/workflows/
 
 - fix: fix the workflow at the line actionlint names
 - budget: 5s
+- cached: yes
 - rerun: `./.gatekeeper/run check --gate core/actionlint`
 - what a failure looks like: [core-actionlint](../examples/core-actionlint.md)
 
@@ -17,6 +18,7 @@ drover arch-check: the layers, bans, sizes, frozen and generated files and comme
 
 - fix: follow the rule the finding names; rerun the generator, never hand-edit a generated file
 - budget: 45s
+- cached: no, reads the base
 - rerun: `./.gatekeeper/run check --gate core/arch`
 - what a failure looks like: [core-arch](../examples/core-arch.md)
 
@@ -26,6 +28,7 @@ drover cap-check: the counted lines under the cap in ci/cap.toml, and .drover/ru
 
 - fix: delete code, or the rules a check now enforces; a raise of the cap is its own issue
 - budget: 5s
+- cached: yes
 - rerun: `./.gatekeeper/run check --gate core/cap`
 - what a failure looks like: [core-cap](../examples/core-cap.md)
 
@@ -41,6 +44,7 @@ every direct dependency of Cargo.toml, package.json and Package.swift (with thei
 
 - fix: ask the owner before you add a dependency; then list it with its reason, drop a stale entry, and for growth over the limit put `Deps: #<issue> <the owner's answer>` in a commit message
 - budget: 5s
+- cached: no, cache = false
 - rerun: `./.gatekeeper/run check --gate core/deps`
 - what a failure looks like: [core-deps](../examples/core-deps.md)
 
@@ -50,6 +54,7 @@ every gatekeeper workflow call names the commit and version of the pinned releas
 
 - fix: run ./.gatekeeper/run pin <version>, never edit the pin by hand; pass each secret by name, never secrets: inherit
 - budget: 1s
+- cached: yes
 - rerun: `./.gatekeeper/run check --gate core/pin`
 - what a failure looks like: [core-pin](../examples/core-pin.md)
 
@@ -59,5 +64,6 @@ drover lesson-check: every active check in .drover/rules.md passes
 
 - fix: fix what the named check reports, or retire the check in a lesson PR
 - budget: 5s
+- cached: yes
 - rerun: `./.gatekeeper/run check --gate core/rules`
 - what a failure looks like: [core-rules](../examples/core-rules.md)

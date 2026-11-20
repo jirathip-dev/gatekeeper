@@ -1,5 +1,5 @@
 use crate::{Error, Result, VERSION, packs, selftest};
-use gatekeeper_model::{Gate, PackId};
+use gatekeeper_model::{Gate, PackId, Unkeyed};
 use std::fs;
 use std::path::Path;
 
@@ -30,6 +30,9 @@ fn skill_md(packs: &[(PackId, String)]) -> String {
          3. Rerun the one gate: `./.gatekeeper/run check --gate <pack>/<gate>`, then `./.gatekeeper/run check`.\n\n\
          `./.gatekeeper/run list` prints the planned gates with their budgets and why one is skipped. \
          A repo's own gates live in `.gatekeeper/gates/<gate>.toml` as `local/<gate>` and print their `fix` the same way.\n\n\
+         With `[cache]` in `.gatekeeper/config.toml` a gate whose inputs already passed prints `cached` with the run that proved it. \
+         A rerun of a cached pass that fails now prints `cached pass does not hold`: the gate reads a file it does not declare; \
+         add it to the gate's `paths` or set `cache = false`. `--no-cache` runs and records nothing.\n\n\
          ## Packs\n\n"
     );
     let list = packs
@@ -45,11 +48,12 @@ fn pack_md(pack: PackId, about: &str, gates: &[Gate]) -> String {
         let rule = g.rule.iter().zip(1..).map(|(l, i)| format!("{i}. {l}\n")).collect::<Vec<_>>().concat();
         let rule = if rule.is_empty() { rule } else { format!("\n{rule}") };
         format!(
-            "\n## {}\n\n{}\n{rule}\n- fix: {}\n- budget: {}s\n- rerun: `{}`\n- what a failure looks like: [{}](../{})\n",
+            "\n## {}\n\n{}\n{rule}\n- fix: {}\n- budget: {}s\n- cached: {}\n- rerun: `{}`\n- what a failure looks like: [{}](../{})\n",
             g.id,
             g.about,
             g.fix,
             g.budget.0,
+            Unkeyed::of(g).map_or("yes".into(), |why| format!("no, {why}")),
             rerun(g),
             g.id.file_stem(),
             example_path(g)

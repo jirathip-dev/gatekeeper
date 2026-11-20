@@ -1,0 +1,12 @@
+gate = { run = "true", versions = ["echo 1"] }
+cache = {}
+
+[[run]]
+trigger = "pr 41"
+expect = "ok"
+
+[[run]]
+trigger = "pr 42"
+forge = { tier = "pr-41", what = "move", to = "integration" }
+expect = "ok"
+contains = "wrong-tier"

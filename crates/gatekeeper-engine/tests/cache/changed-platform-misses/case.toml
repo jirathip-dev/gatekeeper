@@ -1,0 +1,11 @@
+gate = { run = "true", versions = ["echo 1"] }
+cache = {}
+
+[[run]]
+trigger = "lane"
+expect = "ok"
+
+[[run]]
+trigger = "lane"
+platform = "ubuntu24 20261115.1"
+expect = "ok"

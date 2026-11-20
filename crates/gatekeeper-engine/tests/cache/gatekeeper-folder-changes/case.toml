@@ -1,0 +1,16 @@
+gate = { run = "true", paths = ["src/**"], versions = ["echo 1"] }
+files = { "src/a.txt" = "one" }
+cache = {}
+
+[[run]]
+trigger = "lane"
+expect = "ok"
+
+[[run]]
+trigger = "lane"
+expect = "cached"
+
+[[run]]
+trigger = "lane"
+edit = { ".gatekeeper/baseline/local-g.txt" = "" }
+expect = "ok"

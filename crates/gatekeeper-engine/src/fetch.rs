@@ -69,11 +69,34 @@ pub fn sha256_hex(bytes: &[u8]) -> String {
         .collect()
 }
 
-pub(crate) fn tool(name: &str, cache: &Path) -> Result<PathBuf> {
+fn parsed(name: &str) -> Result<(ToolFile, &'static str)> {
     let (path, text) =
         packs::tool_file(name).ok_or_else(|| Error(format!("no pinned tool `{name}`")))?;
     let file: ToolFile = toml::from_str(text).map_err(|e| Error(format!("{path}: {e}")))?;
     let target = host_target().ok_or_else(|| Error("no pinned tools for this platform".into()))?;
+    Ok((file, target))
+}
+
+/// The sha256 a tool is pinned by on this target: what a result's key names it by.
+pub(crate) fn pin(name: &str) -> Result<String> {
+    let (file, target) = parsed(name)?;
+    Ok(match file {
+        ToolFile::Binary(f) => f
+            .asset
+            .get(target)
+            .map_or_else(String::new, |a| a.sha256.clone()),
+        ToolFile::Node(f) => f
+            .package
+            .iter()
+            .filter(|p| p.target.as_deref().is_none_or(|t| t == target))
+            .map(|p| p.sha256.as_str())
+            .collect::<Vec<_>>()
+            .join(" "),
+    })
+}
+
+pub(crate) fn tool(name: &str, cache: &Path) -> Result<PathBuf> {
+    let (file, target) = parsed(name)?;
     match file {
         ToolFile::Binary(file) => {
             let asset = file

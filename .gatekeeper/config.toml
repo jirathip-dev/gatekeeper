@@ -1,3 +1,6 @@
 packs = ["core", "rust"]
 integration = "staging"
 pin = "checkout"
+
+[cache]
+recheck = 1

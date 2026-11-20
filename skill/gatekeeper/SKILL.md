@@ -13,6 +13,8 @@ description: Read, fix and rerun a failing gatekeeper gate (gatekeeper 1.0.0).
 
 `./.gatekeeper/run list` prints the planned gates with their budgets and why one is skipped. A repo's own gates live in `.gatekeeper/gates/<gate>.toml` as `local/<gate>` and print their `fix` the same way.
 
+With `[cache]` in `.gatekeeper/config.toml` a gate whose inputs already passed prints `cached` with the run that proved it. A rerun of a cached pass that fails now prints `cached pass does not hold`: the gate reads a file it does not declare; add it to the gate's `paths` or set `cache = false`. `--no-cache` runs and records nothing.
+
 ## Packs
 
 - [core](packs/core.md): the line cap, the rules file, arch-check, actionlint, the dependency list

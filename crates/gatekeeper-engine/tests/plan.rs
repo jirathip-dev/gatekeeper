@@ -82,6 +82,7 @@ fn run_case(case: &Path) {
         manifest: "Cargo.toml".into(),
         after_reports: expect.after_reports.then(|| case.join("reports")),
         ts: None,
+        results: None,
     };
     let report = run::run(&plan, &cx, &mut |_, _| {}).expect("run");
     let got: BTreeMap<String, String> = report

@@ -1,0 +1,12 @@
+gate = { run = "true", versions = ["echo 1"] }
+cache = {}
+
+[[run]]
+trigger = "push staging"
+expect = "ok"
+
+[[run]]
+trigger = "fork 41"
+expect = "ok"
+expect_store = { "pr-41" = 0 }
+same = ["integration"]

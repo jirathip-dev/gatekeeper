@@ -1,5 +1,8 @@
 use crate::{Error, Result};
-use gatekeeper_model::{Host, Millis, Plan, Platform, Report, Toolchain, artifact, job_label};
+use gatekeeper_model::{
+    CacheMode, CacheNote, CacheTotals, GateReport, Host, Millis, Outcome, Plan, Platform, Report,
+    Tier, Toolchain, artifact, job_label,
+};
 use serde_json::{Map, Value, json};
 use std::fmt::Write as _;
 use std::path::Path;
@@ -22,8 +25,29 @@ pub fn host(runners: &Map<String, Value>, platform: Platform) -> Host {
     }
 }
 
+/// The `actions/cache` key prefixes a job restores and saves its result records under, by `mode`.
+fn results(mode: &CacheMode, artifact: &str) -> Value {
+    let (read, write) = match mode {
+        CacheMode::Use { read, write } => (&read[..], *write),
+        CacheMode::Off(_) => (&[][..], None),
+    };
+    let prefix = |t: Tier| format!("gatekeeper-results-1-{t}-{artifact}-");
+    let own = read.iter().find(|t| matches!(t, Tier::PullRequest(_)));
+    json!({
+        "results-integration": if read.contains(&Tier::Integration) { prefix(Tier::Integration) } else { String::new() },
+        "results-own": own.map_or_else(String::new, |t| prefix(*t)),
+        "results-save": write.map_or_else(String::new, prefix),
+        "results-tier": write.map_or_else(String::new, |t| t.to_string()),
+    })
+}
+
 /// # Errors
-pub fn matrix(plan: &Plan, runners: &Map<String, Value>, checkout: bool) -> Result<String> {
+pub fn matrix(
+    plan: &Plan,
+    runners: &Map<String, Value>,
+    checkout: bool,
+    mode: &CacheMode,
+) -> Result<String> {
     let mut entries = Vec::new();
     for job in &plan.jobs {
         let key = job.platform.runner();
@@ -33,10 +57,14 @@ pub fn matrix(plan: &Plan, runners: &Map<String, Value>, checkout: bool) -> Resu
         let rust = checkout || job.setup.contains(&Toolchain::Rust);
         let node = job.setup.contains(&Toolchain::Node);
         let shard = (job.shard.of.get() > 1).then(|| job.shard.to_string());
-        let entry = json!({
-            "leg": job.leg, "shard": shard.unwrap_or_default(), "artifact": artifact(&job.leg, job.shard),
+        let name = artifact(&job.leg, job.shard);
+        let mut entry = json!({
+            "leg": job.leg, "shard": shard.unwrap_or_default(), "artifact": name,
             "after": job.after.clone().unwrap_or_default(), "runs-on": runs_on, "rust": rust, "node": node,
         });
+        if let (Some(e), Value::Object(r)) = (entry.as_object_mut(), results(mode, &name)) {
+            e.extend(r);
+        }
         entries.push(entry);
     }
     let (after, first): (Vec<_>, Vec<_>) = entries.into_iter().partition(|e| e["after"] != "");
@@ -50,10 +78,11 @@ pub fn matrix(plan: &Plan, runners: &Map<String, Value>, checkout: bool) -> Resu
 /// # Errors
 pub fn done(plan: &Plan, reports: &Path) -> Result<(String, Vec<String>)> {
     let mut table = String::from(
-        "| job | host | setup | gate | took | budget | | note |\n|---|---|---|---|---|---|---|---|\n",
+        "| job | host | setup | gate | took | budget | | note | proved by |\n|---|---|---|---|---|---|---|---|---|\n",
     );
     let mut problems = Vec::new();
     let mut selected = String::new();
+    let mut all = Vec::new();
     for job in &plan.jobs {
         let path = reports
             .join(artifact(&job.leg, job.shard))
@@ -75,7 +104,7 @@ pub fn done(plan: &Plan, reports: &Path) -> Result<(String, Vec<String>)> {
             for g in &jr.gates {
                 writeln!(
                     table,
-                    "| {} | {} | {} | {} | {} | {} s | {} | {} |",
+                    "| {} | {} | {} | {} | {} | {} s | {} | {} | {} |",
                     job_label(&jr.leg, jr.shard),
                     jr.host.label(),
                     secs(jr.setup),
@@ -83,7 +112,8 @@ pub fn done(plan: &Plan, reports: &Path) -> Result<(String, Vec<String>)> {
                     secs(g.took),
                     g.budget.0,
                     g.outcome.word(),
-                    g.note.as_deref().unwrap_or_default()
+                    g.note.as_deref().unwrap_or_default(),
+                    proved(g)
                 )
                 .map_err(|e| Error(e.to_string()))?;
                 if g.outcome.fails() {
@@ -91,7 +121,27 @@ pub fn done(plan: &Plan, reports: &Path) -> Result<(String, Vec<String>)> {
                 }
             }
         }
+        all.extend(report.jobs.into_iter().flat_map(|j| j.gates));
+    }
+    let t = CacheTotals::of(&all);
+    if t.cached + t.rechecked + t.refused > 0 {
+        let share = t.saved.0 * 100 / (t.ran.0 + t.saved.0).max(1);
+        writeln!(
+            table,
+            "\ncache: {} of {} gates cached · ran {} · saved {} ({share} %) · {} rechecked, {} differed · {} records refused",
+            t.cached, t.gates, secs(t.ran), secs(t.saved), t.rechecked, t.differed, t.refused
+        )
+        .ok();
     }
     table.push_str(&selected);
     Ok((table, problems))
+}
+
+fn proved(g: &GateReport) -> String {
+    match (&g.outcome, &g.cache) {
+        (Outcome::Cached(hit), _) => hit.proof.to_string(),
+        (_, Some(CacheNote::Rechecked(proof))) => format!("rechecked: {proof}"),
+        (_, Some(CacheNote::Refused(why))) => format!("refused: {why:?}"),
+        _ => String::new(),
+    }
 }

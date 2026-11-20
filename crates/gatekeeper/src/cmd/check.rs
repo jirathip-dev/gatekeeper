@@ -2,7 +2,10 @@ use crate::cli::{self, Args, say};
 use gatekeeper_engine::ci::secs;
 use gatekeeper_engine::run::{self, RunCtx};
 use gatekeeper_engine::{Error, VERSION, config, plan};
-use gatekeeper_model::{Gate, GateReport, Host, Outcome, Plan, Trigger, Widened, job_label};
+use gatekeeper_model::{
+    CacheMode, CacheNote, CacheTotals, Failure, Gate, GateReport, Host, Outcome, Plan, Trigger,
+    Widened, job_label,
+};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -17,6 +20,13 @@ fn show(root: &Path, gate: &Gate, r: &GateReport) {
     let word = r.outcome.word();
     match &r.outcome {
         Outcome::Skipped(why) => say(&format!("{word:<5} {:<18} {:>16}  {why}", r.id, "")),
+        Outcome::Cached(hit) => say(&format!(
+            "{word} {:<17} ({}) / {:>4}s   {}",
+            r.id,
+            secs(hit.took),
+            r.budget.0,
+            hit.proof
+        )),
         outcome => {
             say(&format!(
                 "{word:<5} {:<18} {:>6} / {:>4}s",
@@ -29,6 +39,23 @@ fn show(root: &Path, gate: &Gate, r: &GateReport) {
             }
             if let Some(note) = &r.note {
                 say(&format!("      {note}"));
+            }
+            match &r.cache {
+                Some(CacheNote::Rechecked(proof)) => {
+                    say(&format!("      rechecked: cached by {proof}"))
+                }
+                Some(CacheNote::Refused(why)) => {
+                    say(&format!("      a cached record was refused: {why:?}"))
+                }
+                _ => {}
+            }
+            if let Outcome::Failed(Failure::CacheMismatch(proof)) = outcome {
+                say(&format!(
+                    "      cached pass does not hold: it passed in {proof} with the same key and fails now:"
+                ));
+                say(
+                    "      the gate reads something it does not declare. Add it to `paths`, or set `cache = false`.",
+                );
             }
             for kept in &r.kept {
                 let dir = format!(
@@ -65,7 +92,7 @@ fn show(root: &Path, gate: &Gate, r: &GateReport) {
     }
 }
 
-fn prepare(args: &Args, root: &Path) -> Result<(Plan, RunCtx, Option<usize>), Error> {
+fn prepare(args: &Args, root: &Path) -> Result<(Plan, RunCtx, Option<usize>, CacheMode), Error> {
     let config = config::load(root)?;
     let host = cli::host();
     let given = args.value("--base").map(str::to_owned);
@@ -79,6 +106,7 @@ fn prepare(args: &Args, root: &Path) -> Result<(Plan, RunCtx, Option<usize>), Er
         Some(b) => Trigger::Change(run::changed(root, b)?),
     };
     let plan = plan::repo(&config, root, &|_| host, &filter)?;
+    let (mode, results) = cli::results(&config, args, root)?;
     let cx = RunCtx {
         root: root.to_path_buf(),
         out: run::out_dir(root),
@@ -90,15 +118,17 @@ fn prepare(args: &Args, root: &Path) -> Result<(Plan, RunCtx, Option<usize>), Er
         manifest: config::manifest(&config).to_owned(),
         after_reports: args.value("--after-reports").map(PathBuf::from),
         ts: config.ts.clone(),
+        results,
     };
     let changed = match filter.trigger {
         Trigger::Change(files) => Some(files.len()),
         Trigger::Everything(_) => None,
     };
-    Ok((plan, cx, changed))
+    Ok((plan, cx, changed, mode))
 }
 
-const VALUED: [&str; 7] = [
+const VALUED: [&str; 8] = [
+    "--results",
     "--pack",
     "--leg",
     "--shard",
@@ -108,7 +138,7 @@ const VALUED: [&str; 7] = [
     "--after-reports",
 ];
 
-fn header(plan: &Plan, cx: &RunCtx, changed: Option<usize>) {
+fn header(plan: &Plan, cx: &RunCtx, changed: Option<usize>, mode: &CacheMode) {
     let legs = plan.jobs.iter().map(|j| job_label(&j.leg, j.shard));
     let base = cx
         .base
@@ -116,7 +146,7 @@ fn header(plan: &Plan, cx: &RunCtx, changed: Option<usize>) {
         .map_or("none", |b| b.get(..12).unwrap_or(b));
     let scope = changed.map_or("every gate".to_owned(), |n| format!("{n} files changed"));
     say(&format!(
-        "gatekeeper {VERSION} · legs {} · base {base} · {scope} · host {}",
+        "gatekeeper {VERSION} · legs {} · base {base} · {scope} · host {} · {mode}",
         legs.collect::<Vec<_>>().join(" "),
         cx.host.label()
     ));
@@ -125,18 +155,18 @@ fn header(plan: &Plan, cx: &RunCtx, changed: Option<usize>) {
     }
 }
 
-/// `check [--pack P] [--leg L] [--shard I/N] [--gate ID] [--base REV] [--pr-body FILE] [--after-reports DIR] [--all]`.
+/// `check [--pack P] [--leg L] [--shard I/N] [--gate ID] [--base REV] [--pr-body FILE] [--after-reports DIR] [--results DIR] [--all] [--no-cache]`.
 pub fn run(args: &[String]) -> ExitCode {
-    let parsed = Args::parse(args, &VALUED, &["--all"]);
+    let parsed = Args::parse(args, &VALUED, &["--all", "--no-cache"]);
     let root = match cli::root() {
         Ok(root) => root,
         Err(e) => return cli::usage_error(&e),
     };
-    let (plan, cx, changed) = match parsed.and_then(|a| prepare(&a, &root)) {
+    let (plan, cx, changed, mode) = match parsed.and_then(|a| prepare(&a, &root)) {
         Ok(ready) => ready,
         Err(e) => return cli::usage_error(&e),
     };
-    header(&plan, &cx, changed);
+    header(&plan, &cx, changed, &mode);
     let report = match run::run(&plan, &cx, &mut |gate, r| show(&root, gate, r)) {
         Ok(report) => report,
         Err(e) => return cli::usage_error(&e),
@@ -151,11 +181,26 @@ pub fn run(args: &[String]) -> ExitCode {
         .jobs
         .first()
         .map_or_else(String::new, |j| secs(j.setup));
+    let totals = CacheTotals::of(gates.clone());
+    let cached = match &totals {
+        t if t.cached + t.rechecked + t.refused == 0 => String::new(),
+        t => format!(
+            " · {} cached, saved {} · {} rechecked, {} differed · {} refused",
+            t.cached,
+            secs(t.saved),
+            t.rechecked,
+            t.differed,
+            t.refused
+        ),
+    };
     if failed.is_empty() {
-        say(&format!("{} gates passed · setup {setup}", gates.count()));
+        say(&format!(
+            "{} gates passed{cached} · setup {setup}",
+            gates.count()
+        ));
     } else {
         say(&format!(
-            "{} failed: {} · setup {setup}",
+            "{} failed: {}{cached} · setup {setup}",
             failed.len(),
             failed.join(", ")
         ));

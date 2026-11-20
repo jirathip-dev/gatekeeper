@@ -1,4 +1,4 @@
-use crate::{Affected, GateId, Secs, Shard, Skip};
+use crate::{Affected, CacheNote, GateId, Hit, Proof, Secs, Shard, Skip};
 use serde::{Deserialize, Serialize};
 
 /// Milliseconds: a measured time.
@@ -44,6 +44,7 @@ pub enum BudgetMode {
 #[serde(rename_all = "kebab-case")]
 pub enum Outcome {
     Passed { slow: bool },
+    Cached(Hit),
     Failed(Failure),
     OverBudget,
     Skipped(Skip),
@@ -60,6 +61,7 @@ impl Outcome {
         match self {
             Outcome::Passed { slow: false } => "ok",
             Outcome::Passed { slow: true } => "slow",
+            Outcome::Cached(_) => "cached",
             Outcome::Failed(_) => "FAIL",
             Outcome::OverBudget => "OVER",
             Outcome::Skipped(_) => "skip",
@@ -73,6 +75,7 @@ pub enum Failure {
     Exit(i32),
     Timeout,
     MissingTool(String),
+    CacheMismatch(Proof),
 }
 
 /// A finished gate's outcome: its steps' result, its time against its budget on this host.
@@ -117,6 +120,47 @@ pub struct GateReport {
     pub projects: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub note: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cache: Option<CacheNote>,
+}
+
+/// What the result cache saved and caught over a run's gates.
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct CacheTotals {
+    pub gates: u32,
+    pub cached: u32,
+    pub ran: Millis,
+    pub saved: Millis,
+    pub rechecked: u32,
+    pub differed: u32,
+    pub refused: u32,
+}
+
+impl CacheTotals {
+    #[must_use]
+    pub fn of<'a>(gates: impl IntoIterator<Item = &'a GateReport>) -> CacheTotals {
+        let mut t = CacheTotals::default();
+        for g in gates {
+            t.gates += 1;
+            match (&g.outcome, &g.cache) {
+                (Outcome::Cached(hit), _) => {
+                    t.cached += 1;
+                    t.saved.0 += hit.took.0;
+                }
+                (Outcome::Failed(Failure::CacheMismatch(_)), _) => {
+                    t.rechecked += 1;
+                    t.differed += 1;
+                }
+                (_, Some(CacheNote::Rechecked(_))) => t.rechecked += 1,
+                (_, Some(CacheNote::Refused(_))) => t.refused += 1,
+                _ => {}
+            }
+            if !matches!(g.outcome, Outcome::Cached(_)) {
+                t.ran.0 += g.took.0;
+            }
+        }
+        t
+    }
 }
 
 /// An upload's files, by their repo paths; a copy of each is under `files/<name>/` of the out folder.

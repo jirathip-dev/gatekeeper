@@ -19,6 +19,8 @@ fn always_passing(name: &str) -> Gate {
         shards: Shards::default(),
         uploads: Vec::new(),
         rule: Vec::new(),
+        versions: Vec::new(),
+        cache: true,
     }
 }
 

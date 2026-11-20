@@ -1,0 +1,15 @@
+gate = { run = "true", versions = ["echo 1"] }
+cache = {}
+
+[[run]]
+trigger = "other"
+expect = "ok"
+
+[[run]]
+trigger = "push main"
+expect = "ok"
+
+[[run]]
+trigger = "other"
+expect = "ok"
+expect_store = { integration = 0, host = 0 }

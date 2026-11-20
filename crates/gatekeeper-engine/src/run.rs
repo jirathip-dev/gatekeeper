@@ -1,4 +1,5 @@
 use crate::baseline::{self, Baseline};
+use crate::cache::{self, Results};
 use crate::runner::{self, Ended};
 use crate::{Error, Result, VERSION, fetch, kept, packs};
 use gatekeeper_model::{
@@ -45,6 +46,8 @@ pub struct RunCtx {
     /// The reports and kept files of the leg an `after` job waits for, downloaded in CI.
     pub after_reports: Option<PathBuf>,
     pub ts: Option<TsPack>,
+    /// `None` when this run neither reads nor writes the result cache.
+    pub results: Option<Results>,
 }
 
 fn millis(d: Duration) -> Millis {
@@ -189,19 +192,21 @@ pub(crate) fn gate(
         kept,
         projects: projects.to_vec(),
         note: summary.into_inner(),
+        cache: None,
     })
 }
 
-fn skipped(planned: &Planned, skip: Skip) -> GateReport {
+pub(crate) fn unrun(planned: &Planned, outcome: Outcome) -> GateReport {
     GateReport {
         id: planned.gate.id.clone(),
-        outcome: Outcome::Skipped(skip),
+        outcome,
         took: Millis(0),
         budget: planned.gate.budget,
         log: String::new(),
         kept: Vec::new(),
         projects: Vec::new(),
         note: None,
+        cache: None,
     }
 }
 
@@ -238,9 +243,15 @@ pub fn run(plan: &Plan, cx: &RunCtx, seen: &mut dyn FnMut(&Gate, &GateReport)) -
         let mut gates = Vec::new();
         for planned in &job.gates {
             let done = match planned.decision {
-                Decision::Run if !waited => skipped(planned, Skip::AfterFailed),
-                Decision::Run => gate(&planned.gate, job.shard, &planned.projects, cx)?,
-                Decision::Skip(skip) => skipped(planned, skip),
+                Decision::Run if !waited => unrun(planned, Outcome::Skipped(Skip::AfterFailed)),
+                Decision::Run => {
+                    let run = || gate(&planned.gate, job.shard, &planned.projects, cx);
+                    match &cx.results {
+                        Some(res) => cache::gate(res, planned, job.shard, &cx.root, run)?,
+                        None => run()?,
+                    }
+                }
+                Decision::Skip(skip) => unrun(planned, Outcome::Skipped(skip)),
             };
             seen(&planned.gate, &done);
             gates.push(done);

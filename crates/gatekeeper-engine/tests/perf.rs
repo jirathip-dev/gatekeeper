@@ -1,8 +1,13 @@
+use gatekeeper_engine::cache::{self, Ident, Results};
 use gatekeeper_engine::run::{self, RunCtx};
 use gatekeeper_engine::{packs, plan};
-use gatekeeper_model::{Config, Filter, Graph, Host, Step};
+use gatekeeper_model::{
+    CacheConfig, Config, Engine, Filter, Graph, Host, Outcome, PlatformId, Report, Step, Tier,
+};
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::time::{Duration, Instant};
 
 fn copy(from: &Path, to: &Path) {
@@ -18,9 +23,8 @@ fn copy(from: &Path, to: &Path) {
     }
 }
 
-#[test]
-fn check_on_the_base_fixture_with_every_gate_stubbed_takes_under_200_ms() {
-    let root = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join("perf");
+fn fixture(name: &str) -> PathBuf {
+    let root = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join(name);
     if root.exists() {
         fs::remove_dir_all(&root).expect("clean");
     }
@@ -28,14 +32,73 @@ fn check_on_the_base_fixture_with_every_gate_stubbed_takes_under_200_ms() {
     let packs_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../packs");
     copy(&packs_dir.join("core/fixtures/_base"), &root);
     copy(&packs_dir.join("rust/fixtures/_base"), &root);
+    fs::write(root.join(".gitignore"), "target/\ncache/\n").expect("ignore");
+    for args in [
+        &["init", "-q"][..],
+        &["add", "-A"],
+        &[
+            "-c",
+            "user.name=t",
+            "-c",
+            "user.email=t@localhost",
+            "-c",
+            "commit.gpgsign=false",
+            "commit",
+            "-q",
+            "-m",
+            "base",
+        ],
+    ] {
+        assert!(
+            Command::new("git")
+                .args(args)
+                .current_dir(&root)
+                .status()
+                .expect("git")
+                .success()
+        );
+    }
+    root
+}
+
+fn results(root: &Path) -> Results {
+    let probes = [("echo 1", "1"), ("rustc -Vv", "rustc 1.91.0")];
+    let config: CacheConfig = toml::from_str("recheck = 1000000").expect("cache");
+    Results {
+        store: root.join("cache/results"),
+        read: vec![Tier::Host],
+        write: Some(Tier::Host),
+        config,
+        now: 1_795_000_000,
+        salt: "0".into(),
+        run: None,
+        ident: Ident {
+            engine: Engine::Checkout { binary: "e".into() },
+            platform: PlatformId {
+                target: "t".into(),
+                os: "os".into(),
+            },
+            probes: probes
+                .map(|(c, o)| (c.to_owned(), o.to_owned()))
+                .into_iter()
+                .collect::<BTreeMap<_, _>>()
+                .into(),
+        },
+        inputs: cache::inputs::read(root).expect("inputs"),
+    }
+}
+
+fn check(root: &Path, cached: bool) -> (Duration, Report) {
     let config: Config = toml::from_str(
         "packs = [\"core\", \"rust\"]\nintegration = \"staging\"\npin = \"checkout\"\n",
     )
     .expect("config");
     let start = Instant::now();
-    let mut gates = packs::configured(&config, &root).expect("gates");
+    let mut gates = packs::configured(&config, root).expect("gates");
     for gate in &mut gates {
         gate.steps = vec![Step::Run { run: "true".into() }];
+        gate.versions = vec!["echo 1".into()];
+        gate.cache = true;
     }
     let plan = plan::plan(
         &config,
@@ -46,8 +109,8 @@ fn check_on_the_base_fixture_with_every_gate_stubbed_takes_under_200_ms() {
     )
     .expect("plan");
     let cx = RunCtx {
-        out: run::out_dir(&root),
-        root: root.clone(),
+        out: run::out_dir(root),
+        root: root.to_path_buf(),
         cache: root.join("cache"),
         base: None,
         pr_body: None,
@@ -56,12 +119,46 @@ fn check_on_the_base_fixture_with_every_gate_stubbed_takes_under_200_ms() {
         manifest: "Cargo.toml".into(),
         after_reports: None,
         ts: None,
+        results: cached.then(|| results(root)),
     };
     let report = run::run(&plan, &cx, &mut |_, _| {}).expect("run");
     let took = start.elapsed();
+    assert!(cx.out.join("report.json").is_file());
+    (took, report)
+}
+
+#[test]
+fn check_on_the_base_fixture_with_every_gate_stubbed_takes_under_200_ms() {
+    let root = fixture("perf");
+    for cached in [false, true] {
+        let (took, report) = check(&root, cached);
+        let gates: Vec<_> = report.jobs.iter().flat_map(|j| &j.gates).collect();
+        assert_eq!(gates.len(), 10);
+        assert!(
+            gates
+                .iter()
+                .all(|g| matches!(g.outcome, Outcome::Passed { .. })),
+            "{gates:?}"
+        );
+        assert!(
+            took < Duration::from_millis(200),
+            "cache {cached}: took {took:?}"
+        );
+    }
+}
+
+#[test]
+fn a_check_whose_every_gate_hits_takes_under_200_ms() {
+    let root = fixture("perf-hit");
+    check(&root, true);
+    let (took, report) = check(&root, true);
     let gates: Vec<_> = report.jobs.iter().flat_map(|j| &j.gates).collect();
     assert_eq!(gates.len(), 10);
-    assert!(gates.iter().all(|g| !g.outcome.fails()));
-    assert!(cx.out.join("report.json").is_file());
+    assert!(
+        gates
+            .iter()
+            .all(|g| matches!(g.outcome, Outcome::Cached(_))),
+        "{gates:?}"
+    );
     assert!(took < Duration::from_millis(200), "took {took:?}");
 }

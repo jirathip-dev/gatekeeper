@@ -1,6 +1,7 @@
 about = "every direct dependency of Cargo.toml, package.json and Package.swift (with their workspaces) is listed with a reason in .gatekeeper/deps.toml; a PR grows Cargo.lock, pnpm-lock.yaml and Package.resolved by at most the file's `growth` packages"
 fix = "ask the owner before you add a dependency; then list it with its reason, drop a stale entry, and for growth over the limit put `Deps: #<issue> <the owner's answer>` in a commit message"
 budget_secs = 5
+cache = false
 rule = [
     "Crypto, TLS, signatures and parsers of files from outside are never written in-house: use a proven library.",
     "Small glue with no hostile input is written in-house.",
