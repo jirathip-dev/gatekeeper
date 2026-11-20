@@ -3,7 +3,6 @@ use gatekeeper_model::{GateReport, Key, KeyParts, Outcome, Proof, Record, Tier};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-/// A pass that ran: the only thing `write` takes, built only from `Outcome::Passed`.
 pub(crate) struct Ran(Record);
 
 impl Ran {
@@ -23,7 +22,6 @@ fn path(store: &Path, tier: Tier, key: &Key) -> PathBuf {
     store.join(tier.to_string()).join(format!("{}.json", key.0))
 }
 
-/// The record at `key` in `tier`, `None` when there is none.
 pub(crate) fn read(store: &Path, tier: Tier, key: &Key) -> Option<serde_json::Result<Record>> {
     let text = fs::read_to_string(path(store, tier, key)).ok()?;
     Some(serde_json::from_str(&text))

@@ -25,7 +25,6 @@ pub fn host(runners: &Map<String, Value>, platform: Platform) -> Host {
     }
 }
 
-/// The `actions/cache` key prefixes a job restores and saves its result records under, by `mode`.
 fn results(mode: &CacheMode, artifact: &str) -> Value {
     let (read, write) = match mode {
         CacheMode::Use { read, write } => (&read[..], *write),

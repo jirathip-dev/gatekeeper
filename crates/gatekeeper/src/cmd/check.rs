@@ -49,10 +49,7 @@ fn show(root: &Path, gate: &Gate, r: &GateReport) {
             if !r.projects.is_empty() {
                 say(&format!("      selected: {}", r.projects.join(" ")));
             }
-            if let Some(note) = &r.note {
-                say(&format!("      {note}"));
-            }
-            for line in cache_lines(r) {
+            for line in r.note.iter().cloned().chain(cache_lines(r)) {
                 say(&format!("      {line}"));
             }
             for kept in &r.kept {

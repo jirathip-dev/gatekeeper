@@ -13,8 +13,6 @@ pub struct Ident {
 }
 
 impl Ident {
-    /// This binary on this host; `os` is the runner image when CI names one, else `uname -sr`.
-    ///
     /// # Errors
     pub fn current(root: &Path, os: Option<String>) -> Result<Ident> {
         let engine = if let Some(build) = BUILD {
@@ -51,7 +49,6 @@ impl Ident {
         out
     }
 
-    /// Each toolchain's probe, then the gate's own `versions`, with their output.
     pub(crate) fn versions(&self, gate: &Gate, root: &Path) -> BTreeMap<String, String> {
         let setup = gate.setup.iter().map(|t| t.probe().to_owned());
         let commands = setup.chain(gate.versions.iter().cloned());
@@ -61,7 +58,6 @@ impl Ident {
             .collect()
     }
 
-    /// The pinned asset of each tool the gate's steps name, for this target.
     pub(crate) fn tools(&self, gate: &Gate) -> Result<BTreeMap<String, String>> {
         let named = gate.steps.iter().flat_map(|s| match s {
             Step::Tool { tool, .. } => vec![tool.as_str()],

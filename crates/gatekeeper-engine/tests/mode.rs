@@ -5,6 +5,29 @@ fn config(pull_requests: &str) -> CacheConfig {
     toml::from_str(&format!("pull_requests = \"{pull_requests}\"")).expect("config")
 }
 
+fn holds(event: &Event, read: &[Tier], write: Option<Tier>, at: &str) {
+    match event {
+        Event::PullRequest {
+            number,
+            fork: false,
+        } => {
+            assert_ne!(write, Some(Tier::Integration), "{at}");
+            assert!(
+                write.is_none_or(|t| t == Tier::PullRequest(*number)),
+                "{at}"
+            );
+            let own = |t: &Tier| *t == Tier::Integration || *t == Tier::PullRequest(*number);
+            assert!(read.iter().all(own), "{at}");
+        }
+        Event::Push { branch } if branch == "staging" => {
+            assert!(read.is_empty(), "{at}");
+            assert_eq!(write, Some(Tier::Integration), "{at}");
+        }
+        Event::Lane => assert!(read.iter().chain(&write).all(|t| *t == Tier::Host), "{at}"),
+        _ => panic!("{at}: this run must not use the cache"),
+    }
+}
+
 #[test]
 fn no_pull_request_writes_the_integration_tier_and_no_push_reads() {
     let events = [
@@ -45,34 +68,15 @@ fn no_pull_request_writes_the_integration_tier_and_no_push_reads() {
                     };
                     assert!(!no_cache, "{at}");
                     assert!(!full || read.is_empty(), "{at}");
-                    match event {
-                        Event::PullRequest {
-                            number,
-                            fork: false,
-                        } => {
-                            assert_ne!(*write, Some(Tier::Integration), "{at}");
-                            assert!(
-                                write.is_none_or(|t| t == Tier::PullRequest(*number)),
-                                "{at}"
-                            );
-                            let others = read.iter().any(|t| {
-                                !matches!(t, Tier::Integration) && *t != Tier::PullRequest(*number)
-                            });
-                            assert!(!others, "{at}");
-                        }
-                        Event::Push { branch } if branch == "staging" => {
-                            assert!(read.is_empty(), "{at}");
-                            assert_eq!(*write, Some(Tier::Integration), "{at}");
-                        }
-                        Event::Lane => {
-                            assert!(read.iter().chain(write).all(|t| *t == Tier::Host), "{at}");
-                        }
-                        _ => panic!("{at}: this run must not use the cache"),
-                    }
+                    holds(event, read, *write, &at);
                 }
             }
         }
     }
+}
+
+#[test]
+fn a_pull_request_reads_integration_then_its_own_and_unconfigured_is_off() {
     let lane = mode(None, &Event::Lane, false, false, "staging");
     assert_eq!(lane, CacheMode::Off(Off::NotConfigured));
     let pr = Event::PullRequest {

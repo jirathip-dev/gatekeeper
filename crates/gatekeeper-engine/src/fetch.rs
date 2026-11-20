@@ -111,7 +111,6 @@ fn parsed(name: &str) -> Result<(ToolFile, &'static str)> {
     Ok((file, target))
 }
 
-/// The sha256 a tool is pinned by on this target: what a result's key names it by.
 pub(crate) fn pin(name: &str) -> Result<String> {
     let (file, target) = parsed(name)?;
     Ok(match file {

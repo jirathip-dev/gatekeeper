@@ -214,7 +214,7 @@ fn run_case(case_dir: &Path) {
     if dir.exists() {
         fs::remove_dir_all(&dir).expect("clean");
     }
-    let (root, store, tools) = (dir.join("repo"), dir.join("store"), dir.join("tools"));
+    let (root, tools) = (dir.join("repo"), dir.join("tools"));
     fs::create_dir_all(root.join(".gatekeeper/gates")).expect("gates dir");
     fs::write(root.join(".gitignore"), "target/\n").expect("ignore");
     write(&root, &case.files);
@@ -234,47 +234,13 @@ fn run_case(case_dir: &Path) {
     }
     let config: Config = toml::from_str(&config).expect("config");
     for (i, step) in case.run.iter().enumerate() {
-        let at = format!("{name} run {}", i + 1);
-        write(&root, &step.edit);
-        if let Some(gate) = &step.gate {
-            write_gate(&root, gate);
-        }
-        if let Some(f) = &step.forge {
-            forge(&store, f);
-        }
-        let before: Vec<_> = step.same.iter().map(|t| records(&store.join(t))).collect();
-        let plan = plan::repo(&config, &root, &|_| Host::Lane, &Filter::default()).expect("plan");
-        let i = u64::try_from(i).expect("index");
-        let cx = RunCtx {
-            out: run::out_dir(&root),
-            root: root.clone(),
-            cache: tools.clone(),
-            base: None,
-            pr_body: None,
-            host: Host::Lane,
-            job_start: None,
-            manifest: "Cargo.toml".into(),
-            after_reports: None,
-            ts: None,
-            results: results(&config, step, &root, &store, i),
-        };
-        let report = run::run(&plan, &cx, &mut |_, _| {}).expect("run");
-        let gate = &report.jobs[0].gates[0];
-        assert_eq!(gate.outcome.word(), step.expect, "{at}: {gate:?}");
-        let json = serde_json::to_string(gate).expect("json");
-        if let Some(want) = &step.contains {
-            assert!(json.contains(want.as_str()), "{at}: {json} lacks {want}");
-        }
-        for (tier, n) in &step.expect_store {
-            assert_eq!(
-                records(&store.join(tier)).len(),
-                *n,
-                "{at}: records in {tier}"
-            );
-        }
-        for (tier, was) in step.same.iter().zip(before) {
-            assert_eq!(records(&store.join(tier)), was, "{at}: {tier} changed");
-        }
+        run_step(
+            &format!("{name} run {}", i + 1),
+            step,
+            &config,
+            &dir,
+            u64::try_from(i).expect("index"),
+        );
     }
 }
 
@@ -287,4 +253,47 @@ fn each_cache_case_reports_what_its_runs_expect() {
         seen += 1;
     }
     assert_eq!(seen, 32);
+}
+
+fn run_step(at: &str, step: &Run, config: &Config, dir: &Path, i: u64) {
+    let (root, store, tools) = (dir.join("repo"), dir.join("store"), dir.join("tools"));
+    write(&root, &step.edit);
+    if let Some(gate) = &step.gate {
+        write_gate(&root, gate);
+    }
+    if let Some(f) = &step.forge {
+        forge(&store, f);
+    }
+    let before: Vec<_> = step.same.iter().map(|t| records(&store.join(t))).collect();
+    let plan = plan::repo(config, &root, &|_| Host::Lane, &Filter::default()).expect("plan");
+    let cx = RunCtx {
+        out: run::out_dir(&root),
+        root: root.clone(),
+        cache: tools.clone(),
+        base: None,
+        pr_body: None,
+        host: Host::Lane,
+        job_start: None,
+        manifest: "Cargo.toml".into(),
+        after_reports: None,
+        ts: None,
+        results: results(config, step, &root, &store, i),
+    };
+    let report = run::run(&plan, &cx, &mut |_, _| {}).expect("run");
+    let gate = &report.jobs[0].gates[0];
+    assert_eq!(gate.outcome.word(), step.expect, "{at}: {gate:?}");
+    let json = serde_json::to_string(gate).expect("json");
+    if let Some(want) = &step.contains {
+        assert!(json.contains(want.as_str()), "{at}: {json} lacks {want}");
+    }
+    for (tier, n) in &step.expect_store {
+        assert_eq!(
+            records(&store.join(tier)).len(),
+            *n,
+            "{at}: records in {tier}"
+        );
+    }
+    for (tier, was) in step.same.iter().zip(before) {
+        assert_eq!(records(&store.join(tier)), was, "{at}: {tier} changed");
+    }
 }

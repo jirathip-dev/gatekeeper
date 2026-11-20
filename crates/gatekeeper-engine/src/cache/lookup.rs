@@ -37,7 +37,6 @@ fn sampled(key: &Key, res: &Results) -> bool {
     u32::from_be_bytes(word) % res.config.recheck == 0
 }
 
-/// The first trusted record wins; a refused one is reported only when none is trusted.
 pub(crate) fn lookup(
     key: &Key,
     parts: &KeyParts,

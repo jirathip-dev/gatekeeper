@@ -12,8 +12,8 @@ pub use versions::Ident;
 use crate::Result;
 use crate::run::unrun;
 use gatekeeper_model::{
-    CacheConfig, CacheNote, Failure, GateReport, Hit, Outcome, Planned, Proof, Refusal, RunRef,
-    Shard, Tier,
+    CacheConfig, CacheNote, Failure, GateReport, Hit, Key, KeyParts, Outcome, Planned, Proof,
+    Refusal, RunRef, Shard, Tier,
 };
 use key::Keyed;
 use lookup::Lookup;
@@ -33,7 +33,6 @@ pub struct Results {
     pub inputs: Inputs,
 }
 
-/// One planned gate: skipped on a trusted hit, else run, and recorded when it passed.
 pub(crate) fn gate(
     res: &Results,
     planned: &Planned,
@@ -86,17 +85,23 @@ pub(crate) fn gate(
         store::remove(&res.store, tier, &key);
         report.outcome = Outcome::Failed(Failure::CacheMismatch(proof));
     }
-    if let Some(tier) = res.write {
-        let (commit, run) = (res.inputs.commit.clone(), res.run.clone());
-        let proof = Proof {
-            tier,
-            at: res.now,
-            commit,
-            run,
-        };
-        if let Some(ran) = Ran::of(&report, key, *parts, proof) {
-            store::write(&res.store, &ran)?;
-        }
-    }
+    record(res, &report, key, *parts)?;
     Ok(report)
+}
+
+fn record(res: &Results, report: &GateReport, key: Key, parts: KeyParts) -> Result<()> {
+    let Some(tier) = res.write else {
+        return Ok(());
+    };
+    let (commit, run) = (res.inputs.commit.clone(), res.run.clone());
+    let proof = Proof {
+        tier,
+        at: res.now,
+        commit,
+        run,
+    };
+    match Ran::of(report, key, parts, proof) {
+        Some(ran) => store::write(&res.store, &ran),
+        None => Ok(()),
+    }
 }
