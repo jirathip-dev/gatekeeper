@@ -120,6 +120,15 @@ pub(crate) fn tool(name: &str, cache: &Path) -> Result<PathBuf> {
     }
 }
 
+pub(crate) fn resolve(
+    name: &str,
+    cache: &Path,
+    own: &BTreeMap<String, PathBuf>,
+) -> Result<PathBuf> {
+    own.get(name)
+        .map_or_else(|| tool(name, cache), |path| Ok(path.clone()))
+}
+
 fn download(url: &str, sha256: &str, to: &Path, cache: &Path) -> Result<()> {
     runner::ok("curl", &["-sSfL", "-o", &to.to_string_lossy(), url], cache)?;
     let got = sha256_hex(&fs::read(to).map_err(|e| Error::at(to, e))?);

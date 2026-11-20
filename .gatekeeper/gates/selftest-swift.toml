@@ -1,0 +1,7 @@
+about = "gatekeeper selftest of the swift pack on macOS, with anti-slop-swift built from packs/swift/anti-slop at this commit"
+fix = "make the gate fail its case with the case's expect line, or fix the base or the tool's rule"
+budget_secs = 600
+platform = "macos"
+leg = "macos"
+setup = ["rust"]
+run = "swift build --package-path packs/swift/anti-slop --scratch-path target/anti-slop && ./.gatekeeper/run selftest --pack swift"

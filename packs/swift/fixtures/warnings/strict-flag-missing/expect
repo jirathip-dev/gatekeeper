@@ -1,0 +1,1 @@
+Package.swift: treats warnings as errors under no GATEKEEPER_STRICT=1

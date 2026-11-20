@@ -21,6 +21,8 @@ pub struct GateFile {
     pub fix: String,
     pub budget_secs: Secs,
     #[serde(default)]
+    pub platform: Option<Platform>,
+    #[serde(default)]
     pub needs: BTreeSet<Capability>,
     #[serde(default)]
     pub setup: BTreeSet<Toolchain>,
@@ -86,7 +88,7 @@ impl Gate {
             about: file.about,
             fix: file.fix,
             budget: file.budget_secs,
-            platform: pack.platform,
+            platform: file.platform.unwrap_or(pack.platform),
             setup: pack.setup.union(&file.setup).copied().collect(),
             needs: file.needs,
             steps,

@@ -1,4 +1,4 @@
-use crate::{Affected, GateId, Secs, Shard, Skip};
+use crate::{Affected, GateId, Platform, Secs, Shard, Skip};
 use serde::{Deserialize, Serialize};
 
 /// Milliseconds: a measured time.
@@ -73,6 +73,7 @@ pub enum Failure {
     Exit(i32),
     Timeout,
     MissingTool(String),
+    CannotRunHere(Platform),
 }
 
 /// A finished gate's outcome: its steps' result, its time against its budget on this host.

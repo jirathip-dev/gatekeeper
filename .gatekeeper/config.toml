@@ -5,3 +5,10 @@ pin = "checkout"
 [ts]
 projects = ["packs/supabase/scripts"]
 install = "npm ci --no-audit --no-fund --loglevel=error"
+
+[tools]
+anti-slop-swift = "target/anti-slop/debug/anti-slop"
+
+[legs.macos]
+platform = "macos"
+setup = ["rust"]

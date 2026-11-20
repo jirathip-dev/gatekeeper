@@ -1,5 +1,5 @@
 use crate::run::CheckCx as Cx;
-use crate::{Error, Result, fetch, runner};
+use crate::{Error, Result, runner};
 use serde_json::Value;
 
 fn named(item: &Value) -> Option<String> {
@@ -38,7 +38,7 @@ fn issues(issue: &Value) -> Vec<String> {
 /// Pinned knip with the repo's own knip config; each unused file, export or dependency is a finding.
 pub fn run(cx: &Cx) -> Result<Vec<String>> {
     cx.ts()?;
-    let bin = fetch::tool("knip", cx.cache)?;
+    let bin = cx.tool("knip")?;
     let out = runner::capture(
         &bin.to_string_lossy(),
         &["--reporter", "json", "--no-progress"],

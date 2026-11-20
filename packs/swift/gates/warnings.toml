@@ -1,0 +1,7 @@
+about = "each [swift] package's Package.swift treats warnings as errors under GATEKEEPER_STRICT=1, then it builds with its tests under that flag; each [swift] Xcode project builds with warnings as errors"
+fix = "fix the warning the compiler names; a package's Package.swift adds -warnings-as-errors to its targets when GATEKEEPER_STRICT is 1"
+budget_secs = 360
+paths = ["**/*.swift", "**/Package.resolved", "**/*.xcodeproj/**", ".gatekeeper/config.toml"]
+
+[[step]]
+check = "swift-warnings"

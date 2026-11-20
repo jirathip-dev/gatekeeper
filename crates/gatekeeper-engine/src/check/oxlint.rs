@@ -1,5 +1,5 @@
 use crate::run::CheckCx as Cx;
-use crate::{Error, Result, fetch, packs, runner};
+use crate::{Error, Result, packs, runner};
 use serde_json::Value;
 
 const FILES: &str = "ts/files/oxlint/";
@@ -14,7 +14,7 @@ fn diagnostic(d: &Value) -> Option<String> {
 /// Pinned oxlint over the `[ts]` projects with the pack's config; each diagnostic is a finding.
 pub fn run(cx: &Cx) -> Result<Vec<String>> {
     let ts = cx.ts()?;
-    let bin = fetch::tool("oxlint", cx.cache)?;
+    let bin = cx.tool("oxlint")?;
     packs::materialize(FILES, cx.scratch)?;
     let config = cx
         .scratch

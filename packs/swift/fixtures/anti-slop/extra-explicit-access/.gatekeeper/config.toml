@@ -1,0 +1,9 @@
+packs = ["swift"]
+integration = "staging"
+pin = "checkout"
+
+[swift]
+packages = ["."]
+sources = ["Sources"]
+tokens = ["Sources"]
+extra = ["explicit-access"]
