@@ -155,21 +155,12 @@ pub(crate) fn gate(
         ("{shard}", shard.to_string()),
         ("{projects}", projects.join(" ")),
     ];
+    let at = (gate, &vars[..]);
     let summary = OnceCell::new();
     let result = gate
         .steps
         .iter()
-        .try_for_each(|s| {
-            step(
-                s,
-                (gate, &vars),
-                cx,
-                &mut log,
-                deadline,
-                &mut listed,
-                &summary,
-            )
-        })
+        .try_for_each(|s| step(s, at, cx, &mut log, deadline, &mut listed, &summary))
         .and_then(|()| {
             let mut stale = listed.stale().peekable();
             let none = stale.peek().is_none();

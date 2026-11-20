@@ -15,9 +15,7 @@ pub fn secs(t: Millis) -> String {
 pub fn host(runners: &Map<String, Value>, platform: Platform) -> Host {
     let label = runners.get(platform.runner());
     let listed = label.and_then(Value::as_array).into_iter().flatten();
-    if label.and_then(Value::as_str) == Some("self-hosted")
-        || listed.clone().any(|l| l == "self-hosted")
-    {
+    if label.into_iter().chain(listed).any(|l| l == "self-hosted") {
         Host::SelfHosted
     } else {
         Host::GithubHosted { warm_cache: true }
@@ -26,7 +24,7 @@ pub fn host(runners: &Map<String, Value>, platform: Platform) -> Host {
 
 /// # Errors
 pub fn matrix(plan: &Plan, runners: &Map<String, Value>, checkout: bool) -> Result<String> {
-    let (mut first, mut after) = (Vec::new(), Vec::new());
+    let mut entries = Vec::new();
     for job in &plan.jobs {
         let key = job.platform.runner();
         let runs_on = runners
@@ -34,22 +32,14 @@ pub fn matrix(plan: &Plan, runners: &Map<String, Value>, checkout: bool) -> Resu
             .ok_or_else(|| Error(format!("runners: no label for {key}")))?;
         let rust = checkout || job.setup.contains(&Toolchain::Rust);
         let node = job.setup.contains(&Toolchain::Node);
-        let shard = if job.shard.of.get() == 1 {
-            String::new()
-        } else {
-            job.shard.to_string()
-        };
+        let shard = (job.shard.of.get() > 1).then(|| job.shard.to_string());
         let entry = json!({
-            "leg": job.leg, "shard": shard, "artifact": artifact(&job.leg, job.shard),
+            "leg": job.leg, "shard": shard.unwrap_or_default(), "artifact": artifact(&job.leg, job.shard),
             "after": job.after.clone().unwrap_or_default(), "runs-on": runs_on, "rust": rust, "node": node,
         });
-        if job.after.is_some() {
-            &mut after
-        } else {
-            &mut first
-        }
-        .push(entry);
+        entries.push(entry);
     }
+    let (after, first): (Vec<_>, Vec<_>) = entries.into_iter().partition(|e| e["after"] != "");
     Ok(format!(
         "matrix={}\nafter={}",
         json!({ "include": first }),
@@ -75,13 +65,12 @@ pub fn done(plan: &Plan, reports: &Path) -> Result<(String, Vec<String>)> {
         };
         let report: Report = serde_json::from_str(&text).map_err(|e| Error::at(&path, e))?;
         if let (true, Some(affected)) = (selected.is_empty(), &report.affected) {
-            writeln!(selected, "\nscope: {affected}\n").map_err(|e| Error(e.to_string()))?;
+            writeln!(selected, "\nscope: {affected}\n").ok();
         }
         for jr in &report.jobs {
             for g in jr.gates.iter().filter(|g| !g.projects.is_empty()) {
                 let line = g.projects.join(" ");
-                writeln!(selected, "- selected by {} in {label}: {line}", g.id)
-                    .map_err(|e| Error(e.to_string()))?;
+                writeln!(selected, "- selected by {} in {label}: {line}", g.id).ok();
             }
             for g in &jr.gates {
                 writeln!(

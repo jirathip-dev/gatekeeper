@@ -18,13 +18,9 @@ fn selected(gate: &Gate, graph: &Graph, affected: Option<&Affected>) -> Vec<Stri
 }
 
 fn decide(gate: &Gate, host: Host, trigger: &Trigger, projects: &[String]) -> Decision {
+    let hit = |f: &String| gate.paths.iter().any(|g| g.matches(f));
     let in_scope = match trigger {
-        Trigger::Change(files) => {
-            gate.paths.is_empty()
-                || files
-                    .iter()
-                    .any(|f| gate.paths.iter().any(|g| g.matches(f)))
-        }
+        Trigger::Change(files) => gate.paths.is_empty() || files.iter().any(hit),
         Trigger::Everything(_) => true,
     };
     if !in_scope {
@@ -87,10 +83,8 @@ fn leg_jobs(config: &Config, leg: &str, gates: Vec<Gate>, cx: &Scoped) -> Result
     let host = (cx.hosts)(platform);
     let of = gates.iter().map(|g| g.shards.on(host)).max();
     let of = of.unwrap_or(NonZeroU32::MIN);
-    if let Some(g) = gates
-        .iter()
-        .find(|g| ![NonZeroU32::MIN, of].contains(&g.shards.on(host)))
-    {
+    let uneven = |g: &&Gate| ![NonZeroU32::MIN, of].contains(&g.shards.on(host));
+    if let Some(g) = gates.iter().find(uneven) {
         return Err(Error(format!(
             "{}: leg `{leg}` splits into {of} shards on {}; each of its gates splits into 1 or {of}",
             g.id,

@@ -109,11 +109,7 @@ const VALUED: [&str; 7] = [
 ];
 
 fn header(plan: &Plan, cx: &RunCtx, changed: Option<usize>) {
-    let legs: Vec<String> = plan
-        .jobs
-        .iter()
-        .map(|j| job_label(&j.leg, j.shard))
-        .collect();
+    let legs = plan.jobs.iter().map(|j| job_label(&j.leg, j.shard));
     let base = cx
         .base
         .as_deref()
@@ -121,7 +117,7 @@ fn header(plan: &Plan, cx: &RunCtx, changed: Option<usize>) {
     let scope = changed.map_or("every gate".to_owned(), |n| format!("{n} files changed"));
     say(&format!(
         "gatekeeper {VERSION} · legs {} · base {base} · {scope} · host {}",
-        legs.join(" "),
+        legs.collect::<Vec<_>>().join(" "),
         cx.host.label()
     ));
     if let Some(affected) = &plan.affected {

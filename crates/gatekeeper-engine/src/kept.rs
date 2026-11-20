@@ -77,13 +77,8 @@ pub(crate) fn receive(reports: &Path, leg: &str, root: &Path) -> Result<bool> {
         };
         let report: Report = serde_json::from_str(&text).map_err(|e| Error::at(&path, e))?;
         let files = dir.join("files");
-        gates.extend(
-            report
-                .jobs
-                .into_iter()
-                .flat_map(|j| j.gates)
-                .map(|g| (files.clone(), g)),
-        );
+        let found = report.jobs.into_iter().flat_map(|j| j.gates);
+        gates.extend(found.map(|g| (files.clone(), g)));
     }
     if gates.is_empty() || gates.iter().any(|(_, g)| g.outcome.fails()) {
         return Ok(false);
