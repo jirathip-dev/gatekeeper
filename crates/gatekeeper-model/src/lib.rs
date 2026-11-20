@@ -21,11 +21,12 @@ pub enum PackId {
     Core,
     Rust,
     Ts,
+    Supabase,
     Local,
 }
 
 impl PackId {
-    pub const BUILT_IN: [PackId; 3] = [PackId::Core, PackId::Rust, PackId::Ts];
+    pub const BUILT_IN: [PackId; 4] = [PackId::Core, PackId::Rust, PackId::Ts, PackId::Supabase];
 
     #[must_use]
     pub fn as_str(self) -> &'static str {
@@ -33,14 +34,16 @@ impl PackId {
             PackId::Core => "core",
             PackId::Rust => "rust",
             PackId::Ts => "ts",
+            PackId::Supabase => "supabase",
             PackId::Local => "local",
         }
     }
 
     #[must_use]
     pub fn parse(s: &str) -> Option<PackId> {
-        [PackId::Core, PackId::Rust, PackId::Ts, PackId::Local]
+        PackId::BUILT_IN
             .into_iter()
+            .chain([PackId::Local])
             .find(|p| p.as_str() == s)
     }
 }

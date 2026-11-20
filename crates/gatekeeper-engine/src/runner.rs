@@ -61,6 +61,16 @@ pub fn shell(line: &str, cwd: &Path, log: &mut File, deadline: Instant) -> Resul
     )
 }
 
+/// Runs `program args` in `cwd` on the caller's terminal; its exit code.
+pub fn attached(program: &str, args: &[String], cwd: &Path) -> Result<i32> {
+    let status = Command::new(program)
+        .args(args)
+        .current_dir(cwd)
+        .status()
+        .map_err(|e| Error(format!("{program}: {e}")))?;
+    Ok(status.code().unwrap_or(-1))
+}
+
 /// Runs a short command and returns its output; no timeout, nothing logged.
 pub fn capture(program: &str, args: &[&str], cwd: &Path) -> Result<Output> {
     Command::new(program)

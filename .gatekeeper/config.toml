@@ -1,3 +1,7 @@
-packs = ["core", "rust"]
+packs = ["core", "rust", "ts"]
 integration = "staging"
 pin = "checkout"
+
+[ts]
+projects = ["packs/supabase/scripts"]
+install = "npm ci --no-audit --no-fund --loglevel=error"

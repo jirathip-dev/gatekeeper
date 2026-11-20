@@ -1,0 +1,6 @@
+about = "node --test: the supabase pack's apply, status and check scripts, in TypeScript against a mocked ledger API and real git checkouts"
+fix = "fix the script or the test the failing case names"
+budget_secs = 30
+paths = ["packs/supabase/scripts/**"]
+run = "node --test packs/supabase/scripts/*.test.ts"
+setup = ["node"]

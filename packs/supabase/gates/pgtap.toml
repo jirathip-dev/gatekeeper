@@ -1,0 +1,17 @@
+about = "a local Supabase stack, a reset from supabase/migrations, then every file under supabase/tests/ by pgTAP (found by glob, no per-file step); CI only on a lane's host, it needs containers"
+fix = "fix the migration or the test the pgTAP output names; a test file anywhere under supabase/tests/ runs"
+budget_secs = 300
+needs = ["containers"]
+paths = ["supabase/**"]
+
+[[step]]
+tool = "supabase"
+args = ["start"]
+
+[[step]]
+tool = "supabase"
+args = ["db", "reset"]
+
+[[step]]
+tool = "supabase"
+args = ["test", "db"]
