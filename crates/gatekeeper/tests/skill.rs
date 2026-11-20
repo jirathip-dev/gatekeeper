@@ -53,7 +53,7 @@ fn skill_to_writes_this_versions_skill_equal_to_the_checked_in_one_and_replaces_
     assert_eq!(code, 0, "{out}");
     assert_eq!(
         out.trim(),
-        "wrote gatekeeper/SKILL.md, gatekeeper/packs/core.md, gatekeeper/packs/rust.md, gatekeeper/examples/ (9)"
+        "wrote gatekeeper/SKILL.md, gatekeeper/packs/core.md, gatekeeper/packs/rust.md, gatekeeper/packs/ts.md, gatekeeper/examples/ (12)"
     );
     assert!(!stale.exists());
     let skill_md = fs::read_to_string(to.join("gatekeeper/SKILL.md")).expect("SKILL.md");

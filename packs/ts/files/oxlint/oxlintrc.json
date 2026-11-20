@@ -1,0 +1,41 @@
+{
+  "plugins": ["typescript", "unicorn", "oxc", "import"],
+  "jsPlugins": ["./gatekeeper.mjs"],
+  "categories": { "correctness": "error" },
+  "rules": {
+    "typescript/consistent-type-assertions": ["error", { "assertionStyle": "never" }],
+    "typescript/no-non-null-assertion": "error",
+    "typescript/no-explicit-any": "error",
+    "typescript/ban-ts-comment": [
+      "error",
+      { "ts-ignore": true, "ts-expect-error": true, "ts-nocheck": true }
+    ],
+    "eslint/no-restricted-properties": [
+      "error",
+      { "property": "innerHTML", "message": "set textContent or build DOM nodes" },
+      { "property": "outerHTML", "message": "replace the node with DOM nodes" },
+      { "property": "insertAdjacentHTML", "message": "insert DOM nodes" }
+    ],
+    "eslint/no-eval": "error",
+    "eslint/no-new-func": "error",
+    "eslint/no-console": "error",
+    "import/no-default-export": "error",
+    "gatekeeper/no-enum": "error",
+
+    "eslint/no-empty": "error",
+    "eslint/no-useless-catch": "error",
+    "eslint/no-unused-vars": "error",
+    "eslint/no-warning-comments": "error",
+    "eslint/no-unneeded-ternary": "error",
+    "eslint/no-else-return": "error",
+    "eslint/no-lonely-if": "error",
+    "eslint/no-useless-return": "error",
+    "eslint/no-useless-constructor": "error",
+    "eslint/no-useless-rename": "error",
+    "eslint/no-nested-ternary": "error",
+    "typescript/no-inferrable-types": "error",
+    "unicorn/no-useless-undefined": "error",
+    "unicorn/no-useless-spread": "error",
+    "unicorn/no-useless-promise-resolve-reject": "error"
+  }
+}

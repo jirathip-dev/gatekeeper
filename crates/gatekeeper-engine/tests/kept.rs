@@ -43,6 +43,7 @@ fn run_case(case: &Path) {
         job_start: None,
         manifest: "Cargo.toml".into(),
         after_reports: None,
+        ts: None,
     };
     let report = run::run(&plan, &cx, &mut |_, _| {}).expect("run");
     let gate = &report.jobs[0].gates[0];

@@ -33,6 +33,7 @@ pub fn matrix(plan: &Plan, runners: &Map<String, Value>, checkout: bool) -> Resu
             .get(key)
             .ok_or_else(|| Error(format!("runners: no label for {key}")))?;
         let rust = checkout || job.setup.contains(&Toolchain::Rust);
+        let node = job.setup.contains(&Toolchain::Node);
         let shard = if job.shard.of.get() == 1 {
             String::new()
         } else {
@@ -40,7 +41,7 @@ pub fn matrix(plan: &Plan, runners: &Map<String, Value>, checkout: bool) -> Resu
         };
         let entry = json!({
             "leg": job.leg, "shard": shard, "artifact": artifact(&job.leg, job.shard),
-            "after": job.after.clone().unwrap_or_default(), "runs-on": runs_on, "rust": rust,
+            "after": job.after.clone().unwrap_or_default(), "runs-on": runs_on, "rust": rust, "node": node,
         });
         if job.after.is_some() {
             &mut after

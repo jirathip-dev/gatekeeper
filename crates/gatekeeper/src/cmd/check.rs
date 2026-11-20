@@ -89,6 +89,7 @@ fn prepare(args: &Args, root: &Path) -> Result<(Plan, RunCtx, Option<usize>), Er
         job_start: cli::job_start(),
         manifest: config::manifest(&config).to_owned(),
         after_reports: args.value("--after-reports").map(PathBuf::from),
+        ts: config.ts.clone(),
     };
     let changed = match filter.trigger {
         Trigger::Change(files) => Some(files.len()),
