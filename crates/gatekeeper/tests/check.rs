@@ -49,6 +49,7 @@ fn gk(root: &Path, args: &[&str], env: &[(&str, &str)]) -> (i32, String) {
 const BAD: &str =
     "about = \"fails\"\nfix = \"make it pass\"\nbudget_secs = 5\nrun = \"echo boom; exit 3\"\n";
 const DB: &str = "about = \"needs a database\"\nfix = \"none\"\nbudget_secs = 5\nneeds = [\"containers\"]\nrun = \"true\"\n";
+const TS: &str = "\n[ts]\nprojects = [\".\"]\ninstall = \"true\"\n";
 const OK: &str = "about = \"passes\"\nfix = \"none\"\nbudget_secs = 5\nrun = \"true\"\n";
 
 fn three(name: &str) -> PathBuf {
@@ -132,6 +133,15 @@ fn usage_and_config_errors_exit_2() {
     let (code, out) = gk(&typo, &["check"], &[]);
     assert_eq!(code, 2);
     assert!(out.contains("pakcs"), "{out}");
+    let ts_alone = "integration = \"staging\"\npin = \"checkout\"\npacks = [\"ts\"]\n";
+    for (name, config) in [
+        ("check-ts-no-table", ts_alone.to_owned()),
+        ("check-ts-no-pack", format!("{CONFIG}{TS}")),
+    ] {
+        let (code, out) = gk(&repo(name, &config, &[]), &["list"], &[]);
+        assert_eq!(code, 2, "{out}");
+        assert!(out.contains("go together"), "{out}");
+    }
 }
 
 #[test]
@@ -157,7 +167,18 @@ fn ci_plan_emits_one_leg_per_pack_and_done_fails_a_missing_or_failed_report() {
     assert_eq!(code, 0);
     assert_eq!(
         plan.trim(),
-        r#"matrix={"include":[{"leg":"local","runs-on":"ubuntu-latest","rust":true}]}"#
+        r#"matrix={"include":[{"leg":"local","node":false,"runs-on":"ubuntu-latest","rust":true}]}"#
+    );
+    let ts = repo(
+        "ci-ts",
+        &format!("{}{TS}", CONFIG.replace("[]", "[\"ts\"]")),
+        &[],
+    );
+    let (code, plan) = gk(&ts, &["ci", "plan"], &[]);
+    assert_eq!(code, 0, "{plan}");
+    assert_eq!(
+        plan.trim(),
+        r#"matrix={"include":[{"leg":"ts","node":true,"runs-on":"ubuntu-latest","rust":true}]}"#
     );
     let reports = root.join("reports");
     let (code, out) = gk(&root, &["ci", "done", "--reports", "reports"], &[]);

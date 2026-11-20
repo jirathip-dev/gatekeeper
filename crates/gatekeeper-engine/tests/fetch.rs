@@ -1,6 +1,7 @@
-use gatekeeper_engine::fetch::{Asset, asset_path, sha256_hex};
+use gatekeeper_engine::fetch::{Asset, NodeTool, Package, asset_path, node_path, sha256_hex};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::process::Command;
 
 fn scratch(name: &str) -> PathBuf {
     let dir = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join(name);
@@ -52,4 +53,84 @@ fn a_download_with_the_pinned_sha256_is_cached_and_runnable() {
         asset_path(&asset, &cache).expect("served from the cache"),
         got
     );
+}
+
+fn tarball(dir: &Path, name: &str, script: &str) -> (String, String) {
+    let src = dir.join(name);
+    fs::create_dir_all(src.join("package/bin")).expect("package");
+    fs::write(src.join("package/bin/run.js"), script).expect("script");
+    let tgz = dir.join(format!("{name}.tgz"));
+    let made = Command::new("tar")
+        .args([
+            "-czf",
+            &tgz.to_string_lossy(),
+            "-C",
+            &src.to_string_lossy(),
+            "package",
+        ])
+        .status()
+        .expect("tar runs");
+    assert!(made.success());
+    let bytes = fs::read(&tgz).expect("tgz");
+    (format!("file://{}", tgz.display()), sha256_hex(&bytes))
+}
+
+fn node_tool(packages: Vec<Package>) -> NodeTool {
+    NodeTool {
+        version: "1.0.0".into(),
+        bin: "tool/bin/run.js".into(),
+        package: packages,
+    }
+}
+
+#[test]
+fn npm_tarballs_with_their_pinned_sha256_make_one_node_modules_and_other_targets_are_skipped() {
+    let dir = scratch("fetch-node");
+    let (url, sha256) = tarball(&dir, "tool", "#!/bin/sh\necho tool\n");
+    let (other, other_sha) = tarball(&dir, "other", "elsewhere\n");
+    let tool = node_tool(vec![
+        Package {
+            name: "tool".into(),
+            url,
+            sha256,
+            target: None,
+        },
+        Package {
+            name: "@scope/binding".into(),
+            url: other,
+            sha256: other_sha,
+            target: Some("another-target".into()),
+        },
+    ]);
+    let cache = dir.join("cache");
+    let bin = node_path(&tool, "this-target", &cache).expect("fetched");
+    let out = Command::new(&bin).output().expect("the bin runs");
+    assert_eq!(String::from_utf8_lossy(&out.stdout), "tool\n");
+    let modules = bin.ancestors().nth(3).expect("node_modules");
+    assert!(!modules.join("@scope").exists());
+    assert_eq!(
+        node_path(&tool, "this-target", &cache).expect("cached"),
+        bin
+    );
+}
+
+#[test]
+fn an_npm_tarball_whose_sha256_differs_is_refused_and_nothing_is_installed() {
+    let dir = scratch("fetch-node-wrong");
+    let (url, _) = tarball(&dir, "tool", "#!/bin/sh\necho tool\n");
+    let tool = node_tool(vec![Package {
+        name: "tool".into(),
+        url,
+        sha256: "0".repeat(64),
+        target: None,
+    }]);
+    let cache = dir.join("cache");
+    let err =
+        node_path(&tool, "this-target", &cache).expect_err("a wrong checksum must be refused");
+    assert!(err.0.contains("refused"), "{err}");
+    let installed = fs::read_dir(cache.join("tools"))
+        .expect("tools dir")
+        .filter_map(Result::ok)
+        .any(|e| e.path().join("node_modules/tool/bin/run.js").exists());
+    assert!(!installed);
 }

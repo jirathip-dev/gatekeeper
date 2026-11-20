@@ -3,7 +3,7 @@ use crate::runner::{self, Ended};
 use crate::{Error, Result, VERSION, fetch, kept, packs};
 use gatekeeper_model::{
     Decision, Failure, Gate, GateReport, Host, JobReport, Millis, Outcome, PackId, Plan, Report,
-    Step, judge,
+    Step, TsPack, judge,
 };
 use std::cell::OnceCell;
 use std::collections::BTreeSet;
@@ -12,13 +12,24 @@ use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant, SystemTime};
 
-/// What a built-in check reads: the repo, its scratch folder, the Cargo manifest, the base; where it notes a summary.
+/// What a built-in check reads: the repo, its scratch folder, the tool cache, the packs' tables, the base; where it notes a summary.
 pub struct CheckCx<'a> {
     pub root: &'a Path,
     pub scratch: &'a Path,
+    pub cache: &'a Path,
     pub manifest: &'a str,
+    pub ts: Option<&'a TsPack>,
     pub base: Option<&'a str>,
     pub note: &'a OnceCell<String>,
+}
+
+impl CheckCx<'_> {
+    /// # Errors
+    pub fn ts(&self) -> Result<&TsPack> {
+        self.ts.ok_or_else(|| {
+            Error("the ts pack's checks need [ts] in .gatekeeper/config.toml".into())
+        })
+    }
 }
 
 /// Where and how a plan runs; `out` takes the logs and `report.json`.
@@ -31,6 +42,7 @@ pub struct RunCtx {
     pub host: Host,
     pub job_start: Option<SystemTime>,
     pub manifest: String,
+    pub ts: Option<TsPack>,
 }
 
 fn millis(d: Duration) -> Millis {
@@ -131,7 +143,9 @@ fn step(
             let cx = CheckCx {
                 root: &cx.root,
                 scratch: &cx.out.join("check").join(check),
+                cache: &cx.cache,
                 manifest: &cx.manifest,
+                ts: cx.ts.as_ref(),
                 base: cx.base.as_deref(),
                 note,
             };

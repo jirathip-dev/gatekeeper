@@ -18,18 +18,20 @@ use std::fmt;
 pub enum PackId {
     Core,
     Rust,
+    Ts,
     Supabase,
     Local,
 }
 
 impl PackId {
-    pub const BUILT_IN: [PackId; 3] = [PackId::Core, PackId::Rust, PackId::Supabase];
+    pub const BUILT_IN: [PackId; 4] = [PackId::Core, PackId::Rust, PackId::Ts, PackId::Supabase];
 
     #[must_use]
     pub fn as_str(self) -> &'static str {
         match self {
             PackId::Core => "core",
             PackId::Rust => "rust",
+            PackId::Ts => "ts",
             PackId::Supabase => "supabase",
             PackId::Local => "local",
         }
@@ -124,6 +126,8 @@ pub struct Config {
     pub budgets: BTreeMap<GateId, Secs>,
     #[serde(default)]
     pub rust: Option<RustPack>,
+    #[serde(default)]
+    pub ts: Option<TsPack>,
 }
 
 /// Which gatekeeper runs: this checkout's build, or a release by version and per-target sha256.
@@ -151,6 +155,14 @@ pub struct ReleasePin {
 #[serde(deny_unknown_fields)]
 pub struct RustPack {
     pub manifest: String,
+}
+
+/// `[ts]`: the folders `tsc -p` checks and oxlint lints, and the command that installs their dependencies.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TsPack {
+    pub projects: Vec<String>,
+    pub install: String,
 }
 
 /// What `check` and `list` narrow the configured gates to.

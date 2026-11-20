@@ -1,0 +1,7 @@
+packs = ["ts"]
+integration = "staging"
+pin = "checkout"
+
+[ts]
+projects = ["."]
+install = "npm ci --no-audit --no-fund --loglevel=error"
