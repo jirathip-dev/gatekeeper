@@ -2,6 +2,7 @@ use gatekeeper_engine::plan;
 use gatekeeper_engine::run::{self, RunCtx};
 use gatekeeper_model::{Config, Filter, Host};
 use serde::Deserialize;
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -25,9 +26,8 @@ fn run_case(case: &Path) {
         root.join(format!(".gatekeeper/gates/{name}.toml")),
     )
     .expect("gate");
-    let expect: Expect =
-        toml::from_str(&fs::read_to_string(case.join("expect.toml")).expect("expect"))
-            .expect("expect toml");
+    let expect = fs::read_to_string(case.join("expect.toml")).expect("expect");
+    let expect: Expect = toml::from_str(&expect).expect("expect toml");
     let config: Config =
         toml::from_str("packs = []\nintegration = \"staging\"\npin = \"checkout\"\n")
             .expect("config");
@@ -46,7 +46,7 @@ fn run_case(case: &Path) {
         ts: None,
         results: None,
         swift: None,
-        tools: std::collections::BTreeMap::new(),
+        tools: BTreeMap::new(),
         platform: run::platform(),
     };
     let report = run::run(&plan, &cx, &mut |_, _| {}).expect("run");
