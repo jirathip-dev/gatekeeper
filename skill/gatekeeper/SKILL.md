@@ -15,6 +15,6 @@ description: Read, fix and rerun a failing gatekeeper gate (gatekeeper 0.1.0).
 
 ## Packs
 
-- [core](packs/core.md): the line cap, the rules file, arch-check, actionlint
+- [core](packs/core.md): the line cap, the rules file, arch-check, actionlint, the dependency list
 - [rust](packs/rust.md): fmt, clippy with the shared lints, cargo-deny, the banned-API fixtures
 - [supabase](packs/supabase.md): the migration files' names, order and policy rule, and pgTAP on a local stack (CI only on a lane's host)

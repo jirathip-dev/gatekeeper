@@ -5,17 +5,20 @@ use gatekeeper_model::{
     Decision, Failure, Gate, GateReport, Host, JobReport, Millis, Outcome, PackId, Plan, Report,
     Step, judge,
 };
+use std::cell::OnceCell;
 use std::collections::BTreeSet;
 use std::fs::{self, File};
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant, SystemTime};
 
-/// What a built-in check reads: the repo, its own scratch folder, the Cargo manifest.
+/// What a built-in check reads: the repo, its scratch folder, the Cargo manifest, the base; where it notes a summary.
 pub struct CheckCx<'a> {
     pub root: &'a Path,
     pub scratch: &'a Path,
     pub manifest: &'a str,
+    pub base: Option<&'a str>,
+    pub note: &'a OnceCell<String>,
 }
 
 /// Where and how a plan runs; `out` takes the logs and `report.json`.
@@ -80,6 +83,22 @@ fn ended(r: Result<Ended>, log: &mut File) -> std::result::Result<(), Failure> {
     }
 }
 
+fn run_line(run: &str, gate: &Gate, cx: &RunCtx) -> Result<String> {
+    let base = cx
+        .base
+        .as_ref()
+        .map_or(String::new(), |b| format!("--base {b}"));
+    let mut line = run.replace("{--base}", &base);
+    for dir in ["files", "scripts"] {
+        let key = format!("{{{dir}}}");
+        if line.contains(&key) {
+            let to = pack_dir(gate.id.pack, dir, &cx.out)?;
+            line = line.replace(&key, &to.to_string_lossy());
+        }
+    }
+    Ok(line)
+}
+
 fn step(
     step: &Step,
     gate: &Gate,
@@ -87,28 +106,16 @@ fn step(
     log: &mut File,
     deadline: Instant,
     listed: &mut Baseline,
+    note: &OnceCell<String>,
 ) -> std::result::Result<(), Failure> {
     match step {
-        Step::Run { run } => {
-            let base = cx
-                .base
-                .as_ref()
-                .map_or(String::new(), |b| format!("--base {b}"));
-            let mut line = run.replace("{--base}", &base);
-            for dir in ["files", "scripts"] {
-                let key = format!("{{{dir}}}");
-                if line.contains(&key) {
-                    match pack_dir(gate.id.pack, dir, &cx.out) {
-                        Ok(to) => line = line.replace(&key, &to.to_string_lossy()),
-                        Err(e) => {
-                            writeln!(log, "{e}").ok();
-                            return Err(Failure::Exit(127));
-                        }
-                    }
-                }
+        Step::Run { run } => match run_line(run, gate, cx) {
+            Ok(line) => ended(runner::shell(&line, &cx.root, log, deadline), log),
+            Err(e) => {
+                writeln!(log, "{e}").ok();
+                Err(Failure::Exit(127))
             }
-            ended(runner::shell(&line, &cx.root, log, deadline), log)
-        }
+        },
         Step::Tool { tool, args } => match fetch::tool(tool, &cx.cache) {
             Ok(bin) => ended(
                 runner::logged(&bin, &expand(args, cx), &cx.root, log, deadline),
@@ -125,10 +132,12 @@ fn step(
                 root: &cx.root,
                 scratch: &cx.out.join("check").join(check),
                 manifest: &cx.manifest,
+                base: cx.base.as_deref(),
+                note,
             };
             let findings = listed.unlisted(baseline::findings(check, &cx));
-            for f in &findings {
-                writeln!(log, "{f}").ok();
+            for line in note.get().into_iter().chain(&findings) {
+                writeln!(log, "{line}").ok();
             }
             if findings.is_empty() {
                 Ok(())
@@ -145,10 +154,11 @@ pub(crate) fn gate(gate: &Gate, cx: &RunCtx) -> Result<GateReport> {
     let start = Instant::now();
     let deadline = start + Duration::from_secs(u64::from(gate.budget.0).max(1) * 5);
     let mut listed = Baseline::load(&cx.root, &gate.id)?;
+    let summary = OnceCell::new();
     let result = gate
         .steps
         .iter()
-        .try_for_each(|s| step(s, gate, cx, &mut log, deadline, &mut listed))
+        .try_for_each(|s| step(s, gate, cx, &mut log, deadline, &mut listed, &summary))
         .and_then(|()| {
             let mut stale = listed.stale().peekable();
             let none = stale.peek().is_none();
@@ -175,6 +185,7 @@ pub(crate) fn gate(gate: &Gate, cx: &RunCtx) -> Result<GateReport> {
             .to_string_lossy()
             .into_owned(),
         kept,
+        note: summary.into_inner(),
     })
 }
 
@@ -203,6 +214,7 @@ pub fn run(plan: &Plan, cx: &RunCtx, seen: &mut dyn FnMut(&Gate, &GateReport)) -
                     budget: planned.gate.budget,
                     log: String::new(),
                     kept: Vec::new(),
+                    note: None,
                 },
             };
             seen(&planned.gate, &done);

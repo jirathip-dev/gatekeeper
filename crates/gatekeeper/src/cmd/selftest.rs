@@ -9,10 +9,7 @@ fn show(r: &GateResult) {
         return;
     }
     if r.problems.is_empty() {
-        say(&format!(
-            "ok    {:<18} clean and {} failing cases",
-            r.id, r.cases
-        ));
+        say(&format!("ok    {:<18} clean and {} cases", r.id, r.cases));
         return;
     }
     say(&format!("FAIL  {}", r.id));
@@ -21,7 +18,7 @@ fn show(r: &GateResult) {
     }
 }
 
-/// `selftest [--pack P]`: every gate on its pack's base and on each of its failing cases.
+/// `selftest [--pack P]`: every gate on its pack's base and on each of its cases.
 pub fn run(args: &[String]) -> ExitCode {
     let filter = match Args::parse(args, &["--pack"], &[]).and_then(|a| a.filter()) {
         Ok(f) => f,
