@@ -77,10 +77,14 @@ fn gate_id(pack: PackId, path: &str) -> Result<GateId> {
     GateId::new(pack, stem).ok_or_else(|| Error(format!("{path}: `{stem}` is not a gate name")))
 }
 
-pub(crate) fn pack_gates(pack: PackId) -> Result<Vec<Gate>> {
+pub(crate) fn pack_file(pack: PackId) -> Result<PackFile> {
     let meta = format!("{pack}/pack.toml");
     let file = text(&meta).ok_or_else(|| Error(format!("no pack `{pack}`")))?;
-    let pack_file: PackFile = toml::from_str(file).map_err(|e| Error(format!("{meta}: {e}")))?;
+    toml::from_str(file).map_err(|e| Error(format!("{meta}: {e}")))
+}
+
+pub(crate) fn pack_gates(pack: PackId) -> Result<Vec<Gate>> {
+    let pack_file = pack_file(pack)?;
     let prefix = format!("{pack}/gates/");
     under(&prefix)
         .filter(|(rel, _)| {
