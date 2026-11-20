@@ -13,24 +13,36 @@ on:
       runners:      # the runner label (or JSON list of labels) per platform
         type: string
         default: '{"linux": "ubuntu-latest", "macos": "macos-latest"}'
+      scope:        # "auto": a pull request runs what its change can reach, any other event everything.
+        type: string    # "full": everything. (G10)
+        default: auto
     secrets:
       private-names:    # the hygiene list, one name a line; a public repo's same-repo PR fails without it
         required: false
 ```
 
+A caller writes `uses: jirathip-dev/gatekeeper/.github/workflows/<file>@<40-hex commit> # v<version>` and passes
+each secret by name. `core/pin` checks the line.
+
 | Job | Runs on | What |
 |---|---|---|
-| `plan` | linux | gets the pinned binary, runs `gatekeeper ci plan`, emits the matrix |
-| `pack` (matrix: one per planned pack and platform; a repo's own gates are the pack `local`) | the pack's platform | provisions the pack's toolchains and cache, runs `gatekeeper check --pack <pack>`, uploads `report.json` |
-| `done` | linux | `gatekeeper ci done`: merges the reports, writes the summary table, fails on any `FAIL` or over-budget gate |
+| `plan` | linux | `./.gatekeeper/run ci plan`: emits the matrix, one entry per planned leg and shard |
+| `leg` (matrix) | the leg's platform | stamps its start; provisions the leg's toolchains and cache; `./.gatekeeper/run check --leg <leg> [--shard i/n]`; uploads one artifact, `gates-<leg>[-<i>]`: `report.json`, the logs, the gates' kept files |
+| `leg-after` (matrix, G10) | the leg's platform | the legs that name an `after` leg, once that leg passed; its kept files are restored first |
+| `done` | linux | `./.gatekeeper/run ci done`: merges the reports, writes the summary table, fails on any `FAIL`, a planned job with no report, or a gate over budget on a GitHub-hosted runner |
 
-The other three workflows:
+A leg is a pack (`core`, `rust`, …, and `local` for the repo's own gates) unless a gate names another.
 
-| Workflow | Inputs | Secrets (from the caller's environment) |
+The other three workflows. Each declares its secrets by the names the repos' environments use today:
+
+| Workflow | Inputs | Secrets |
 |---|---|---|
-| `release.yml` | `bin`, `sha`, `branch`, `targets` (default linux x86_64 and macOS arm64), `build-env`, `version-check`, `allow-partial`, `prune-days` (14), `environment` (`release`) | `MACOS_CERT_P12`, `MACOS_CERT_PASSWORD`, `ASC_API_KEY_P8`, `ASC_API_KEY_ID`, `ASC_API_ISSUER_ID` |
+| `release.yml` | `bin`, `sha`, `branch`, `targets` (default linux x86_64 and macOS arm64), `build-env`, `version-check`, `allow-partial`, `prune-days` (14), `environment` (`release`), `key` (`release.pub`), `tag` (default: the contract's `build-…` form), `publish` (true) | `MACOS_CERT_P12`, `MACOS_CERT_PASSWORD`, `ASC_API_KEY_P8`, `ASC_API_KEY_ID`, `ASC_API_ISSUER_ID`, `RELEASE_SIGNING_KEY` |
 | `testflight.yml` | `project`, `scheme`, `platforms`, `upload`, `sign` (`export` or `archive`), `xcode`, `runner`, `prepare` (a script of the caller's, run first), `environment` (`testflight`) | `ASC_KEY_P8`, `ASC_KEY_ID`, `ASC_ISSUER_ID` |
 | `supabase-deploy.yml` | `target` (`dev` or `prod`), `dir` (`supabase`), `environment` | `SUPABASE_ACCESS_TOKEN` |
+
+What `release.yml` publishes is farrier's release contract, not restated here: `<bin>-<triple>` executables,
+`SHA256SUMS`, and `SHA256SUMS.minisig` whose trusted comment is `<owner>/<repo> <tag> <sha40>`.
 
 ## The consumer's config
 
@@ -42,6 +54,8 @@ struct Config {
     pin: Pin,
     budgets: BTreeMap<GateId, Secs>,
     tools: BTreeMap<ToolId, ToolSource>,
+    scope: Option<ScopeConfig>,
+    legs: BTreeMap<LegId, Leg>,
     rust: Option<RustPack>,
     swift: Option<SwiftPack>,
     ts: Option<TsPack>,
@@ -62,11 +76,17 @@ struct TsPack { projects: Vec<PathBuf>, install: String }
 struct SupabasePack { dir: PathBuf }
 
 enum ToolSource { Pinned, Run(String) }
+
+struct ScopeConfig { graphs: BTreeSet<GraphKind>, ignore: Vec<Glob> }
+enum GraphKind { Pnpm, Cargo, SwiftPm }
+struct Leg { platform: Platform, setup: BTreeSet<Toolchain>, needs: BTreeSet<Capability>, after: Option<LegId> }
 ```
 
-`Pin::Checkout` is valid only in a repo whose workspace builds `gatekeeper`. `ToolSource::Run` is for the one repo
-that builds a pinned tool itself: drover checks its own tree with its own build. A pack listed in `packs` needs
-its table (`rust` needs none: the manifest defaults to `Cargo.toml`); a table without its pack is an error.
+`Pin::Checkout` is valid only in a repo whose workspace builds `gatekeeper`. `[pin]` holds no commit: the binary
+knows the commit it was built from, and `core/pin` compares that with each `uses:` line. `ToolSource::Run` is for
+the one repo that builds a pinned tool itself: drover checks its own tree with its own build. A pack listed in
+`packs` needs its table (`rust` needs none: the manifest defaults to `Cargo.toml`); a table without its pack is an
+error. `scope` and `legs` arrive with G10; an `after` leg must itself have no `after`.
 
 ## A gate, a pack, a pinned tool
 
@@ -91,12 +111,15 @@ struct Gate {
     about: String,
     fix: String,
     budget: Secs,
-    paths: Vec<Glob>,
+    scope: Scope,
     platform: Platform,
     setup: BTreeSet<Toolchain>,
     needs: BTreeSet<Capability>,
     steps: Vec<Step>,
     reads_pr: bool,
+    uploads: Vec<Upload>,
+    leg: LegId,
+    shards: Shards,
 }
 
 enum Step {
@@ -105,14 +128,22 @@ enum Step {
     Check(CheckId),
 }
 
+enum Scope { Always, Paths(Vec<Glob>), Projects(Vec<Glob>) }
+struct Upload { name: UploadName, paths: Vec<Glob> }
+struct Shards { hosted: NonZeroU32, self_hosted: NonZeroU32 }
+
 enum Platform { Any, Linux, Macos }
 enum Toolchain { Rust, Node, Swift }
 enum Capability { Containers }
 ```
 
-`Run` is a command of the repo's toolchain. `Tool` is a tool gatekeeper pins and fetches itself (drover,
+`Run` is a command of the repo's toolchain. `Tool` is a tool gatekeeper pins and fetches itself (drover, farrier,
 actionlint, cargo-deny, oxlint, knip, anti-slop-swift). `Check` is logic built into the engine (a floor check, the
 fixture run, the token lint, the pin check), one file per check.
+
+A gate file has `paths` or `projects`, never both; with neither it always runs. `leg` defaults to the gate's pack
+and `shards` to one. `Scope::Projects`, `leg` and `shards` arrive with G10; `uploads` with G4. In a `run` line,
+`{projects}` is the affected project roots the gate's globs match and `{shard}` is `i/n`.
 
 ```toml
 # packs/rust/pack.toml
@@ -137,52 +168,93 @@ packs/rust/fixtures/bans/floor-missing/  Cargo.toml without `unwrap_used = "deny
 packs/rust/fixtures/bans/clean/          no files: the base must pass
 ```
 
+## Affected projects (G10)
+
+```rust
+struct Graph { projects: BTreeMap<ProjectId, Project> }
+struct Project { root: RepoPath, needs: BTreeSet<ProjectId> }
+
+enum Trigger { Change(BTreeSet<RepoPath>), Everything(Widened) }
+enum Affected { All(Widened), Projects(BTreeSet<ProjectId>) }
+enum Widened { NotAPullRequest, Forced, NoBase, OutsideEveryProject(RepoPath) }
+
+fn affected(graph: &Graph, trigger: Trigger, ignore: &[Glob]) -> Affected
+```
+
+- A pull request and a lane's run are a `Change` against the base; a push, a schedule and `scope: full` are
+  `Everything`.
+- A project is affected when a changed file is under its root, or when it needs an affected project.
+- A changed file under no project and matched by no `ignore` glob widens the run to all, and the report names the
+  file.
+- `affected` is pure: the graph is read from the workspace manifests once, at the edge (one reader per
+  `GraphKind`), and passed in.
+
 ## The plan and the report
 
 ```rust
-struct Plan { base: Option<Rev>, gates: Vec<Planned> }
+struct Plan { base: Option<Rev>, affected: Affected, jobs: Vec<Job> }
+struct Job { leg: LegId, shard: Option<Shard>, after: Option<LegId>, gates: Vec<Planned> }
+struct Shard { index: NonZeroU32, of: NonZeroU32 }
 struct Planned { gate: Gate, decision: Decision }
 enum Decision { Run, Skip(Skip), CannotRunHere(Platform) }
 enum Skip { OutOfScope, NoPullRequest, NotPublic, ForkPullRequest, CiOnly(Capability) }
 
-struct Report { version: Version, gates: Vec<GateReport> }
-struct GateReport { id: GateId, outcome: Outcome, took: Secs, budget: Secs, log: PathBuf }
+struct Report { version: Version, jobs: Vec<JobReport> }
+struct JobReport { leg: LegId, shard: Option<Shard>, host: Host, setup: Secs, gates: Vec<GateReport> }
+struct GateReport { id: GateId, outcome: Outcome, took: Secs, budget: Secs, log: PathBuf, kept: Vec<Kept> }
+struct Kept { name: UploadName, files: Vec<PathBuf> }
+
+enum Host { GithubHosted { warm_cache: bool }, SelfHosted, Lane }
+enum BudgetMode { Enforce, Report }
 
 enum Outcome {
-    Passed,
+    Passed { slow: bool },
     Failed(Failure),
     OverBudget,
     Skipped(Skip),
 }
 
 enum Failure { Exit(i32), Timeout, MissingTool(String), CannotRunHere(Platform) }
-enum BudgetMode { Enforce, Report, Waive }
 ```
 
-`Plan` is a pure function of the config, the packs, the changed files and the host. CI and a lane call the same
-function, so they plan the same gates. `report.json` is the `Report`; the job summary is a table of it:
-`| gate | took | budget |`.
+`Plan` is a pure function of the config, the packs, the changed files, the project graph and the host. CI and a
+lane call the same function, so they plan the same gates; only the shard count differs (a lane's host plans every
+sharded gate as `1/1`). `BudgetMode` is `Enforce` for `GithubHosted { warm_cache: true }` and `Report` for every
+other host, so `OverBudget` exists only there; elsewhere a gate over budget is `Passed { slow: true }`.
+
+`setup` is the time from the job's start to its first gate: checkout, toolchains, cache restore, the fetch. The
+job's first step stamps the start; on a lane's host it is the fetch alone. `report.json` is the `Report`; the job
+summary is one table of it:
+
+```
+| job        | host          | setup | gate         | took | budget |        |
+| rust       | github-hosted |  38 s | rust/clippy  | 12 s |   90 s | ok     |
+| local 2/4  | self-hosted   |  95 s | local/unit   | 310 s|  300 s | slow   |
+```
 
 ## Verbs
 
+Every verb is started through the wrapper: `./.gatekeeper/run <verb>`.
+
 | Verb | What |
 |---|---|
-| `gatekeeper check [--pack P] [--gate ID] [--base REV] [--pr-body FILE] [--all]` | plan and run; `--all` ignores scope |
-| `gatekeeper list [--json]` | the planned gates with their budgets |
-| `gatekeeper pin <version>` | write `[pin]` and every `uses: …@v<version>` line |
-| `gatekeeper baseline <gate>` | rewrite a gate's baseline; after the first write it only shrinks |
-| `gatekeeper skill --to <dir>` | write the usage skill of this version |
-| `gatekeeper selftest [--pack P]` | every gate against its fixtures |
-| `gatekeeper ci plan`, `gatekeeper ci done` | the workflow's two calls |
-| `gatekeeper release sign --identifier <bin> <file>` | codesign, notarize, verify (the release workflow's) |
-| `gatekeeper supabase status`, `gatekeeper supabase apply --target dev\|prod` | the migration ledger |
+| `check [--pack P] [--leg L] [--shard I/N] [--gate ID] [--base REV] [--pr-body FILE] [--all]` | plan and run; `--all` ignores scope |
+| `list [--json]` | the planned gates with their budgets |
+| `pin <version>` | check that release's signed list, then write `[pin]`, every `uses: …@<sha> # v<version>` line and the wrapper |
+| `baseline <gate>` | rewrite a gate's baseline; after the first write it only shrinks |
+| `skill --to <dir>` | write the usage skill of this version |
+| `selftest [--pack P]` | every gate against its fixtures |
+| `ci plan`, `ci done` | the workflow's two calls |
+| `release sign --identifier <bin> <file>` | codesign, notarize, verify (the release workflow's) |
+| `supabase status`, `supabase apply --target dev\|prod` | the migration ledger |
 
-Exit codes: 0 every planned gate passed; 1 a gate failed or ran over budget; 2 usage or a config error.
+Exit codes: 0 every planned gate passed; 1 a gate failed or ran over an enforced budget; 2 usage or a config error.
 
 ## What a consumer repo holds
 
 ```
 .gatekeeper/config.toml          packs, pin, budgets, the packs' tables
+.gatekeeper/run                  the wrapper; written by `pin`, never by hand
 .gatekeeper/gates/<name>.toml    its own gates, one a file
 .gatekeeper/baseline/<gate>.txt  known findings, shrink-only
 .gatekeeper/tokens-allowed.txt   the swift token lint's allow-list (swift pack with `tokens`)

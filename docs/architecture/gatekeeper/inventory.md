@@ -31,7 +31,7 @@ Every consumer copy in the first three groups is deleted in that repo's adoption
 | the pinned-drover download, toolchain, cargo-deny and actionlint steps in `ci.yml` | every repo | workflow `gates.yml` (provisioning) and the pinned tools the binary fetches |
 | drover's reusable `arch-check.yml` | 1, called by cooee | deleted once cooee adopts: `core/arch` replaces it |
 | `ci/gates.sh` and `ci/gates/*.sh` (cooee's own gate runner) | 1 | pack gates where one exists; the rest become `.gatekeeper/gates/*.toml`; the runner goes |
-| the `check` recipe and the per-gate recipes in each justfile | every repo | one line: `check: gatekeeper check` |
+| the `check` recipe and the per-gate recipes in each justfile | every repo | one line: `check: ./.gatekeeper/run check` |
 
 ## Swift
 
@@ -72,12 +72,25 @@ Every consumer copy in the first three groups is deleted in that repo's adoption
 | File today | Copies | Goes to |
 |---|---|---|
 | `scripts/release-sign.sh` (32 lines; only the identifier differs) | 3 | pack script, run by `gatekeeper release sign` |
-| `release.yml` (about 120 lines each) | 3 | workflow: `release.yml` |
+| `release.yml` (about 120 lines each) | 3 | workflow: `release.yml`, which also signs `SHA256SUMS` and runs farrier's checker |
+| the checks on a release's layout | none today | farrier: `farrier release verify`; gatekeeper only calls it |
 | blocks' `release.yml` and `scripts/release.sh` (version tags, notes, no assets) | 1 | stays local: a different kind of release |
 | `apple-testflight.yml` (167 and 137 lines) | 2 | workflow: `testflight.yml` |
 | `scripts/asc-token.swift` (same code twice) | 2 | pack script of the workflow |
 | a fastlane TestFlight workflow in one app repo | 1 | stays local until that repo's own adoption issue decides |
 | a repo's self-hosted Mac runner setup action | 1 | stays local, named by `testflight.yml`'s `prepare` input |
+
+## A monorepo's CI plumbing
+
+| File today | Copies | Goes to |
+|---|---|---|
+| the scope script that picks affected projects, and its tests | 1 | engine: `scope.rs` and the graph readers (G10) |
+| the shard matrix and the check that the shard reports cover every test | 1 | engine: `shards` on a gate; `done` fails a planned shard with no report (G10) |
+| the aggregate job that turns many legs into one required check | 1 | workflow: `gates / done` |
+| the database jobs that restore an earlier job's snapshot | 1 | stay local as gate files in legs; the hand-over is `[[upload]]` and `after` (G10) |
+| per-job screenshot and report upload steps | several repos | a gate's `[[upload]]` (G4) |
+| steps that build a tool from source on every run | 1 | issue #2: built once, fetched like any pinned tool |
+| draft, label and tree-reuse rules of that workflow | 1 | stay the caller's: its `if:` and the `scope` and `packs` inputs |
 
 ## Scripts by destination, in short
 
@@ -85,6 +98,8 @@ Every consumer copy in the first three groups is deleted in that repo's adoption
   `hygiene push` (new), `pr-body` (new).
 - **gatekeeper**: the lint floor and fixtures, clippy config, the fixture runner, anti-slop for Swift and TS, the
   token lint, the tsconfig and deny floors, knip's ratchet, the migration check, the pgTAP runner, apply and
-  status, release signing, the App Store Connect token, the four workflows.
+  status, release signing, the App Store Connect token, the four workflows, the wrapper, the selection of
+  affected projects.
+- **farrier**: what a release must look like, and the checker `release.yml` runs.
 - **stays local**: caps and their history, `deny.toml`'s own entries, arch rules, tests, perf and soak budgets,
   app-specific guards, SwiftLint rules.

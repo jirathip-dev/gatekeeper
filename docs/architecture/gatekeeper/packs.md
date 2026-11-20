@@ -1,7 +1,10 @@
 # gatekeeper: the packs (#1)
 
 Each gate lists what it runs, the fixture cases that prove it fails, and its budget in seconds. A budget is the
-gate's own wall time on a GitHub-hosted runner with a warm cache; setup (toolchain, cache restore) is not counted.
+gate's own wall time. It fails a gate only on a GitHub-hosted runner with a warm cache; a self-hosted runner, a
+cold cache and a lane's host report the time and pass. Setup (checkout, toolchain, cache restore, the fetch) is
+not in a gate's time: it is measured per job and shown in the same table, with no budget.
+
 The numbers start from today's CI (clippy 3 s in swag, 18 s in blocks, 19 s in shed; arch-check 8 s in shed, 34 s
 in blocks where it reruns the generators) with room for the largest repo. A repo may set its own in `[budgets]`.
 
@@ -11,7 +14,7 @@ Every gate also has a `clean` case that must pass. `selftest` fails a gate with 
 
 | Gate | Runs | Fixture cases that must fail | Budget |
 |---|---|---|---|
-| `core/pin` | every `uses: …/gatekeeper/…@<ref>` equals `v<pin.version>` | `ref-differs` | 1 |
+| `core/pin` | every `uses: …/gatekeeper/…@<ref> # <tag>`: the ref is the 40-hex commit the running binary was built from, the comment is `v<pin.version>`, the call has no `secrets: inherit`; `.gatekeeper/run` equals the pinned version's wrapper | `sha-differs`, `ref-is-a-tag`, `comment-differs`, `secrets-inherit`, `wrapper-edited` | 1 |
 | `core/cap` | `drover cap-check`: the line cap in `ci/cap.toml`, and `.drover/rules.md` at most 30 lines | `over-cap`, `cap-missing`, `rules-31-lines` | 5 |
 | `core/rules` | `drover lesson-check`: the rules file's format and its active checks | `no-enforcer`, `active-check-fails` | 5 |
 | `core/arch` | `drover arch-check` (with `--base` and `--pr-body` on a pull request) | `layer-crossed`, `ban-hit`, `file-too-long`, `frozen-line-added`, `generated-stale`, `comment-added` | 45 |
@@ -70,7 +73,7 @@ oxlint or ESLint rules, its CSS token lint and its `check-*.mjs` guards stay loc
 | `supabase/migrations` | static, no database: file names and timestamps, a new file is newer than the base's newest, a policy calls `(select auth.uid())` | `bad-name`, `older-than-base`, `bare-auth-uid` | 10 |
 | `supabase/pgtap` | a local stack, a reset, then every file under `supabase/tests/` (found by glob; no per-file CI step to forget) | `failing-test`, `test-file-not-run` | 300 |
 
-`supabase/pgtap` needs containers, so it is CI-only on a lane's host (open question 2). The apply and status
+`supabase/pgtap` needs containers, so it is CI-only on a lane's host (the owner's decision). The apply and status
 scripts are the union of today's two forks (transactional apply, the checkout-freshness guard, the ledger
 warnings), run by `gatekeeper supabase …` and by `supabase-deploy.yml`, which runs `supabase/migrations` first.
 Their own tests run in gatekeeper's CI. The storage-policy guards, the full replay and the baseline-equivalence
@@ -80,9 +83,20 @@ check stay local.
 
 | Workflow | Its proof in gatekeeper's CI |
 |---|---|
-| `release.yml` | gatekeeper's own releases are cut by it; a dry run on every PR builds both targets and writes `SHA256SUMS` without signing or publishing |
+| `release.yml` | gatekeeper's own releases are cut by it. A dry run on every PR (`publish: false`) builds both targets, writes `SHA256SUMS`, signs it with a throwaway key and runs farrier's checker; then it changes one checksum line and the checker must refuse. The must-fail release folders themselves are farrier's fixtures |
 | `testflight.yml` | actionlint, and an `upload: false` run in its first adopter before any other repo switches |
 | `supabase-deploy.yml` | actionlint, and the scripts' tests against a mocked ledger API |
+
+## The plan's own cases
+
+Not gates, so they are test cases of the engine, one folder each under `crates/gatekeeper-engine/tests/`:
+
+| What | Cases |
+|---|---|
+| kept files (G4) | `kept-on-pass`, `kept-on-fail`, `glob-matches-nothing` (reported, not a failure) |
+| budget mode (G1) | `over-budget-hosted-warm` fails; `over-budget-self-hosted`, `over-budget-cold`, `over-budget-lane` pass as `slow` |
+| affected projects (G10) | `leaf-changed`, `dependency-changed`, `file-outside-every-project` (widens), `ignored-file`, `no-base` (widens), `forced-full` |
+| shards and legs (G10) | `shard-report-missing` fails `done`; `lane-plans-one-shard`; `after-leg-waits`; `after-leg-skipped-when-first-fails` |
 
 ## The engine's own budget
 
