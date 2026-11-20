@@ -53,7 +53,7 @@ fn skill_to_writes_this_versions_skill_equal_to_the_checked_in_one_and_replaces_
     assert_eq!(code, 0, "{out}");
     assert_eq!(
         out.trim(),
-        "wrote gatekeeper/SKILL.md, gatekeeper/packs/core.md, gatekeeper/packs/rust.md, gatekeeper/examples/ (8)"
+        "wrote gatekeeper/SKILL.md, gatekeeper/packs/core.md, gatekeeper/packs/rust.md, gatekeeper/examples/ (9)"
     );
     assert!(!stale.exists());
     let skill_md = fs::read_to_string(to.join("gatekeeper/SKILL.md")).expect("SKILL.md");
@@ -61,6 +61,11 @@ fn skill_to_writes_this_versions_skill_equal_to_the_checked_in_one_and_replaces_
     let core_md = fs::read_to_string(to.join("gatekeeper/packs/core.md")).expect("core.md");
     assert!(
         core_md.contains("- rerun: `./.gatekeeper/run check --gate core/arch`"),
+        "{core_md}"
+    );
+    assert!(
+        core_md.contains("1. Crypto, TLS, signatures and parsers of files from outside are never written in-house")
+            && core_md.contains("5. To add a dependency: ask the owner first"),
         "{core_md}"
     );
     let checked_in = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../skill/gatekeeper");

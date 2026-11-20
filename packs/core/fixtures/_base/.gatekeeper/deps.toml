@@ -1,0 +1,12 @@
+growth = 10
+
+[cargo]
+proptest = "property tests of the parser"
+serde = "parse the config"
+
+[npm]
+react = "the UI"
+typescript = "type-check the UI"
+
+[swift]
+swift-argument-parser = "parse the command line"
