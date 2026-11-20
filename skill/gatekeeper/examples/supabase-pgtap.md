@@ -10,7 +10,7 @@ Writes `supabase/tests/notes.test.sql`:
 begin;
 create extension if not exists pgtap with schema extensions;
 select plan(1);
-select has_table('public', 'missing');
+select has_table('public', 'missing', 'public.missing exists');
 select * from finish();
 rollback;
 ```
@@ -27,7 +27,7 @@ Writes `supabase/tests/nested/deep/extra.test.sql`:
 begin;
 create extension if not exists pgtap with schema extensions;
 select plan(1);
-select has_column('public', 'notes', 'title');
+select has_column('public', 'notes', 'title', 'public.notes has a title');
 select * from finish();
 rollback;
 ```
