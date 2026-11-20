@@ -1,0 +1,11 @@
+version = "3.2.0"
+
+[asset.aarch64-apple-darwin]
+url = "https://github.com/supabase/cli/releases/download/v3.2.0/supabase_3.2.0_darwin_arm64.tar.gz"
+sha256 = "c9e27cdaf848f216879df0a354fca96c7e5ac0d1527d934b730ec62ba348b86d"
+bin = "supabase"
+
+[asset.x86_64-unknown-linux-gnu]
+url = "https://github.com/supabase/cli/releases/download/v3.2.0/supabase_3.2.0_linux_amd64.tar.gz"
+sha256 = "fb88b175a817563505be02c60872060bcb8d5c869a1aa5656eaeb085d4a2f1e4"
+bin = "supabase"

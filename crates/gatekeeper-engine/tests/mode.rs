@@ -65,7 +65,7 @@ fn no_pull_request_writes_the_integration_tier_and_no_push_reads() {
                             assert_eq!(*write, Some(Tier::Integration), "{at}");
                         }
                         Event::Lane => {
-                            assert!(read.iter().chain(write).all(|t| *t == Tier::Host), "{at}")
+                            assert!(read.iter().chain(write).all(|t| *t == Tier::Host), "{at}");
                         }
                         _ => panic!("{at}: this run must not use the cache"),
                     }

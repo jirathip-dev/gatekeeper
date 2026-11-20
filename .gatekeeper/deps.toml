@@ -5,3 +5,7 @@ serde = "derive the parsing of config, gate and report files"
 serde_json = "read and write report.json and the CI matrix"
 sha2 = "check a pinned tool's sha256: a hash is never written in-house"
 toml = "parse the config, gate, pack and deps files: a parser of files from outside"
+
+[npm]
+"@types/node" = "Node's types, so tsc checks the supabase scripts' node: imports"
+typescript = "tsc for the ts pack's strict check of the supabase scripts"

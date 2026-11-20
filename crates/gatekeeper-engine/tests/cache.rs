@@ -234,10 +234,8 @@ fn run_case(case_dir: &Path) {
     if let Some(table) = &case.cache {
         let mut table = table.clone();
         table.entry("recheck").or_insert(1_000_000.into());
-        config.push_str(&format!(
-            "[cache]\n{}",
-            toml::to_string(&table).expect("cache")
-        ));
+        config.push_str("[cache]\n");
+        config.push_str(&toml::to_string(&table).expect("cache"));
     }
     let config: Config = toml::from_str(&config).expect("config");
     for (i, step) in case.run.iter().enumerate() {
@@ -293,5 +291,5 @@ fn each_cache_case_reports_what_its_runs_expect() {
         run_case(&entry.expect("entry").path());
         seen += 1;
     }
-    assert_eq!(seen, 31);
+    assert_eq!(seen, 32);
 }

@@ -81,9 +81,11 @@ impl Unkeyed {
     #[must_use]
     pub fn of(gate: &Gate) -> Option<Unkeyed> {
         let arg = |a: &str| {
-            gate.steps
-                .iter()
-                .any(|s| matches!(s, Step::Tool { args, .. } if args.iter().any(|x| x == a)))
+            gate.steps.iter().any(|s| match s {
+                Step::Tool { args, .. } => args.iter().any(|x| x == a),
+                Step::Run { run } => run.contains(a),
+                Step::Check { .. } => false,
+            })
         };
         let bare = |s: &Step| matches!(s, Step::Run { .. });
         if !gate.cache {

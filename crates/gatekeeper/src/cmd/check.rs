@@ -16,6 +16,18 @@ fn tail(root: &Path, log: &str) -> Vec<String> {
     lines.iter().skip(from).map(|l| (*l).to_owned()).collect()
 }
 
+fn cache_lines(r: &GateReport) -> Vec<String> {
+    match (&r.outcome, &r.cache) {
+        (Outcome::Failed(Failure::CacheMismatch(proof)), _) => vec![
+            format!("cached pass does not hold: it passed in {proof} with the same key and fails now:"),
+            "the gate reads something it does not declare. Add it to `paths`, or set `cache = false`.".into(),
+        ],
+        (_, Some(CacheNote::Rechecked(proof))) => vec![format!("rechecked: cached by {proof}")],
+        (_, Some(CacheNote::Refused(why))) => vec![format!("a cached record was refused: {why:?}")],
+        _ => Vec::new(),
+    }
+}
+
 fn show(root: &Path, gate: &Gate, r: &GateReport) {
     let word = r.outcome.word();
     match &r.outcome {
@@ -40,22 +52,8 @@ fn show(root: &Path, gate: &Gate, r: &GateReport) {
             if let Some(note) = &r.note {
                 say(&format!("      {note}"));
             }
-            match &r.cache {
-                Some(CacheNote::Rechecked(proof)) => {
-                    say(&format!("      rechecked: cached by {proof}"))
-                }
-                Some(CacheNote::Refused(why)) => {
-                    say(&format!("      a cached record was refused: {why:?}"))
-                }
-                _ => {}
-            }
-            if let Outcome::Failed(Failure::CacheMismatch(proof)) = outcome {
-                say(&format!(
-                    "      cached pass does not hold: it passed in {proof} with the same key and fails now:"
-                ));
-                say(
-                    "      the gate reads something it does not declare. Add it to `paths`, or set `cache = false`.",
-                );
+            for line in cache_lines(r) {
+                say(&format!("      {line}"));
             }
             for kept in &r.kept {
                 let dir = format!(

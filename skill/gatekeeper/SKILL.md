@@ -20,3 +20,4 @@ With `[cache]` in `.gatekeeper/config.toml` a gate whose inputs already passed p
 - [core](packs/core.md): the line cap, the rules file, arch-check, actionlint, the dependency list
 - [rust](packs/rust.md): fmt, clippy with the shared lints, cargo-deny, the banned-API fixtures
 - [ts](packs/ts.md): tsc strict, oxlint with the bans and the anti-slop rules, knip's unused-code ratchet
+- [supabase](packs/supabase.md): the migration files' names, order and policy rule, and pgTAP on a local stack (CI only on a lane's host)
