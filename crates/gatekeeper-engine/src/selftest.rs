@@ -1,7 +1,7 @@
 use crate::run::{self, RunCtx};
 use crate::{Error, Result, config, packs, plan, runner};
-use gatekeeper_model::{Gate, GateId, Host, PackId, Shard, Skip};
-use std::collections::BTreeSet;
+use gatekeeper_model::{Gate, GateId, Host, PackId, Platform, Shard, Skip};
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -11,6 +11,14 @@ pub struct GateResult {
     pub cases: usize,
     pub problems: Vec<String>,
     pub skipped: Option<Skip>,
+}
+
+/// Where fixture cases run: the host kind and platform, the tool cache, the tools the repo builds itself.
+pub struct Bench {
+    pub host: Host,
+    pub platform: Platform,
+    pub cache: PathBuf,
+    pub tools: BTreeMap<String, PathBuf>,
 }
 
 const GIT: [&str; 6] = [
@@ -55,7 +63,7 @@ fn lay_case(prefix: &str, dir: &Path) -> Result<()> {
     Ok(())
 }
 
-fn run_case(gate: &Gate, case: Option<&str>, out: &Path, cache: &Path) -> Result<(bool, String)> {
+fn run_case(gate: &Gate, case: Option<&str>, out: &Path, bench: &Bench) -> Result<(bool, String)> {
     let pack = gate.id.pack;
     let dir = out
         .join(pack.as_str())
@@ -83,7 +91,7 @@ fn run_case(gate: &Gate, case: Option<&str>, out: &Path, cache: &Path) -> Result
     let cx = RunCtx {
         out: run::out_dir(&dir),
         root: dir.clone(),
-        cache: cache.to_path_buf(),
+        cache: bench.cache.clone(),
         base: Some(base),
         pr_body: None,
         host: Host::Lane,
@@ -93,7 +101,10 @@ fn run_case(gate: &Gate, case: Option<&str>, out: &Path, cache: &Path) -> Result
             .map_or("Cargo.toml", config::manifest)
             .to_owned(),
         results: None,
-        ts: config.and_then(|c| c.ts),
+        ts: config.as_ref().and_then(|c| c.ts.clone()),
+        swift: config.and_then(|c| c.swift),
+        tools: bench.tools.clone(),
+        platform: bench.platform,
         after_reports: None,
     };
     fs::create_dir_all(&cx.out).map_err(|e| Error::at(&cx.out, e))?;
@@ -120,19 +131,19 @@ pub(crate) fn expect(gate: &Gate, case: &str) -> String {
 }
 
 /// # Errors
-pub fn gate(gate: &Gate, out: &Path, cache: &Path) -> Result<GateResult> {
+pub fn gate(gate: &Gate, out: &Path, bench: &Bench) -> Result<GateResult> {
     let cases = cases(gate);
     let mut problems = Vec::new();
     if cases.iter().all(|case| passes(gate, case)) {
         problems.push("no failing fixture case".to_owned());
     }
-    let (failed, log) = run_case(gate, None, out, cache)?;
+    let (failed, log) = run_case(gate, None, out, bench)?;
     if failed {
         problems.push(format!("clean: failed on the base\n{}", log.trim_end()));
     }
     for case in &cases {
         let want = expect(gate, case);
-        let run = run_case(gate, Some(case), out, cache)?;
+        let run = run_case(gate, Some(case), out, bench)?;
         if passes(gate, case) {
             if run.0 {
                 problems.push(format!(
@@ -162,22 +173,21 @@ pub fn gate(gate: &Gate, out: &Path, cache: &Path) -> Result<GateResult> {
 /// # Errors
 pub fn run(
     packs: &[PackId],
-    host: Host,
+    bench: &Bench,
     out: &Path,
-    cache: &Path,
     seen: &mut dyn FnMut(&GateResult),
 ) -> Result<Vec<GateResult>> {
     let mut results = Vec::new();
     for pack in packs {
         for g in packs::pack_gates(*pack)? {
-            let result = match plan::ci_only(&g, host) {
+            let result = match plan::ci_only(&g, bench.host) {
                 Some(skip) => GateResult {
                     id: g.id.clone(),
                     cases: cases(&g).len(),
                     problems: Vec::new(),
                     skipped: Some(skip),
                 },
-                None => gate(&g, out, cache)?,
+                None => gate(&g, out, bench)?,
             };
             seen(&result);
             results.push(result);

@@ -114,6 +114,9 @@ fn prepare(args: &Args, root: &Path) -> Result<(Plan, RunCtx, Option<usize>, Cac
         after_reports: args.value("--after-reports").map(PathBuf::from),
         ts: config.ts.clone(),
         results,
+        swift: config.swift.clone(),
+        tools: config::tools(&config, root),
+        platform: run::platform(),
     };
     let changed = match filter.trigger {
         Trigger::Change(files) => Some(files.len()),

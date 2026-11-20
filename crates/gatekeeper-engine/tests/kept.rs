@@ -45,6 +45,9 @@ fn run_case(case: &Path) {
         after_reports: None,
         ts: None,
         results: None,
+        swift: None,
+        tools: std::collections::BTreeMap::new(),
+        platform: run::platform(),
     };
     let report = run::run(&plan, &cx, &mut |_, _| {}).expect("run");
     let gate = &report.jobs[0].gates[0];

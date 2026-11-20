@@ -12,7 +12,10 @@ fn planned(args: &Args) -> Result<(Plan, Vec<String>), Error> {
     let plan = plan::repo(&config, &root, &|_| host, &args.filter()?)?;
     let mut keys = Vec::new();
     if config.cache.is_some() {
-        let (ident, inputs) = (Ident::current(&root, None), inputs::read(&root)?);
+        let (ident, inputs) = (
+            Ident::current(&root, None, &config::tools(&config, &root)),
+            inputs::read(&root)?,
+        );
         for job in &plan.jobs {
             for p in &job.gates {
                 let at = (job.shard, &p.projects[..]);

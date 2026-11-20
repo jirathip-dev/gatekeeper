@@ -286,3 +286,27 @@ fn ci_done_counts_the_cache() {
     assert!(out.contains("cache off: a fork"), "{out}");
     assert!(out.contains("ok    local/keyed"), "{out}");
 }
+
+#[test]
+fn a_rebuilt_repo_tool_misses() {
+    let config = "packs = []\nintegration = \"staging\"\npin = \"checkout\"\n\n[tools]\nactionlint = \"target/al\"\n\n[cache]\nrecheck = 1000000\n";
+    let gate =
+        "about = \"t\"\nfix = \"none\"\nbudget_secs = 5\n\n[[step]]\ntool = \"actionlint\"\n";
+    let root = repo("cache-own-tool", config, &[("tooled", gate)]);
+    fs::create_dir_all(root.join("target")).expect("target");
+    let tool = root.join("target/al");
+    fs::write(&tool, "#!/bin/sh\nexit 0\n").expect("tool");
+    Command::new("chmod")
+        .arg("+x")
+        .arg(&tool)
+        .status()
+        .expect("chmod");
+    let (code, first) = gk(&root, &["check"], &[]);
+    assert_eq!(code, 0, "{first}");
+    let (_, second) = gk(&root, &["check"], &[]);
+    assert!(second.contains("cached local/tooled"), "{second}");
+    fs::write(&tool, "#!/bin/sh\n# rebuilt\nexit 0\n").expect("rebuilt");
+    let (code, third) = gk(&root, &["check"], &[]);
+    assert_eq!(code, 0, "{third}");
+    assert!(third.contains("ok    local/tooled"), "{third}");
+}

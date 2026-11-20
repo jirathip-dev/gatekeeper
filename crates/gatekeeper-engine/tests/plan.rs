@@ -83,6 +83,9 @@ fn run_case(case: &Path) {
         after_reports: expect.after_reports.then(|| case.join("reports")),
         ts: None,
         results: None,
+        swift: None,
+        tools: std::collections::BTreeMap::new(),
+        platform: run::platform(),
     };
     let report = run::run(&plan, &cx, &mut |_, _| {}).expect("run");
     let got: BTreeMap<String, String> = report

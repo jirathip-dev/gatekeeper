@@ -1,10 +1,10 @@
 name: tools
 on:
   pull_request:
-    paths: ["packs/*/tools/*.toml", .github/workflows/tools.yml]
+    paths: ["packs/*/tools/*.toml", "packs/swift/anti-slop/**", .github/workflows/tools.yml]
   push:
     branches: [staging, main]
-    paths: ["packs/*/tools/*.toml", .github/workflows/tools.yml]
+    paths: ["packs/*/tools/*.toml", "packs/swift/anti-slop/**", .github/workflows/tools.yml]
 
 permissions:
   contents: read

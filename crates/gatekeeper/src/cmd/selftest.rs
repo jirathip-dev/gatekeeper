@@ -1,5 +1,6 @@
 use crate::cli::{self, Args, say};
-use gatekeeper_engine::selftest::{self, GateResult};
+use gatekeeper_engine::selftest::{self, Bench, GateResult};
+use gatekeeper_engine::{config, run};
 use gatekeeper_model::PackId;
 use std::process::ExitCode;
 
@@ -33,13 +34,21 @@ pub fn run(args: &[String]) -> ExitCode {
         Ok(root) => root,
         Err(e) => return cli::usage_error(&e),
     };
-    match selftest::run(
-        &packs,
-        cli::host(),
-        &selftest::out_dir(&root),
-        &cli::cache(),
-        &mut show,
-    ) {
+    let own = root
+        .join(config::PATH)
+        .exists()
+        .then(|| config::load(&root));
+    let tools = match own.transpose() {
+        Ok(c) => c.map_or_default(|c| config::tools(&c, &root)),
+        Err(e) => return cli::usage_error(&e),
+    };
+    let bench = Bench {
+        host: cli::host(),
+        platform: run::platform(),
+        cache: cli::cache(),
+        tools,
+    };
+    match selftest::run(&packs, &bench, &selftest::out_dir(&root), &mut show) {
         Ok(results) => {
             let bad = results.iter().filter(|r| !r.problems.is_empty()).count();
             say(&format!("{} gates, {bad} failed", results.len()));

@@ -1,6 +1,7 @@
-use crate::{Error, Result, VERSION};
+use crate::{Error, Result, VERSION, packs};
 use gatekeeper_model::{Config, PackId, Pin};
-use std::path::Path;
+use std::collections::BTreeMap;
+use std::path::{Path, PathBuf};
 
 pub const PATH: &str = ".gatekeeper/config.toml";
 
@@ -21,12 +22,39 @@ pub fn load(root: &Path) -> Result<Config> {
             return Err(Error(format!("{PATH}: [pin] {target} is not a sha256")));
         }
     }
-    if config.packs.contains(&PackId::Ts) != config.ts.is_some() {
+    let tables = [
+        (PackId::Ts, config.ts.is_some(), "projects, install"),
+        (
+            PackId::Swift,
+            config.swift.is_some(),
+            "sources, packages or projects",
+        ),
+    ];
+    for (pack, table, keys) in tables {
+        if config.packs.contains(&pack) != table {
+            return Err(Error(format!(
+                "{PATH}: the {pack} pack and its [{pack}] table ({keys}) go together"
+            )));
+        }
+    }
+    if let Some(swift) = &config.swift
+        && (swift.sources.is_empty() || swift.packages.is_empty() && swift.projects.is_empty())
+    {
         return Err(Error(format!(
-            "{PATH}: the ts pack and its [ts] table (projects, install) go together"
+            "{PATH}: [swift] names its sources and at least one of packages or projects"
         )));
     }
+    if let Some(name) = config.tools.keys().find(|t| packs::tool_file(t).is_none()) {
+        return Err(Error(format!("{PATH}: [tools] {name} is no pinned tool")));
+    }
     Ok(config)
+}
+
+/// `[tools]`: the tools this repo builds itself, each at its path from the repo root.
+#[must_use]
+pub fn tools(config: &Config, root: &Path) -> BTreeMap<String, PathBuf> {
+    let paths = config.tools.iter().map(|(t, p)| (t.clone(), root.join(p)));
+    paths.collect()
 }
 
 #[must_use]

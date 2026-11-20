@@ -115,6 +115,9 @@ fn check(root: &Path, cached: bool) -> (Duration, Report) {
         after_reports: None,
         ts: None,
         results: cached.then(|| results(root)),
+        swift: None,
+        tools: std::collections::BTreeMap::new(),
+        platform: run::platform(),
     };
     let report = run::run(&plan, &cx, &mut |_, _| {}).expect("run");
     let took = start.elapsed();

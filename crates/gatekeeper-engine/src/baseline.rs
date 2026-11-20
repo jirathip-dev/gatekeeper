@@ -96,6 +96,8 @@ pub fn write(gate: &Gate, root: &Path, cache: &Path, config: &Config) -> Result<
                 cache,
                 manifest: config::manifest(config),
                 ts: config.ts.as_ref(),
+                swift: config.swift.as_ref(),
+                tools: &config::tools(config, root),
                 base: None,
                 note: &OnceCell::new(),
             },

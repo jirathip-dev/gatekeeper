@@ -1,0 +1,2 @@
+about = "the prebuilt anti-slop-swift, warnings as errors under GATEKEEPER_STRICT=1, the raw colour and size lint"
+platform = "macos"

@@ -19,6 +19,7 @@ With `[cache]` in `.gatekeeper/config.toml` a gate whose inputs already passed p
 
 - [core](packs/core.md): the line cap, the rules file, arch-check, actionlint, the dependency list
 - [rust](packs/rust.md): fmt, clippy with the shared lints, cargo-deny, the banned-API fixtures
+- [swift](packs/swift.md): the prebuilt anti-slop-swift, warnings as errors under GATEKEEPER_STRICT=1, the raw colour and size lint
 - [ts](packs/ts.md): tsc strict, oxlint with the bans and the anti-slop rules, knip's unused-code ratchet
 - [supabase](packs/supabase.md): the migration files' names, order and policy rule, and pgTAP on a local stack (CI only on a lane's host)
 
@@ -32,5 +33,6 @@ A gate's `run` line names one as `{tool:<name>}`: gatekeeper fetches it by versi
 - `sqlx-cli` 0.8.6, built by gatekeeper for x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu, aarch64-apple-darwin (`bin/sqlx`)
 - `cargo-deny` 0.22.0
 - `supabase` 3.2.0
+- `anti-slop-swift` 1.0.0, built by gatekeeper for aarch64-apple-darwin (`bin/anti-slop`)
 - `knip` 6.47.0
 - `oxlint` 1.94.0

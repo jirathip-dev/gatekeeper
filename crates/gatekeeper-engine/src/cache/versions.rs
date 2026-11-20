@@ -1,9 +1,9 @@
-use crate::fetch;
+use crate::fetch::{self, sha256_hex};
 use crate::{BUILD, Result, SOURCE, VERSION, runner};
 use gatekeeper_model::{Gate, Step};
 use std::cell::RefCell;
 use std::collections::BTreeMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /// Which gatekeeper on which platform, and each probe's output, run once a run.
 pub struct Ident {
@@ -13,13 +13,17 @@ pub struct Ident {
 }
 
 impl Ident {
-    /// This build on this host; `os` is the runner image when CI names one, else `uname -sr`.
+    /// This build and the repo-built tools on this host; `os` is the runner image when CI names one, else `uname -sr`.
     #[must_use]
-    pub fn current(root: &Path, os: Option<String>) -> Ident {
-        let engine = match BUILD {
+    pub fn current(root: &Path, os: Option<String>, own: &BTreeMap<String, PathBuf>) -> Ident {
+        let mut engine = match BUILD {
             Some(build) => format!("release {VERSION} {build}"),
             None => format!("checkout {SOURCE}"),
         };
+        for (tool, path) in own {
+            let sum = std::fs::read(path).map_or_else(|e| e.to_string(), |b| sha256_hex(&b));
+            engine.extend([" ", tool, "=", &sum]);
+        }
         let probes = RefCell::default();
         let ident = Ident {
             engine,
