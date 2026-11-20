@@ -1,0 +1,3 @@
+about = "fmt, clippy with the shared lints, cargo-deny, the banned-API fixtures"
+platform = "linux"
+setup = ["rust"]

@@ -1,0 +1,4 @@
+about = "cargo fmt --check under the repo's rustfmt.toml"
+fix = "run cargo fmt --all and commit the result"
+budget_secs = 10
+run = "cargo fmt --all --check"

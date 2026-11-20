@@ -1,0 +1,138 @@
+name: gates
+on:
+  workflow_call:
+    inputs:
+      packs:
+        description: a subset of the configured packs, space separated; empty runs them all
+        type: string
+        default: ""
+      runners:
+        description: the runner label per platform, as JSON
+        type: string
+        default: '{"linux": "ubuntu-latest", "macos": "macos-latest"}'
+    secrets:
+      private-names:
+        description: the hygiene list, one name a line
+        required: false
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - id: pin
+        run: |
+          if grep -Eq '^pin *= *"checkout"' .gatekeeper/config.toml; then
+            echo "checkout=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.pin.outputs.checkout == 'true'
+        uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
+        with:
+          toolchain: stable
+      - if: steps.pin.outputs.checkout == 'true'
+        uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
+        with:
+          key: plan
+      - id: plan
+        env:
+          PACKS: ${{ inputs.packs }}
+          RUNNERS: ${{ inputs.runners }}
+        run: ./.gatekeeper/run ci plan --pack "$PACKS" --runners "$RUNNERS" >> "$GITHUB_OUTPUT"
+
+  leg:
+    needs: plan
+    name: ${{ matrix.leg }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: ${{ matrix.runs-on }}
+    timeout-minutes: 60
+    steps:
+      - name: stamp the job's start
+        run: echo "GATEKEEPER_JOB_START=$(date +%s)" >> "$GITHUB_ENV"
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - if: matrix.rust
+        uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+      - if: matrix.rust
+        id: rust-cache
+        uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
+        with:
+          key: ${{ matrix.leg }}
+      - id: tools
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: ~/.cache/gatekeeper
+          key: gatekeeper-tools-${{ runner.os }}-${{ hashFiles('.gatekeeper/config.toml', 'packs/*/tools/*.toml') }}
+      - name: gates
+        env:
+          GATEKEEPER_CACHE_HIT: ${{ steps.rust-cache.outputs.cache-hit || steps.tools.outputs.cache-hit }}
+          LEG: ${{ matrix.leg }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          set -- check --pack "$LEG"
+          if [ -n "$BASE" ]; then
+            printf '%s\n' "$PR_BODY" > "$RUNNER_TEMP/pr-body.md"
+            set -- "$@" --base "$BASE" --pr-body "$RUNNER_TEMP/pr-body.md"
+          fi
+          ./.gatekeeper/run "$@"
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: gates-${{ matrix.leg }}
+          path: |
+            target/gatekeeper/
+            !target/gatekeeper/check/
+            !target/gatekeeper/files/
+            !target/gatekeeper/selftest/
+          if-no-files-found: ignore
+
+  done:
+    needs: [plan, leg]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - if: needs.plan.result != 'success'
+        env:
+          RESULT: ${{ needs.plan.result }}
+        run: |
+          echo "plan: $RESULT"
+          exit 1
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - id: pin
+        run: |
+          if grep -Eq '^pin *= *"checkout"' .gatekeeper/config.toml; then
+            echo "checkout=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.pin.outputs.checkout == 'true'
+        uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
+        with:
+          toolchain: stable
+      - if: steps.pin.outputs.checkout == 'true'
+        uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
+        with:
+          key: plan
+          save-if: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: gates-*
+          path: ${{ runner.temp }}/reports
+      - env:
+          PACKS: ${{ inputs.packs }}
+        run: ./.gatekeeper/run ci "done" --pack "$PACKS" --reports "$RUNNER_TEMP/reports" | tee -a "$GITHUB_STEP_SUMMARY"

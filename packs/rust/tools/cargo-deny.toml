@@ -1,0 +1,11 @@
+version = "0.22.0"
+
+[asset.aarch64-apple-darwin]
+url = "https://github.com/EmbarkStudios/cargo-deny/releases/download/0.22.0/cargo-deny-0.22.0-aarch64-apple-darwin.tar.gz"
+sha256 = "aa23e2f32eaf0b92efb36de3fc925f3e1b841fdafcc555ddab43d4d146cec251"
+bin = "cargo-deny-0.22.0-aarch64-apple-darwin/cargo-deny"
+
+[asset.x86_64-unknown-linux-gnu]
+url = "https://github.com/EmbarkStudios/cargo-deny/releases/download/0.22.0/cargo-deny-0.22.0-x86_64-unknown-linux-musl.tar.gz"
+sha256 = "98c56e6a408bfa5c3c60744b6015aaa6aa08f743fdeb88386d06fca035bb1786"
+bin = "cargo-deny-0.22.0-x86_64-unknown-linux-musl/cargo-deny"

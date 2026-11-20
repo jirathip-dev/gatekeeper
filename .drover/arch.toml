@@ -1,3 +1,6 @@
+generated = ["crates/gatekeeper/src/cmd/mod.rs", "crates/gatekeeper-engine/src/check/mod.rs"]
+generate = "sh scripts/gen.sh"
+
 [[collect]]
 dir = "crates/gatekeeper/src/cmd"
 glob = "*.rs"
@@ -54,3 +57,4 @@ max_fn_lines = 60
 
 [comments]
 policy = "strict"
+except = ["packs/*/fixtures/**"]

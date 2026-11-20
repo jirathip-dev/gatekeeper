@@ -1,0 +1,1 @@
+echo generated > gen.txt

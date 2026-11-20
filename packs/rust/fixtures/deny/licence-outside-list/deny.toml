@@ -1,0 +1,13 @@
+[advisories]
+yanked = "deny"
+
+[licenses]
+allow = ["MIT", "GPL-3.0-only"]
+
+[bans]
+multiple-versions = "deny"
+wildcards = "deny"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"

@@ -1,0 +1,6 @@
+about = "pinned actionlint on .github/workflows/"
+fix = "fix the workflow at the line actionlint names"
+budget_secs = 5
+
+[[step]]
+tool = "actionlint"
