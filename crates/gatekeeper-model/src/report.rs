@@ -1,4 +1,4 @@
-use crate::{GateId, PackId, Secs, Skip};
+use crate::{Affected, GateId, Secs, Shard, Skip};
 use serde::{Deserialize, Serialize};
 
 /// Milliseconds: a measured time.
@@ -89,12 +89,15 @@ pub fn judge(steps: Result<(), Failure>, took: Millis, budget: Secs, host: Host)
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Report {
     pub version: String,
+    #[serde(default)]
+    pub affected: Option<Affected>,
     pub jobs: Vec<JobReport>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct JobReport {
-    pub leg: PackId,
+    pub leg: String,
+    pub shard: Shard,
     pub host: Host,
     pub setup: Millis,
     pub gates: Vec<GateReport>,
@@ -109,6 +112,9 @@ pub struct GateReport {
     pub log: String,
     #[serde(default)]
     pub kept: Vec<Kept>,
+    /// The project roots the gate ran over: the run's selected tests.
+    #[serde(default)]
+    pub projects: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub note: Option<String>,
 }

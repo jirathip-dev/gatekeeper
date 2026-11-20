@@ -1,0 +1,7 @@
+kinds = ["cargo"]
+
+[graph]
+"." = ["crates/b"]
+"crates/a" = []
+"crates/b" = ["crates/a"]
+"tools/cli" = ["crates/b"]

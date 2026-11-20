@@ -1,0 +1,4 @@
+host = { kind = "lane" }
+jobs = ["local"]
+outcomes = { "local/unit" = "ok" }
+logs = { "local/unit" = "shard 1/1" }

@@ -1,0 +1,7 @@
+# the workspace
+packages:
+  - 'apps/*'
+  - "packages/*"
+  - '!packages/legacy'
+catalog:
+  - not-a-package

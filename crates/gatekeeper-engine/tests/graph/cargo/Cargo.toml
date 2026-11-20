@@ -1,0 +1,9 @@
+[workspace]
+members = ["crates/*", "tools/cli"]
+exclude = ["crates/skip"]
+
+[package]
+name = "root"
+
+[dependencies]
+b = { workspace = true }

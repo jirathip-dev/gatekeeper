@@ -1,0 +1,6 @@
+kinds = ["swiftpm"]
+
+[graph]
+"." = ["Core"]
+"Apps/App" = ["Core"]
+"Core" = []

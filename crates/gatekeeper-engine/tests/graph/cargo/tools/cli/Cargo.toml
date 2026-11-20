@@ -1,0 +1,5 @@
+[package]
+name = "cli"
+
+[build-dependencies]
+b.workspace = true

@@ -1,5 +1,5 @@
 use crate::cli::{self, Args, say};
-use gatekeeper_engine::{Error, ci, config, packs, plan};
+use gatekeeper_engine::{Error, ci, config, plan};
 use gatekeeper_model::{Pin, Plan};
 use serde_json::{Map, Value};
 use std::path::Path;
@@ -7,24 +7,24 @@ use std::process::ExitCode;
 
 const RUNNERS: &str = r#"{"linux": "ubuntu-latest", "macos": "macos-latest"}"#;
 
-fn planned(args: &Args) -> Result<(Plan, bool), Error> {
+fn planned(args: &Args) -> Result<(Plan, Map<String, Value>, bool), Error> {
     let root = cli::root()?;
     let config = config::load(&root)?;
-    let gates = packs::configured(&config, &root)?;
-    let plan = plan::plan(&config, gates, cli::host(), &args.filter()?)?;
-    Ok((plan, matches!(config.pin, Pin::Checkout(_))))
-}
-
-fn plan_matrix(args: &Args) -> Result<String, Error> {
-    let (plan, checkout) = planned(args)?;
     let runners: Map<String, Value> =
         serde_json::from_str(args.value("--runners").unwrap_or(RUNNERS))
             .map_err(|e| Error(format!("--runners: {e}")))?;
-    Ok(format!("matrix={}", ci::matrix(&plan, &runners, checkout)?))
+    let hosts = |p| ci::host(&runners, p);
+    let plan = plan::repo(&config, &root, &hosts, &args.filter()?)?;
+    Ok((plan, runners, matches!(config.pin, Pin::Checkout(_))))
+}
+
+fn plan_matrix(args: &Args) -> Result<String, Error> {
+    let (plan, runners, checkout) = planned(args)?;
+    ci::matrix(&plan, &runners, checkout)
 }
 
 fn done(args: &Args) -> Result<bool, Error> {
-    let (plan, _) = planned(args)?;
+    let (plan, _, _) = planned(args)?;
     let reports = args
         .value("--reports")
         .ok_or_else(|| Error("ci done needs --reports DIR".into()))?;
@@ -36,7 +36,7 @@ fn done(args: &Args) -> Result<bool, Error> {
     Ok(!problems.is_empty())
 }
 
-/// `ci plan [--pack P] [--runners JSON]` prints the leg matrix; `ci done --reports DIR` merges the job reports.
+/// `ci plan [--pack P] [--runners JSON]` prints the job matrices; `ci done --reports DIR [--runners JSON]` merges the reports.
 pub fn run(args: &[String]) -> ExitCode {
     let Some((sub, rest)) = args.split_first() else {
         return cli::usage_error(&"ci: plan or done");

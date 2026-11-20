@@ -167,7 +167,7 @@ fn ci_plan_emits_one_leg_per_pack_and_done_fails_a_missing_or_failed_report() {
     assert_eq!(code, 0);
     assert_eq!(
         plan.trim(),
-        r#"matrix={"include":[{"leg":"local","node":false,"runs-on":"ubuntu-latest","rust":true}]}"#
+        "matrix={\"include\":[{\"after\":\"\",\"artifact\":\"gates-local\",\"leg\":\"local\",\"node\":false,\"runs-on\":\"ubuntu-latest\",\"rust\":true,\"shard\":\"\"}]}\nafter={\"include\":[]}"
     );
     let ts = repo(
         "ci-ts",
@@ -178,7 +178,7 @@ fn ci_plan_emits_one_leg_per_pack_and_done_fails_a_missing_or_failed_report() {
     assert_eq!(code, 0, "{plan}");
     assert_eq!(
         plan.trim(),
-        r#"matrix={"include":[{"leg":"ts","node":true,"runs-on":"ubuntu-latest","rust":true}]}"#
+        "matrix={\"include\":[{\"after\":\"\",\"artifact\":\"gates-ts\",\"leg\":\"ts\",\"node\":true,\"runs-on\":\"ubuntu-latest\",\"rust\":true,\"shard\":\"\"}]}\nafter={\"include\":[]}"
     );
     let reports = root.join("reports");
     let (code, out) = gk(&root, &["ci", "done", "--reports", "reports"], &[]);

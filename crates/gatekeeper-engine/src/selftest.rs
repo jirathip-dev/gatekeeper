@@ -1,6 +1,6 @@
 use crate::run::{self, RunCtx};
 use crate::{Error, Result, config, packs, runner};
-use gatekeeper_model::{Gate, GateId, Host, PackId};
+use gatekeeper_model::{Gate, GateId, Host, PackId, Shard};
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -92,9 +92,10 @@ fn run_case(gate: &Gate, case: Option<&str>, out: &Path, cache: &Path) -> Result
             .map_or("Cargo.toml", config::manifest)
             .to_owned(),
         ts: config.and_then(|c| c.ts),
+        after_reports: None,
     };
     fs::create_dir_all(&cx.out).map_err(|e| Error::at(&cx.out, e))?;
-    let report = run::gate(gate, &cx)?;
+    let report = run::gate(gate, Shard::ONE, &[], &cx)?;
     let log = fs::read_to_string(dir.join(&report.log)).unwrap_or_default();
     Ok((report.outcome.fails(), log))
 }
