@@ -3,7 +3,7 @@ use crate::runner::{self, Ended};
 use crate::{Error, Result, VERSION, fetch, kept, packs};
 use gatekeeper_model::{
     Decision, Failure, Gate, GateReport, Host, JobReport, Millis, Outcome, Plan, Report, Step,
-    judge,
+    TsPack, judge,
 };
 use std::collections::BTreeSet;
 use std::fs::{self, File};
@@ -11,11 +11,22 @@ use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant, SystemTime};
 
-/// What a built-in check reads: the repo, its own scratch folder, the Cargo manifest.
+/// What a built-in check reads: the repo, its own scratch folder, the tool cache, the packs' tables.
 pub struct CheckCx<'a> {
     pub root: &'a Path,
     pub scratch: &'a Path,
+    pub cache: &'a Path,
     pub manifest: &'a str,
+    pub ts: Option<&'a TsPack>,
+}
+
+impl CheckCx<'_> {
+    /// # Errors
+    pub fn ts(&self) -> Result<&TsPack> {
+        self.ts.ok_or_else(|| {
+            Error("the ts pack's checks need [ts] in .gatekeeper/config.toml".into())
+        })
+    }
 }
 
 /// Where and how a plan runs; `out` takes the logs and `report.json`.
@@ -28,6 +39,7 @@ pub struct RunCtx {
     pub host: Host,
     pub job_start: Option<SystemTime>,
     pub manifest: String,
+    pub ts: Option<TsPack>,
 }
 
 fn millis(d: Duration) -> Millis {
@@ -100,7 +112,9 @@ fn step(
             let cx = CheckCx {
                 root: &cx.root,
                 scratch: &cx.out.join("check").join(check),
+                cache: &cx.cache,
                 manifest: &cx.manifest,
+                ts: cx.ts.as_ref(),
             };
             let findings = listed.unlisted(baseline::findings(check, &cx));
             for f in &findings {

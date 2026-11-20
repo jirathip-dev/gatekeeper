@@ -1,6 +1,6 @@
 use crate::run::{self, CheckCx};
-use crate::{Error, Result, check};
-use gatekeeper_model::{Gate, GateId, Step};
+use crate::{Error, Result, check, config};
+use gatekeeper_model::{Config, Gate, GateId, Step};
 use std::collections::BTreeSet;
 use std::fs;
 use std::io::ErrorKind;
@@ -68,7 +68,7 @@ pub struct Written {
 }
 
 /// # Errors
-pub fn write(gate: &Gate, root: &Path, manifest: &str) -> Result<Written> {
+pub fn write(gate: &Gate, root: &Path, cache: &Path, config: &Config) -> Result<Written> {
     let checks: Vec<&String> = gate
         .steps
         .iter()
@@ -92,7 +92,9 @@ pub fn write(gate: &Gate, root: &Path, manifest: &str) -> Result<Written> {
             &CheckCx {
                 root,
                 scratch: &scratch,
-                manifest,
+                cache,
+                manifest: config::manifest(config),
+                ts: config.ts.as_ref(),
             },
         ));
     }

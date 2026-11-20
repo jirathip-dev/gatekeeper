@@ -1,0 +1,12 @@
+{
+  "name": "gatekeeper-ts-fixture",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "dependencies": {
+    "left-pad": "1.3.0"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  }
+}

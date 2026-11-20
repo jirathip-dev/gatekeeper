@@ -1,0 +1,116 @@
+version = "6.47.0"
+bin = "knip/bin/knip.js"
+
+[[package]]
+name = "@oxc-parser/binding-darwin-arm64"
+url = "https://registry.npmjs.org/@oxc-parser/binding-darwin-arm64/-/binding-darwin-arm64-0.156.0.tgz"
+sha256 = "5a9dd4889bd6e011e7b7049f23b49a4dda956cd204f7e644f694c801d35aebea"
+target = "aarch64-apple-darwin"
+
+[[package]]
+name = "@oxc-parser/binding-linux-x64-gnu"
+url = "https://registry.npmjs.org/@oxc-parser/binding-linux-x64-gnu/-/binding-linux-x64-gnu-0.156.0.tgz"
+sha256 = "a86914f6409b64524c34ee5217ab7c86c6db5570d5dfdf2b8940ca7e0c536230"
+target = "x86_64-unknown-linux-gnu"
+
+[[package]]
+name = "@oxc-project/types"
+url = "https://registry.npmjs.org/@oxc-project/types/-/types-0.156.0.tgz"
+sha256 = "9ea3e4ff27f4c9c7bc9b5a8feb7b7d4f2181dd2b1d90067d52f267b6c5897dbc"
+
+[[package]]
+name = "@oxc-resolver/binding-darwin-arm64"
+url = "https://registry.npmjs.org/@oxc-resolver/binding-darwin-arm64/-/binding-darwin-arm64-11.24.2.tgz"
+sha256 = "dc989a8995e1a684c38058d5b10bd395c9ef20c5da63b41798bfe0548f690f83"
+target = "aarch64-apple-darwin"
+
+[[package]]
+name = "@oxc-resolver/binding-linux-x64-gnu"
+url = "https://registry.npmjs.org/@oxc-resolver/binding-linux-x64-gnu/-/binding-linux-x64-gnu-11.24.2.tgz"
+sha256 = "7acd50695b02c66c7afd90651c34039b49ae51b44dc0393bc76936c434df5429"
+target = "x86_64-unknown-linux-gnu"
+
+[[package]]
+name = "fd-package-json"
+url = "https://registry.npmjs.org/fd-package-json/-/fd-package-json-2.0.0.tgz"
+sha256 = "44e0a496a84a8312399f165442cd1e44371b96b6ca0fbf690b50734d90e10994"
+
+[[package]]
+name = "fdir"
+url = "https://registry.npmjs.org/fdir/-/fdir-6.5.0.tgz"
+sha256 = "241ddcd9f31e2a1fca405326017dbb8333ce174198e887f0f96387c29f0d365e"
+
+[[package]]
+name = "formatly"
+url = "https://registry.npmjs.org/formatly/-/formatly-0.11.4.tgz"
+sha256 = "c64a72ffbee6a43fb4e32442705137cb434d454a87e01fca1f52bb3af01dfe6e"
+
+[[package]]
+name = "get-tsconfig"
+url = "https://registry.npmjs.org/get-tsconfig/-/get-tsconfig-4.14.3.tgz"
+sha256 = "6cb95a663ba4c9df1c3c193542795dd4ab290b1fb01c26b1794255d110c30716"
+
+[[package]]
+name = "jiti"
+url = "https://registry.npmjs.org/jiti/-/jiti-2.7.0.tgz"
+sha256 = "8dd0d365fb49c0e7cc42d6a00df6fb2da9056fc24492094346fc34ecdbcf28ca"
+
+[[package]]
+name = "knip"
+url = "https://registry.npmjs.org/knip/-/knip-6.47.0.tgz"
+sha256 = "0662fa3bf5f113d9daa4ac31ea062c5f9d49a39cddf8517df17e239412f6bba8"
+
+[[package]]
+name = "oxc-parser"
+url = "https://registry.npmjs.org/oxc-parser/-/oxc-parser-0.156.0.tgz"
+sha256 = "b6378dd65067d16d97bbf472eb1f6896af32485031f9217548e6503e9cbee183"
+
+[[package]]
+name = "oxc-resolver"
+url = "https://registry.npmjs.org/oxc-resolver/-/oxc-resolver-11.24.2.tgz"
+sha256 = "b57944394f868c415a32f08cd846cb173194e515fa9767b6451ba73ce0882424"
+
+[[package]]
+name = "package-manager-detector"
+url = "https://registry.npmjs.org/package-manager-detector/-/package-manager-detector-1.9.0.tgz"
+sha256 = "a576bd69dd069ec7dc8626de773906150c2bb15c7e2e43a6c3aaadccfe386ec4"
+
+[[package]]
+name = "picomatch"
+url = "https://registry.npmjs.org/picomatch/-/picomatch-4.0.7.tgz"
+sha256 = "697b463be3cdbd9ffc8f4194fd5019a69ddf95875fb703d78b2b115cc9e740a8"
+
+[[package]]
+name = "resolve-pkg-maps"
+url = "https://registry.npmjs.org/resolve-pkg-maps/-/resolve-pkg-maps-1.0.0.tgz"
+sha256 = "4a7cbdb7054b1dd6e466067129be9577b495ff69d02064913e1723405db0df76"
+
+[[package]]
+name = "smol-toml"
+url = "https://registry.npmjs.org/smol-toml/-/smol-toml-1.9.1.tgz"
+sha256 = "4ac8392f1918c22a4366be19047cf53aa42646077d4c711b2ef73263beefb172"
+
+[[package]]
+name = "strip-json-comments"
+url = "https://registry.npmjs.org/strip-json-comments/-/strip-json-comments-5.0.3.tgz"
+sha256 = "5942b8ae060a5b6026f2e4c8853ebd3404f4672ab8f72a61e761714c8c98ce3a"
+
+[[package]]
+name = "tinyglobby"
+url = "https://registry.npmjs.org/tinyglobby/-/tinyglobby-0.2.17.tgz"
+sha256 = "afb4afae9175f8b873ac13e1d21cea0997a0bcb40c3598613a834490058cb562"
+
+[[package]]
+name = "unbash"
+url = "https://registry.npmjs.org/unbash/-/unbash-6.0.4.tgz"
+sha256 = "1e0041b17e6522e2e4d347208de2e444b0c09a423261e417161f1d5fb5b9e6c6"
+
+[[package]]
+name = "walk-up-path"
+url = "https://registry.npmjs.org/walk-up-path/-/walk-up-path-4.0.0.tgz"
+sha256 = "8de112154ed3e77fe12d7ac4499e415ff38a5f0535e084b0da2495299b3bb7e6"
+
+[[package]]
+name = "yaml"
+url = "https://registry.npmjs.org/yaml/-/yaml-2.9.1.tgz"
+sha256 = "4ef6c54cf559b8a207b7b518378230805a1c84af239b14960e8c67c7d59de5d3"

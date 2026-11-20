@@ -1,5 +1,5 @@
 use crate::run::{self, RunCtx};
-use crate::{Error, Result, packs, runner};
+use crate::{Error, Result, config, packs, runner};
 use gatekeeper_model::{Gate, GateId, Host, PackId};
 use std::collections::BTreeSet;
 use std::fs;
@@ -68,6 +68,11 @@ fn run_case(gate: &Gate, case: Option<&str>, out: &Path, cache: &Path) -> Result
         lay_case(&format!("{pack}/fixtures/{}/{case}/", gate.id.name()), &dir)?;
         commit(&dir, case)?;
     }
+    let config = dir
+        .join(config::PATH)
+        .exists()
+        .then(|| config::load(&dir))
+        .transpose()?;
     let cx = RunCtx {
         out: run::out_dir(&dir),
         root: dir.clone(),
@@ -76,7 +81,11 @@ fn run_case(gate: &Gate, case: Option<&str>, out: &Path, cache: &Path) -> Result
         pr_body: None,
         host: Host::Lane,
         job_start: None,
-        manifest: "Cargo.toml".into(),
+        manifest: config
+            .as_ref()
+            .map_or("Cargo.toml", config::manifest)
+            .to_owned(),
+        ts: config.and_then(|c| c.ts),
     };
     fs::create_dir_all(&cx.out).map_err(|e| Error::at(&cx.out, e))?;
     let report = run::gate(gate, &cx)?;

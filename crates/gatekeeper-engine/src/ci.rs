@@ -21,7 +21,8 @@ pub fn matrix(plan: &Plan, runners: &Map<String, Value>, checkout: bool) -> Resu
                 .get(key)
                 .ok_or_else(|| Error(format!("runners: no label for {key}")))?;
             let rust = checkout || job.setup.contains(&Toolchain::Rust);
-            Ok(json!({ "leg": job.leg, "runs-on": runs_on, "rust": rust }))
+            let node = job.setup.contains(&Toolchain::Node);
+            Ok(json!({ "leg": job.leg, "runs-on": runs_on, "rust": rust, "node": node }))
         })
         .collect::<Result<Vec<Value>>>()?;
     Ok(json!({ "include": include }))
