@@ -341,9 +341,7 @@ fn cargo_lock(sourced: usize) -> String {
     })
 }
 
-#[test]
-fn deps_fails_lockfile_growth_alike_on_a_lane_and_in_ci_checks_only_the_list_on_a_push_and_notes_the_count()
- {
+fn grown_deps_repo() -> (PathBuf, String) {
     let root = repo("deps", CONFIG, &[("deps", DEPS)]);
     fs::write(
         root.join("Cargo.toml"),
@@ -363,6 +361,13 @@ fn deps_fails_lockfile_growth_alike_on_a_lane_and_in_ci_checks_only_the_list_on_
     git(&root, &["update-ref", "refs/remotes/origin/staging", &base]);
     fs::write(root.join("Cargo.lock"), cargo_lock(12)).expect("grown");
     git(&root, &["commit", "-q", "-am", "grow"]);
+    (root, base)
+}
+
+#[test]
+fn deps_fails_lockfile_growth_alike_on_a_lane_and_in_ci_checks_only_the_list_on_a_push_and_notes_the_count()
+ {
+    let (root, base) = grown_deps_repo();
     let ci = [("GITHUB_ACTIONS", "true")];
     let (lane_code, lane) = gk(&root, &["check"], &[]);
     let (ci_code, in_ci) = gk(&root, &["check", "--base", &base], &ci);
