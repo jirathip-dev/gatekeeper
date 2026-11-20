@@ -18,6 +18,7 @@ fn always_passing(name: &str) -> Gate {
         leg: "core".into(),
         shards: Shards::default(),
         uploads: Vec::new(),
+        rule: Vec::new(),
     }
 }
 

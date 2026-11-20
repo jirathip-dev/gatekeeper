@@ -59,7 +59,7 @@ pub fn matrix(plan: &Plan, runners: &Map<String, Value>, checkout: bool) -> Resu
 /// # Errors
 pub fn done(plan: &Plan, reports: &Path) -> Result<(String, Vec<String>)> {
     let mut table = String::from(
-        "| job | host | setup | gate | took | budget | |\n|---|---|---|---|---|---|---|\n",
+        "| job | host | setup | gate | took | budget | | note |\n|---|---|---|---|---|---|---|---|\n",
     );
     let mut problems = Vec::new();
     let mut selected = String::new();
@@ -85,14 +85,15 @@ pub fn done(plan: &Plan, reports: &Path) -> Result<(String, Vec<String>)> {
             for g in &jr.gates {
                 writeln!(
                     table,
-                    "| {} | {} | {} | {} | {} | {} s | {} |",
+                    "| {} | {} | {} | {} | {} | {} s | {} | {} |",
                     job_label(&jr.leg, jr.shard),
                     jr.host.label(),
                     secs(jr.setup),
                     g.id,
                     secs(g.took),
                     g.budget.0,
-                    g.outcome.word()
+                    g.outcome.word(),
+                    g.note.as_deref().unwrap_or_default()
                 )
                 .map_err(|e| Error(e.to_string()))?;
                 if g.outcome.fails() {

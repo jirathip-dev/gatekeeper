@@ -115,6 +115,8 @@ pub struct GateReport {
     /// The project roots the gate ran over: the run's selected tests.
     #[serde(default)]
     pub projects: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub note: Option<String>,
 }
 
 /// An upload's files, by their repo paths; a copy of each is under `files/<name>/` of the out folder.

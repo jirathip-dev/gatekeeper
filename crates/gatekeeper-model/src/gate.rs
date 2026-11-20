@@ -38,6 +38,8 @@ pub struct GateFile {
     pub shards: Shards,
     #[serde(default)]
     pub upload: Vec<Upload>,
+    #[serde(default)]
+    pub rule: Vec<String>,
 }
 
 /// Files a gate keeps after its last step, pass or fail: `[[upload]]`.
@@ -63,6 +65,7 @@ pub struct Gate {
     pub leg: String,
     pub shards: Shards,
     pub uploads: Vec<Upload>,
+    pub rule: Vec<String>,
 }
 
 impl Gate {
@@ -91,6 +94,7 @@ impl Gate {
             projects: file.projects,
             shards: file.shards,
             uploads: file.upload,
+            rule: file.rule,
         })
     }
 }

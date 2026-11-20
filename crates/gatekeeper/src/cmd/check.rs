@@ -27,6 +27,9 @@ fn show(root: &Path, gate: &Gate, r: &GateReport) {
             if !r.projects.is_empty() {
                 say(&format!("      selected: {}", r.projects.join(" ")));
             }
+            if let Some(note) = &r.note {
+                say(&format!("      {note}"));
+            }
             for kept in &r.kept {
                 let dir = format!(
                     "{}/files/{}/",
