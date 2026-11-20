@@ -352,3 +352,84 @@ fn a_lane_sees_where_a_failed_gates_kept_files_are_and_what_matched_nothing() {
             .is_file()
     );
 }
+
+const DEPS: &str =
+    "about = \"deps\"\nfix = \"list it\"\nbudget_secs = 5\n\n[[step]]\ncheck = \"deps\"\n";
+
+fn cargo_lock(sourced: usize) -> String {
+    (0..sourced).fold("version = 4\n".to_owned(), |lock, i| {
+        lock + &format!("\n[[package]]\nname = \"p{i}\"\nversion = \"1.0.0\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\n")
+    })
+}
+
+fn grown_deps_repo() -> (PathBuf, String) {
+    let root = repo("deps", CONFIG, &[("deps", DEPS)]);
+    fs::write(
+        root.join("Cargo.toml"),
+        "[package]\nname = \"app\"\nversion = \"0.1.0\"\n\n[dependencies]\np0 = \"1\"\n",
+    )
+    .expect("manifest");
+    fs::write(root.join("Cargo.lock"), cargo_lock(1)).expect("lock");
+    fs::write(
+        root.join(".gatekeeper/deps.toml"),
+        "growth = 10\n\n[cargo]\np0 = \"the one\"\n",
+    )
+    .expect("list");
+    git(&root, &["init", "-q"]);
+    git(&root, &["add", "-A"]);
+    git(&root, &["commit", "-q", "-m", "base"]);
+    let base = git(&root, &["rev-parse", "HEAD"]);
+    git(&root, &["update-ref", "refs/remotes/origin/staging", &base]);
+    fs::write(root.join("Cargo.lock"), cargo_lock(12)).expect("grown");
+    git(&root, &["commit", "-q", "-am", "grow"]);
+    (root, base)
+}
+
+#[test]
+fn deps_fails_lockfile_growth_alike_on_a_lane_and_in_ci_checks_only_the_list_on_a_push_and_notes_the_count()
+ {
+    let (root, base) = grown_deps_repo();
+    let ci = [("GITHUB_ACTIONS", "true")];
+    let (lane_code, lane) = gk(&root, &["check"], &[]);
+    let (ci_code, in_ci) = gk(&root, &["check", "--base", &base], &ci);
+    for (code, out) in [(lane_code, &lane), (ci_code, &in_ci)] {
+        assert_eq!(code, 1, "{out}");
+        assert!(
+            out.contains("      lockfiles: Cargo.lock 1 -> 12 (+11)"),
+            "{out}"
+        );
+        assert!(
+            out.contains("lockfiles grew by 11 packages, over the limit of 10"),
+            "{out}"
+        );
+    }
+    let reports = root.join("reports/gates-local");
+    fs::create_dir_all(&reports).expect("reports");
+    fs::copy(
+        root.join("target/gatekeeper/report.json"),
+        reports.join("report.json"),
+    )
+    .expect("copy");
+    let (code, table) = gk(&root, &["ci", "done", "--reports", "reports"], &[]);
+    assert_eq!(code, 1, "{table}");
+    let row = table
+        .lines()
+        .find(|l| l.contains("local/deps"))
+        .expect("row");
+    assert!(
+        row.ends_with("| FAIL | lockfiles: Cargo.lock 1 -> 12 (+11) |"),
+        "{row}"
+    );
+    git(&root, &["update-ref", "-d", "refs/remotes/origin/staging"]);
+    let (code, push) = gk(&root, &["check"], &ci);
+    assert_eq!(code, 0, "{push}");
+    assert!(push.contains("      lockfiles: Cargo.lock 12\n"), "{push}");
+    fs::write(
+        root.join("Cargo.toml"),
+        "[package]\nname = \"app\"\nversion = \"0.1.0\"\n",
+    )
+    .expect("dropped");
+    let (code, push) = gk(&root, &["check"], &ci);
+    assert_eq!(code, 1, "{push}");
+    assert!(push.contains("[cargo] p0: stale"), "{push}");
+}

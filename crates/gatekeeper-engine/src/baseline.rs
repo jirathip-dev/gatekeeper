@@ -1,6 +1,7 @@
 use crate::run::{self, CheckCx};
 use crate::{Error, Result, check, config};
 use gatekeeper_model::{Config, Gate, GateId, Step};
+use std::cell::OnceCell;
 use std::collections::BTreeSet;
 use std::fs;
 use std::io::ErrorKind;
@@ -95,6 +96,8 @@ pub fn write(gate: &Gate, root: &Path, cache: &Path, config: &Config) -> Result<
                 cache,
                 manifest: config::manifest(config),
                 ts: config.ts.as_ref(),
+                base: None,
+                note: &OnceCell::new(),
             },
         ));
     }

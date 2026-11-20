@@ -1,0 +1,6 @@
+{
+  "name": "root",
+  "private": true,
+  "workspaces": ["web/*"],
+  "devDependencies": { "typescript": "5.6.3" }
+}

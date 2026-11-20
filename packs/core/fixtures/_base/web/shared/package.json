@@ -1,0 +1,4 @@
+{
+  "name": "shared",
+  "dependencies": { "ui": "0.0.0" }
+}

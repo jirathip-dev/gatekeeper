@@ -15,6 +15,7 @@ fn always_passing(name: &str) -> Gate {
         steps: vec![Step::Run { run: "true".into() }],
         paths: Vec::new(),
         uploads: Vec::new(),
+        rule: Vec::new(),
     }
 }
 

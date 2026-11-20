@@ -1,0 +1,4 @@
+{
+  "name": "ui",
+  "dependencies": { "react": "18.3.1", "shared": "workspace:*" }
+}
