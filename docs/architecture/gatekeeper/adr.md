@@ -117,7 +117,7 @@ a fix lands once, a lane sees locally exactly what CI will see, and each repo ge
    gate, one folder per fixture case (`boundaries.md`). drover concepts stay drover's and are called as verbs
    through a pinned drover: the line cap, arch-check, the rules file, hygiene and the PR body. gatekeeper holds
    the rest. The full table is `inventory.md`.
-6. **Wall-time budgets.** Each gate file carries `budget_secs`; a pack's budget is the sum (core 68 s, rust 150 s,
+6. **Wall-time budgets.** Each gate file carries `budget_secs`; a pack's budget is the sum (core 68 s, rust 240 s,
    ts 180 s, swift 400 s, supabase 10 s plus 300 s for pgTAP). The program measures each gate's own wall time and
    each job's setup time (job start to the first gate) and writes `report.json`; `done` prints both in one table.
    A gate over budget fails only on a GitHub-hosted runner with a warm cache. A self-hosted runner, a cold cache

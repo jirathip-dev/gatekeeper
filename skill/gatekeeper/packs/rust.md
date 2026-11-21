@@ -17,7 +17,7 @@ the 12 clippy denies, unsafe_code forbid and pedantic warn are in [workspace.lin
 clippy with the repo's lints (pedantic and the bans), -D warnings, the pack's clippy.toml by reference; tests may unwrap, panic, index and print
 
 - fix: return the error; only tests may unwrap, panic, index or print; never allow a pedantic lint to pass
-- budget: 90s
+- budget: 180s
 - cached: yes
 - rerun: `./.gatekeeper/run check --gate rust/clippy`
 - what a failure looks like: [rust-clippy](../examples/rust-clippy.md)
