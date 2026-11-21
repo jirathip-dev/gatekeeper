@@ -1,7 +1,7 @@
 use crate::{Error, Result, graph, packs, scope};
 use gatekeeper_model::{
     Affected, Capability, Config, Decision, Filter, Gate, Graph, Host, Job, PackId, Plan, Planned,
-    Platform, RepoRun, Shard, Skip, Trigger, is_name,
+    Platform, RepoRun, Shard, Skip, Trigger, Workspace, is_name,
 };
 use std::collections::{BTreeMap, BTreeSet};
 use std::num::NonZeroU32;
@@ -182,10 +182,8 @@ pub fn plan(
     for gate in gates.into_iter().filter(chosen) {
         legs.entry(gate.leg.clone()).or_default().push(gate);
     }
-    let affected = config
-        .scope
-        .as_ref()
-        .map(|s| scope::affected(graph, filter.trigger.clone(), &s.ignore));
+    let ignore = config.scope.as_ref().map(|s| s.ignore.clone());
+    let affected = (ignore.as_ref()).map(|i| scope::affected(graph, filter.trigger.clone(), i));
     let cx = Scoped {
         hosts,
         graph,
@@ -206,7 +204,13 @@ pub fn plan(
         jobs.retain(|j| j.shard == shard);
     }
     jobs.sort_by_key(|j| j.after.is_some());
-    Ok(Plan { affected, jobs })
+    let (graph, ignore) = (graph.clone(), ignore.unwrap_or_default());
+    let workspace = Workspace { graph, ignore };
+    Ok(Plan {
+        affected,
+        workspace,
+        jobs,
+    })
 }
 
 /// # Errors

@@ -1,4 +1,4 @@
-use crate::{Affected, CacheNote, GateId, Hit, Platform, Proof, Secs, Shard, Skip};
+use crate::{Affected, CacheNote, GateId, Hit, Platform, ProjectCache, Proof, Secs, Shard, Skip};
 use serde::{Deserialize, Serialize};
 
 /// Milliseconds: a measured time.
@@ -142,6 +142,10 @@ impl CacheTotals {
     pub fn of<'a>(gates: impl IntoIterator<Item = &'a GateReport>) -> CacheTotals {
         let mut t = CacheTotals::default();
         for g in gates {
+            if let Some(CacheNote::Projects(p)) = &g.cache {
+                t.add_projects(g, p.values());
+                continue;
+            }
             t.gates += 1;
             match &g.outcome {
                 Outcome::Cached(hit) => {
@@ -155,6 +159,28 @@ impl CacheTotals {
             t.refused += u32::from(matches!(g.cache, Some(CacheNote::Refused(_))));
         }
         t
+    }
+
+    fn add_projects<'a>(&mut self, g: &GateReport, p: impl Iterator<Item = &'a ProjectCache>) {
+        let mut rechecked = 0;
+        for note in p {
+            self.gates += 1;
+            match note {
+                ProjectCache::Cached(hit) => {
+                    (self.cached, self.saved.0) = (self.cached + 1, self.saved.0 + hit.took.0);
+                }
+                ProjectCache::Rechecked(_) => rechecked += 1,
+                ProjectCache::Refused(_) => self.refused += 1,
+                ProjectCache::Ran => {}
+            }
+        }
+        self.rechecked += rechecked;
+        if !matches!(g.outcome, Outcome::Cached(_)) {
+            self.ran.0 += g.took.0;
+        }
+        if matches!(g.outcome, Outcome::Failed(Failure::CacheMismatch(_))) {
+            self.differed += rechecked;
+        }
     }
 }
 

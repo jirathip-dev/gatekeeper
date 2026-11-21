@@ -1,6 +1,6 @@
 use crate::cli::{self, Args, say};
 use gatekeeper_engine::cache::key::{self, Keyed};
-use gatekeeper_engine::cache::{Ident, inputs};
+use gatekeeper_engine::cache::{self, Ident, inputs};
 use gatekeeper_engine::{Error, config, plan};
 use gatekeeper_model::{Decision, Plan};
 use std::process::ExitCode;
@@ -16,16 +16,34 @@ fn planned(args: &Args) -> Result<(Plan, Vec<String>), Error> {
             Ident::current(&root, None, &config::tools(&config, &root)),
             inputs::read(&root)?,
         );
+        let ws = &plan.workspace;
         for job in &plan.jobs {
             for p in &job.gates {
-                let at = (job.shard, &p.projects[..]);
-                keys.push(match key::keyed(&p.gate, at, &ident, &inputs, &root)? {
-                    Keyed::Key(key, _) => {
-                        let short = key.0.get(..12).unwrap_or_default();
-                        format!("  key {short}… {} files", inputs.of(&p.gate).0)
-                    }
-                    Keyed::No(why) => format!("  not cached: {why}"),
-                });
+                let each = cache::per_project(&p.gate, job.shard);
+                let units: Vec<&[String]> = if each {
+                    p.projects.iter().map(std::slice::from_ref).collect()
+                } else {
+                    vec![&p.projects[..]]
+                };
+                let mut line = Vec::new();
+                for unit in units {
+                    let name = if each { unit.concat() } else { String::new() };
+                    let at = (job.shard, unit);
+                    let key = match key::keyed(&p.gate, at, &ident, (&inputs, ws), &root)? {
+                        Keyed::Key(key, _) => {
+                            let short = key.0.get(..12).unwrap_or_default();
+                            let files = inputs.of(&p.gate, unit, ws).0;
+                            format!("  key {short}… {files} files")
+                        }
+                        Keyed::No(why) => format!("  not cached: {why}"),
+                    };
+                    line.push(if each {
+                        format!("\n    {name}{key}")
+                    } else {
+                        key
+                    });
+                }
+                keys.push(line.concat());
             }
         }
     }

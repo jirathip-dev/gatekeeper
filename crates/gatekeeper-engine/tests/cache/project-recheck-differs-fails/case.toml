@@ -1,0 +1,22 @@
+gate = { run = "test ! -e target/undeclared", projects = ["pkgs/*"], versions = ["echo 1"] }
+cache = { recheck = 1 }
+scope = { graphs = ["pnpm"], ignore = ["docs/**"] }
+
+[files]
+"pnpm-workspace.yaml" = "packages:\n  - 'pkgs/*'\n"
+"pkgs/a/package.json" = '{"name": "a"}'
+"pkgs/b/package.json" = '{"name": "b", "dependencies": {"a": "*"}}'
+"pkgs/c/package.json" = '{"name": "c", "dependencies": {"b": "*"}}'
+"pkgs/d/package.json" = '{"name": "d"}'
+
+[[run]]
+trigger = "lane"
+expect = "ok"
+expect_store = { host = 4 }
+
+[[run]]
+trigger = "lane"
+edit = { "target/undeclared" = "an ignored file the gate reads" }
+expect = "FAIL"
+contains = "cache-mismatch"
+expect_store = { host = 0 }

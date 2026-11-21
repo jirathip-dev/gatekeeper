@@ -5,8 +5,8 @@ mod report;
 mod scope;
 
 pub use cache::{
-    CacheConfig, CacheMode, CacheNote, Event, Hit, Key, KeyParts, Off, Proof, PullRequests, Record,
-    Refusal, RunRef, Tier, Unkeyed,
+    CacheConfig, CacheMode, CacheNote, Event, Hit, Key, KeyParts, Off, ProjectCache, Proof,
+    PullRequests, Record, Refusal, RunRef, Tier, Unkeyed,
 };
 pub use gate::{Capability, Gate, GateFile, PackFile, Platform, Step, Toolchain, Upload};
 pub use glob::Glob;
@@ -14,7 +14,9 @@ pub use report::{
     BudgetMode, CacheTotals, Failure, GateReport, Host, JobReport, Kept, Millis, Outcome, Report,
     judge,
 };
-pub use scope::{Affected, Graph, GraphKind, Leg, ScopeConfig, Shard, Shards, Trigger, Widened};
+pub use scope::{
+    Affected, Graph, GraphKind, Leg, ScopeConfig, Shard, Shards, Trigger, Widened, Workspace,
+};
 
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
@@ -237,6 +239,8 @@ pub enum RepoRun {
 pub struct Plan {
     /// `None` when the config has no `[scope]`.
     pub affected: Option<Affected>,
+    #[serde(skip)]
+    pub workspace: Workspace,
     pub jobs: Vec<Job>,
 }
 

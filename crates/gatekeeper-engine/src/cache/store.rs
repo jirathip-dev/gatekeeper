@@ -1,18 +1,24 @@
 use crate::{Error, Result};
-use gatekeeper_model::{GateReport, Key, KeyParts, Outcome, Proof, Record, Tier};
+use gatekeeper_model::{GateReport, Key, KeyParts, Millis, Outcome, Proof, Record, Tier};
 use std::fs;
 use std::path::{Path, PathBuf};
 
 pub(crate) struct Ran(Record);
 
 impl Ran {
-    pub(crate) fn of(report: &GateReport, key: Key, parts: KeyParts, proof: Proof) -> Option<Ran> {
+    pub(crate) fn of(
+        report: &GateReport,
+        took: Millis,
+        key: Key,
+        parts: KeyParts,
+        proof: Proof,
+    ) -> Option<Ran> {
         matches!(report.outcome, Outcome::Passed { .. }).then(|| {
             Ran(Record {
                 key,
                 parts,
                 proof,
-                took: report.took,
+                took,
             })
         })
     }

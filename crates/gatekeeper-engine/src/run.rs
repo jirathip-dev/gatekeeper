@@ -328,10 +328,13 @@ pub fn run(plan: &Plan, cx: &RunCtx, seen: &mut dyn FnMut(&Gate, &GateReport)) -
             let done = match planned.decision {
                 Decision::Run if !waited => unrun(planned, Outcome::Skipped(Skip::AfterFailed)),
                 Decision::Run => {
-                    let run = || gate(&planned.gate, job.shard, &planned.projects, cx);
+                    let run = |projects: &[String]| gate(&planned.gate, job.shard, projects, cx);
                     match &cx.results {
-                        Some(res) => cache::gate(res, planned, job.shard, &cx.root, run)?,
-                        None => run()?,
+                        Some(res) => {
+                            let at = (job.shard, &plan.workspace);
+                            cache::gate(res, planned, at, &cx.root, run)?
+                        }
+                        None => run(&planned.projects)?,
                     }
                 }
                 Decision::Skip(skip) => unrun(planned, Outcome::Skipped(skip)),

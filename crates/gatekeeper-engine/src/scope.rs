@@ -1,14 +1,6 @@
 use gatekeeper_model::{Affected, Glob, Graph, Trigger, Widened};
 use std::collections::BTreeSet;
 
-fn owner<'g>(graph: &'g Graph, file: &str) -> Option<&'g String> {
-    graph
-        .projects
-        .keys()
-        .filter(|root| root.as_str() == "." || file.starts_with(&format!("{root}/")))
-        .max_by_key(|root| if root.as_str() == "." { 0 } else { root.len() })
-}
-
 /// The projects a change can reach: those holding a changed file, then every project that needs one of them.
 #[must_use]
 pub fn affected(graph: &Graph, trigger: Trigger, ignore: &[Glob]) -> Affected {
@@ -18,7 +10,7 @@ pub fn affected(graph: &Graph, trigger: Trigger, ignore: &[Glob]) -> Affected {
     };
     let mut hit = BTreeSet::new();
     for file in files {
-        match owner(graph, &file) {
+        match graph.owner(&file) {
             Some(root) => {
                 hit.insert(root.clone());
             }

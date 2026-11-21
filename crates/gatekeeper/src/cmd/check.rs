@@ -24,6 +24,7 @@ fn cache_lines(r: &GateReport) -> Vec<String> {
         ],
         (_, Some(CacheNote::Rechecked(proof))) => vec![format!("rechecked: cached by {proof}")],
         (_, Some(CacheNote::Refused(why))) => vec![format!("a cached record was refused: {why:?}")],
+        (_, Some(note @ CacheNote::Projects(_))) => note.split().map(|s| format!("projects: {s}")).into_iter().collect(),
         _ => Vec::new(),
     }
 }

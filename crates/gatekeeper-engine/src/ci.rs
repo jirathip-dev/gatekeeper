@@ -145,6 +145,7 @@ fn proved(g: &GateReport) -> String {
         (Outcome::Cached(hit), _) => hit.proof.to_string(),
         (_, Some(CacheNote::Rechecked(proof))) => format!("rechecked: {proof}"),
         (_, Some(CacheNote::Refused(why))) => format!("refused: {why:?}"),
+        (_, Some(note @ CacheNote::Projects(_))) => note.split().unwrap_or_default(),
         _ => String::new(),
     }
 }
