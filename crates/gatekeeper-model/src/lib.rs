@@ -223,6 +223,16 @@ pub struct Filter {
     pub leg: Option<String>,
     pub shard: Option<Shard>,
     pub trigger: Trigger,
+    pub repo: RepoRun,
+}
+
+/// Whose run this is, for a gate that needs the repo's secrets.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum RepoRun {
+    #[default]
+    Own,
+    Private,
+    Fork,
 }
 
 #[derive(Debug, Serialize)]
@@ -286,6 +296,8 @@ pub enum Skip {
     NoAffectedProject,
     AfterFailed,
     CiOnly(Capability),
+    PrivateRepo,
+    ForkPullRequest,
 }
 
 impl fmt::Display for Skip {
@@ -295,6 +307,10 @@ impl fmt::Display for Skip {
             Skip::NoAffectedProject => f.write_str("no affected project matches its projects"),
             Skip::AfterFailed => f.write_str("the leg it runs after failed or left no report"),
             Skip::CiOnly(c) => write!(f, "CI only on a lane's host: needs {c}"),
+            Skip::PrivateRepo => f.write_str("a private repo has no public text to guard"),
+            Skip::ForkPullRequest => {
+                f.write_str("a fork's pull request has no secrets; it runs on the merge push")
+            }
         }
     }
 }

@@ -302,6 +302,7 @@ fn run_step(at: &str, step: &Run, config: &Config, dir: &Path, i: u64) {
         swift: None,
         tools: BTreeMap::new(),
         platform: run::platform(),
+        env: Vec::new(),
         results: results(config, step, &root, &store, i),
     };
     let report = run::run(&plan, &cx, &mut |_, _| {}).expect("run");

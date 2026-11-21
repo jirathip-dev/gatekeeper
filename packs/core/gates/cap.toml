@@ -1,5 +1,5 @@
-about = "drover cap-check: the counted lines under the cap in ci/cap.toml, and .drover/rules.md at most 30 lines"
-fix = "delete code, or the rules a check now enforces; a raise of the cap is its own issue"
+about = "drover cap-check: the counted lines under the cap in ci/cap.toml"
+fix = "delete code; a raise of the cap is its own issue"
 budget_secs = 5
 
 [[step]]

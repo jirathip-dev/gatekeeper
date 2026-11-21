@@ -40,7 +40,26 @@ fn commit(dir: &Path, message: &str) -> Result<String> {
         .to_owned())
 }
 
-pub(crate) const CASE_META: [&str; 4] = ["expect", "message", "passes", "remove"];
+pub(crate) const CASE_META: [&str; 6] = ["body", "env", "expect", "message", "passes", "remove"];
+
+fn env(prefixes: &[String]) -> Vec<(String, String)> {
+    let texts = prefixes
+        .iter()
+        .filter_map(|p| packs::text(&format!("{p}env")));
+    let lines: Vec<String> = texts
+        .flat_map(|t| t.lines().map(str::to_owned).collect::<Vec<_>>())
+        .collect();
+    let pairs = lines.iter().filter_map(|l| l.split_once('='));
+    pairs.map(|(k, v)| (k.to_owned(), v.to_owned())).collect()
+}
+
+fn write_body(prefix: &str, head: &str, path: &Path) -> Result<Option<PathBuf>> {
+    let Some(body) = packs::text(&format!("{prefix}body")) else {
+        return Ok(None);
+    };
+    fs::write(path, body.replace("{head}", head)).map_err(|e| Error::at(path, e))?;
+    Ok(Some(path.to_owned()))
+}
 
 fn lay_case(prefix: &str, dir: &Path) -> Result<()> {
     for (rel, bytes) in packs::under(prefix) {
@@ -75,13 +94,17 @@ fn run_case(gate: &Gate, case: Option<&str>, out: &Path, bench: &Bench) -> Resul
     packs::materialize(&format!("{pack}/fixtures/_base/"), &dir)?;
     runner::ok("git", &["init", "-q"], &dir)?;
     let base = commit(&dir, "base")?;
+    let mut prefixes = vec![format!("{pack}/fixtures/{}/", gate.id.name())];
+    let mut pr_body = None;
     if let Some(case) = case {
         let prefix = format!("{pack}/fixtures/{}/{case}/", gate.id.name());
         lay_case(&prefix, &dir)?;
-        commit(
+        let head = commit(
             &dir,
             packs::text(&format!("{prefix}message")).unwrap_or(case),
         )?;
+        pr_body = write_body(&prefix, &head, &dir.with_extension("body"))?;
+        prefixes.push(prefix);
     }
     let config = dir
         .join(config::PATH)
@@ -93,7 +116,7 @@ fn run_case(gate: &Gate, case: Option<&str>, out: &Path, bench: &Bench) -> Resul
         root: dir.clone(),
         cache: bench.cache.clone(),
         base: Some(base),
-        pr_body: None,
+        pr_body,
         host: Host::Lane,
         job_start: None,
         manifest: config
@@ -106,6 +129,7 @@ fn run_case(gate: &Gate, case: Option<&str>, out: &Path, bench: &Bench) -> Resul
         tools: bench.tools.clone(),
         platform: bench.platform,
         after_reports: None,
+        env: env(&prefixes),
     };
     fs::create_dir_all(&cx.out).map_err(|e| Error::at(&cx.out, e))?;
     let report = run::gate(gate, Shard::ONE, &[], &cx)?;

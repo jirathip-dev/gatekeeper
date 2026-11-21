@@ -86,6 +86,7 @@ fn run_case(case: &Path) {
         swift: None,
         tools: std::collections::BTreeMap::new(),
         platform: run::platform(),
+        env: Vec::new(),
     };
     let report = run::run(&plan, &cx, &mut |_, _| {}).expect("run");
     let got: BTreeMap<String, String> = report

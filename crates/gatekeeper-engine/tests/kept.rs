@@ -17,9 +17,7 @@ fn run_case(case: &Path) {
     let root = PathBuf::from(env!("CARGO_TARGET_TMPDIR"))
         .join("kept")
         .join(&*name);
-    if root.exists() {
-        fs::remove_dir_all(&root).expect("clean");
-    }
+    fs::remove_dir_all(&root).ok();
     fs::create_dir_all(root.join(".gatekeeper/gates")).expect("gates dir");
     fs::copy(
         case.join("gate.toml"),
@@ -48,6 +46,7 @@ fn run_case(case: &Path) {
         swift: None,
         tools: BTreeMap::new(),
         platform: run::platform(),
+        env: Vec::new(),
     };
     let report = run::run(&plan, &cx, &mut |_, _| {}).expect("run");
     let gate = &report.jobs[0].gates[0];

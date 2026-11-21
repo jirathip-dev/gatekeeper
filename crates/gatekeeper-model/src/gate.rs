@@ -175,15 +175,17 @@ impl Toolchain {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "kebab-case")]
 pub enum Capability {
     Containers,
+    PrivateNames,
 }
 
 impl fmt::Display for Capability {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Capability::Containers => f.write_str("containers"),
+            Capability::PrivateNames => f.write_str("the private-names list"),
         }
     }
 }

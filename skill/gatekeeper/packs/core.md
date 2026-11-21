@@ -24,9 +24,9 @@ drover arch-check: the layers, bans, sizes, frozen and generated files and comme
 
 ## core/cap
 
-drover cap-check: the counted lines under the cap in ci/cap.toml, and .drover/rules.md at most 30 lines
+drover cap-check: the counted lines under the cap in ci/cap.toml
 
-- fix: delete code, or the rules a check now enforces; a raise of the cap is its own issue
+- fix: delete code; a raise of the cap is its own issue
 - budget: 5s
 - cached: yes
 - rerun: `./.gatekeeper/run check --gate core/cap`
@@ -48,6 +48,16 @@ every direct dependency of Cargo.toml, package.json and Package.swift (with thei
 - rerun: `./.gatekeeper/run check --gate core/deps`
 - what a failure looks like: [core-deps](../examples/core-deps.md)
 
+## core/hygiene
+
+drover hygiene check: the tree, the PR's commit messages and its body against the private-names list
+
+- fix: take the private name out at the place the hit names; in CI pass the private-names secret, which drover hygiene push writes
+- budget: 5s
+- cached: no, reads the base
+- rerun: `./.gatekeeper/run check --gate core/hygiene`
+- what a failure looks like: [core-hygiene](../examples/core-hygiene.md)
+
 ## core/pin
 
 every gatekeeper workflow call names the commit and version of the pinned release, passes each secret by name, and .gatekeeper/run is that release's wrapper
@@ -58,11 +68,21 @@ every gatekeeper workflow call names the commit and version of the pinned releas
 - rerun: `./.gatekeeper/run check --gate core/pin`
 - what a failure looks like: [core-pin](../examples/core-pin.md)
 
+## core/pr-body
+
+drover pr-body: the PR body names the head, has `## For humans`, has no "Generated with" line
+
+- fix: edit the PR body: name the pushed head sha, add a `## For humans` section, drop the "Generated with" line
+- budget: 2s
+- cached: no, a `run` step with no setup or versions
+- rerun: `./.gatekeeper/run check --gate core/pr-body`
+- what a failure looks like: [core-pr-body](../examples/core-pr-body.md)
+
 ## core/rules
 
-drover lesson-check: every active check in .drover/rules.md passes
+drover lesson-check: every active check in .drover/rules.md passes, and the file is at most 30 lines
 
-- fix: fix what the named check reports, or retire the check in a lesson PR
+- fix: fix what the named check reports, delete the rules a check now enforces, or retire the check in a lesson PR
 - budget: 5s
 - cached: yes
 - rerun: `./.gatekeeper/run check --gate core/rules`

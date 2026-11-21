@@ -8,7 +8,7 @@ Removes `ci/cap.toml`.
 
 The gate fails and its log prints `No such file or directory`.
 
-Fix: delete code, or the rules a check now enforces; a raise of the cap is its own issue. Rerun: `./.gatekeeper/run check --gate core/cap`
+Fix: delete code; a raise of the cap is its own issue. Rerun: `./.gatekeeper/run check --gate core/cap`
 
 ## over-cap
 
@@ -21,12 +21,4 @@ line_cap = 2
 
 The gate fails and its log prints `/ cap 2`.
 
-Fix: delete code, or the rules a check now enforces; a raise of the cap is its own issue. Rerun: `./.gatekeeper/run check --gate core/cap`
-
-## rules-31-lines
-
-Writes `.drover/rules.md` (not shown).
-
-The gate fails and its log prints `over 30`.
-
-Fix: delete code, or the rules a check now enforces; a raise of the cap is its own issue. Rerun: `./.gatekeeper/run check --gate core/cap`
+Fix: delete code; a raise of the cap is its own issue. Rerun: `./.gatekeeper/run check --gate core/cap`

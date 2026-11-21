@@ -97,6 +97,13 @@ fn case_change(prefix: &str) -> String {
                 "Commits with the message:\n\n```\n{}\n```\n\n",
                 text.trim_end()
             ),
+            ("body", Ok(text)) => format!(
+                "With the PR body (`{{head}}` is the case's commit):\n\n```\n{}\n```\n\n",
+                text.trim_end()
+            ),
+            ("env", Ok(text)) => {
+                format!("With the environment:\n\n```\n{}\n```\n\n", text.trim_end())
+            }
             ("expect" | "passes", _) => String::new(),
             ("remove", Ok(text)) => text
                 .lines()
