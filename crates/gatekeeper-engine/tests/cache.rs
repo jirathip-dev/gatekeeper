@@ -2,9 +2,9 @@ use gatekeeper_engine::cache::{self, Ident, Results};
 use gatekeeper_engine::fetch::{self, ToolFile};
 use gatekeeper_engine::plan;
 use gatekeeper_engine::run::{self, RunCtx};
-use gatekeeper_model::{CacheMode, Config, Event, Filter, Host, RunRef};
+use gatekeeper_model::{CacheMode, Config, Event, Filter, Host, RunRef, Trigger};
 use serde::Deserialize;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -19,6 +19,8 @@ struct Case {
     cache: Option<toml::Table>,
     #[serde(default)]
     fake_tool: Option<String>,
+    #[serde(default)]
+    scope: Option<toml::Table>,
     run: Vec<Run>,
 }
 
@@ -51,6 +53,10 @@ struct Run {
     expect_store: BTreeMap<String, usize>,
     #[serde(default)]
     same: Vec<String>,
+    #[serde(default)]
+    changed: Option<BTreeSet<String>>,
+    #[serde(default)]
+    ci: bool,
 }
 
 #[derive(Deserialize)]
@@ -226,6 +232,10 @@ fn run_case(case_dir: &Path) {
     git(&root, &["add", "-A"]);
     git(&root, &["commit", "-q", "-m", "base"]);
     let mut config = "packs = []\nintegration = \"staging\"\npin = \"checkout\"\n".to_owned();
+    if let Some(table) = &case.scope {
+        config.push_str("[scope]\n");
+        config.push_str(&toml::to_string(table).expect("scope"));
+    }
     if let Some(table) = &case.cache {
         let mut table = table.clone();
         table.entry("recheck").or_insert(1_000_000.into());
@@ -252,7 +262,7 @@ fn each_cache_case_reports_what_its_runs_expect() {
         run_case(&entry.expect("entry").path());
         seen += 1;
     }
-    assert_eq!(seen, 32);
+    assert_eq!(seen, 37);
 }
 
 fn run_step(at: &str, step: &Run, config: &Config, dir: &Path, i: u64) {
@@ -265,14 +275,26 @@ fn run_step(at: &str, step: &Run, config: &Config, dir: &Path, i: u64) {
         forge(&store, f);
     }
     let before: Vec<_> = step.same.iter().map(|t| records(&store.join(t))).collect();
-    let plan = plan::repo(config, &root, &|_| Host::Lane, &Filter::default()).expect("plan");
+    let host = if step.ci {
+        Host::GithubHosted { warm_cache: true }
+    } else {
+        Host::Lane
+    };
+    let filter = Filter {
+        trigger: step
+            .changed
+            .clone()
+            .map_or_else(Trigger::default, Trigger::Change),
+        ..Filter::default()
+    };
+    let plan = plan::repo(config, &root, &|_| host, &filter).expect("plan");
     let cx = RunCtx {
         out: run::out_dir(&root),
         root: root.clone(),
         cache: tools.clone(),
         base: None,
         pr_body: None,
-        host: Host::Lane,
+        host,
         job_start: None,
         manifest: "Cargo.toml".into(),
         after_reports: None,

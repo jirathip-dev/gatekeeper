@@ -1,0 +1,26 @@
+gate = { run = "true", projects = ["pkgs/*"], versions = ["echo 1"] }
+cache = {}
+scope = { graphs = ["pnpm"], ignore = ["docs/**"] }
+
+[files]
+"pnpm-workspace.yaml" = "packages:\n  - 'pkgs/*'\n"
+"pkgs/a/package.json" = '{"name": "a"}'
+"pkgs/b/package.json" = '{"name": "b", "dependencies": {"a": "*"}}'
+"pkgs/c/package.json" = '{"name": "c", "dependencies": {"b": "*"}}'
+"pkgs/d/package.json" = '{"name": "d"}'
+
+[[run]]
+trigger = "lane"
+expect = "ok"
+expect_store = { host = 4 }
+
+[[run]]
+trigger = "lane"
+edit = { "pkgs/a/x.txt" = "a needed project changes" }
+expect = "ok"
+contains = '"projects":["pkgs/a","pkgs/b","pkgs/c"]'
+expect_store = { host = 7 }
+
+[[run]]
+trigger = "lane"
+expect = "cached"

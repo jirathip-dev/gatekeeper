@@ -218,6 +218,30 @@ pub enum CacheNote {
     Unkeyed(Unkeyed),
     Refused(Refusal),
     Rechecked(Proof),
+    Projects(BTreeMap<String, ProjectCache>),
+}
+
+/// What the cache did for one project of a `projects` gate run unsharded.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ProjectCache {
+    Ran,
+    Cached(Hit),
+    Refused(Refusal),
+    Rechecked(Proof),
+}
+
+impl CacheNote {
+    /// `2 run, 1 cached`: a `projects` gate's records, when it keeps one per project.
+    #[must_use]
+    pub fn split(&self) -> Option<String> {
+        let CacheNote::Projects(p) = self else {
+            return None;
+        };
+        let cached = p.values().filter(|c| matches!(c, ProjectCache::Cached(_)));
+        let cached = cached.count();
+        Some(format!("{} run, {cached} cached", p.len() - cached))
+    }
 }
 
 /// A skip by the cache: the proving run and its time.
