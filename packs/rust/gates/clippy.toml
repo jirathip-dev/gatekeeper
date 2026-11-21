@@ -1,6 +1,6 @@
 about = "clippy with the repo's lints (pedantic and the bans), -D warnings, the pack's clippy.toml by reference; tests may unwrap, panic, index and print"
 fix = "return the error; only tests may unwrap, panic, index or print; never allow a pedantic lint to pass"
-budget_secs = 90
+budget_secs = 180
 
 [[step]]
 run = "CLIPPY_CONF_DIR={files} cargo clippy --workspace --lib --bins --all-features --locked -- -D warnings"

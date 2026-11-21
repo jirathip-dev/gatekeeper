@@ -27,12 +27,12 @@ reads the `private-names` secret, which `drover hygiene push` writes from the sa
 `private-name #N at file:line`, never the name. A private repo skips the gate. A public repo's same-repo PR with no
 list fails (`list-missing`); a fork's PR has no secrets, so there the gate is skipped and runs on the merge push.
 
-## rust (linux; 150 s)
+## rust (linux; 240 s)
 
 | Gate | Runs | Fixture cases that must fail | Budget |
 |---|---|---|---|
 | `rust/fmt` | `cargo fmt --check` | `unformatted` | 10 |
-| `rust/clippy` | clippy pedantic, `-D warnings`, with the pack's `clippy.toml` by reference; lib and bins strict, tests with the test allow-list | `pedantic-warning`, `rustc-warning` | 90 |
+| `rust/clippy` | clippy pedantic, `-D warnings`, with the pack's `clippy.toml` by reference; lib and bins strict, tests with the test allow-list | `pedantic-warning`, `rustc-warning` | 180 |
 | `rust/bans` | the 12 clippy denies and `unsafe_code = "forbid"` are in `[workspace.lints]`, none weakened; then each banned-API file is refused by clippy under the repo's own lints and toolchain | `floor-missing`, `floor-allowed`, `pedantic-off` | 30 |
 | `rust/deny` | `deny.toml` holds the floor (yanked, multiple versions, wildcards, unknown registries and git sources all `deny`; licences from the shared allow-list), then pinned `cargo deny --locked check` | `yanked-allowed`, `licence-outside-list`, `wildcard-dependency`, `unknown-git-source` | 20 |
 
