@@ -1,4 +1,4 @@
-use crate::{Error, Result, runner};
+use crate::{Error, Result, fetch, runner};
 use gatekeeper_model::Config;
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
@@ -63,7 +63,11 @@ fn signed_commit(dir: &Path, tag: &str) -> Result<String> {
     }
 }
 
-fn verified(version: &str, scratch: &Path) -> Result<(String, BTreeMap<String, String>)> {
+fn verified(
+    version: &str,
+    scratch: &Path,
+    farrier: &Path,
+) -> Result<(String, BTreeMap<String, String>)> {
     let tag = format!("v{version}");
     let dir = scratch.join(&tag);
     if dir.exists() {
@@ -83,7 +87,10 @@ fn verified(version: &str, scratch: &Path) -> Result<(String, BTreeMap<String, S
                 "{tag}: SHA256SUMS line `{line}` names no gatekeeper asset"
             ))
         })?;
-        fetch(&format!("{base}/{asset}"), &dir.join(asset))?;
+        let path = dir.join(asset);
+        fetch(&format!("{base}/{asset}"), &path)?;
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o755))
+            .map_err(|e| Error::at(&path, e))?;
         sums.insert(target.to_owned(), sum.to_owned());
     }
     let sha = signed_commit(&dir, &tag)?;
@@ -99,7 +106,8 @@ fn verified(version: &str, scratch: &Path) -> Result<(String, BTreeMap<String, S
     for key in &keys {
         args.extend(["--key", key]);
     }
-    runner::ok("farrier", &args, scratch).map_err(|e| Error(format!("{tag}: refused: {e}")))?;
+    runner::ok(&farrier.to_string_lossy(), &args, scratch)
+        .map_err(|e| Error(format!("{tag}: refused: {e}")))?;
     Ok((sha, sums))
 }
 
@@ -156,19 +164,23 @@ fn workflows(root: &Path, sha: &str, version: &str, said: &mut Vec<String>) -> R
 }
 
 /// # Errors
-pub fn pin(root: &Path, version: &str, scratch: &Path) -> Result<Vec<String>> {
+pub fn pin(root: &Path, version: &str, scratch: &Path, cache: &Path) -> Result<Vec<String>> {
     let parts: Vec<_> = version.split('.').collect();
     if parts.len() != 3 || parts.iter().any(|p| p.parse::<u32>().is_err()) {
         return Err(Error(format!("`{version}` is not MAJOR.MINOR.PATCH")));
     }
     fs::create_dir_all(scratch).map_err(|e| Error::at(scratch, e))?;
-    let (sha, sums) = verified(version, scratch)?;
+    let config = root.join(CONFIG);
+    let text = fs::read_to_string(&config).map_err(|e| Error::at(&config, e))?;
+    let own: Config = toml::from_str(&text).map_err(|e| Error(format!("{CONFIG}: {e}")))?;
+    let tools = crate::config::tools(&own, root);
+    let farrier =
+        fetch::resolve("farrier", cache, &tools).map_err(|e| Error(format!("farrier: {e}")))?;
+    let (sha, sums) = verified(version, scratch, &farrier)?;
     let wrapper = scratch.join("run");
     let raw = format!("https://raw.githubusercontent.com/{REPO}/{sha}/packs/core/files/run");
     fetch(&raw, &wrapper)?;
     let wrapper = fs::read_to_string(&wrapper).map_err(|e| Error::at(&wrapper, e))?;
-    let config = root.join(CONFIG);
-    let text = fs::read_to_string(&config).map_err(|e| Error::at(&config, e))?;
     let table = pin_table(&text, version, &sums)?;
     let mut said = vec![format!("release v{version}: signature ok, commit {sha}")];
     let what = format!("v{version} ({} checksums)", sums.len());

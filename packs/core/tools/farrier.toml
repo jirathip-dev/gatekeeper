@@ -1,0 +1,10 @@
+version = "git-04d7a80"
+
+[build]
+targets = ["x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu", "aarch64-apple-darwin"]
+budget_minutes = 20
+bin = "bin/farrier"
+script = """
+cargo install farrier --git https://github.com/jirathip-dev/farrier --rev 04d7a80c55bee4082cb6dd985b71db18d482158f --locked --root "$OUT"
+rm -f "$OUT/.crates.toml" "$OUT/.crates2.json"
+"""

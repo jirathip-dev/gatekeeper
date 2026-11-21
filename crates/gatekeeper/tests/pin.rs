@@ -173,3 +173,20 @@ fn pin_refuses_a_signature_whose_trusted_comment_names_another_tag() {
     assert!(!release.join("farrier.args").exists());
     assert_eq!(read(&root, ".github/workflows/ci.yml"), CI);
 }
+
+#[test]
+fn pin_runs_the_pinned_farrier_never_one_on_path() {
+    let (root, release) = setup(
+        "pin-no-farrier",
+        &format!("jirathip-dev/gatekeeper v1.2.3 {SHA}"),
+    );
+    let config = read(&root, ".gatekeeper/config.toml")
+        .replace("[tools]\nfarrier = \"../bin/farrier\"\n\n", "");
+    fs::write(root.join(".gatekeeper/config.toml"), &config).expect("config");
+    let (code, out) = pin(&root, &release);
+    assert_eq!(code, 1, "{out}");
+    assert!(out.contains("gatekeeper pin: farrier: "), "{out}");
+    assert!(!release.join("farrier.args").exists());
+    assert_eq!(read(&root, ".gatekeeper/config.toml"), config);
+    assert_eq!(read(&root, ".github/workflows/ci.yml"), CI);
+}
