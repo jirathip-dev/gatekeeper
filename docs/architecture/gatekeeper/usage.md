@@ -49,6 +49,7 @@ on:
   push:
     branches: [main, staging]
   pull_request:
+    types: [opened, synchronize, reopened, edited]
 
 permissions:
   contents: read
