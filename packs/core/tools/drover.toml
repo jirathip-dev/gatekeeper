@@ -1,9 +1,9 @@
-version = "build-377464e"
+version = "build-staging-04ae328"
 
 [asset.aarch64-apple-darwin]
-url = "https://github.com/jirathip-dev/drover/releases/download/build-377464e/drover-aarch64-apple-darwin"
-sha256 = "3f8aacefe1a1c0d8e69b1f67e139ddf34a8ba539a4d8e7dc0bde1d645b24cb64"
+url = "https://github.com/jirathip-dev/drover/releases/download/build-staging-04ae328/drover-aarch64-apple-darwin"
+sha256 = "7562dd62e4bca5933cde3039749c970ff0eaab0ecfb8be10a2146a1742a61671"
 
 [asset.x86_64-unknown-linux-gnu]
-url = "https://github.com/jirathip-dev/drover/releases/download/build-377464e/drover-x86_64-unknown-linux-gnu"
-sha256 = "ea50e80752fa33b3dccef96f16dc7225171135530fd551fc9856e3e445440aa5"
+url = "https://github.com/jirathip-dev/drover/releases/download/build-staging-04ae328/drover-x86_64-unknown-linux-gnu"
+sha256 = "1423fc178457fd50b1e76a031354e2229790b39caa5f9864a35425ec6af2af3c"
