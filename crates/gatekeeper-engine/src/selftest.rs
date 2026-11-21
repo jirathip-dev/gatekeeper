@@ -53,6 +53,14 @@ fn env(prefixes: &[String]) -> Vec<(String, String)> {
     pairs.map(|(k, v)| (k.to_owned(), v.to_owned())).collect()
 }
 
+fn write_body(prefix: &str, head: &str, path: &Path) -> Result<Option<PathBuf>> {
+    let Some(body) = packs::text(&format!("{prefix}body")) else {
+        return Ok(None);
+    };
+    fs::write(path, body.replace("{head}", head)).map_err(|e| Error::at(path, e))?;
+    Ok(Some(path.to_owned()))
+}
+
 fn lay_case(prefix: &str, dir: &Path) -> Result<()> {
     for (rel, bytes) in packs::under(prefix) {
         if rel == "remove" {
@@ -95,14 +103,7 @@ fn run_case(gate: &Gate, case: Option<&str>, out: &Path, bench: &Bench) -> Resul
             &dir,
             packs::text(&format!("{prefix}message")).unwrap_or(case),
         )?;
-        if let Some(body) = packs::text(&format!("{prefix}body")) {
-            let path = out
-                .join(pack.as_str())
-                .join(gate.id.name())
-                .join(format!("{case}.body"));
-            fs::write(&path, body.replace("{head}", &head)).map_err(|e| Error::at(&path, e))?;
-            pr_body = Some(path);
-        }
+        pr_body = write_body(&prefix, &head, &dir.with_extension("body"))?;
         prefixes.push(prefix);
     }
     let config = dir

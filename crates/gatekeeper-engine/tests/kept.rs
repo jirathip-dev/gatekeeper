@@ -17,9 +17,7 @@ fn run_case(case: &Path) {
     let root = PathBuf::from(env!("CARGO_TARGET_TMPDIR"))
         .join("kept")
         .join(&*name);
-    if root.exists() {
-        fs::remove_dir_all(&root).expect("clean");
-    }
+    fs::remove_dir_all(&root).ok();
     fs::create_dir_all(root.join(".gatekeeper/gates")).expect("gates dir");
     fs::copy(
         case.join("gate.toml"),
