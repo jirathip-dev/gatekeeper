@@ -1,7 +1,7 @@
 use gatekeeper_engine::Error;
 use gatekeeper_engine::cache::{self, Ident, Results};
 use gatekeeper_model::{
-    CacheMode, Config, Event, Filter, GateId, Host, Off, PackId, RunRef, Shard, Trigger,
+    CacheMode, Config, Event, Filter, GateId, Host, Off, PackId, RepoRun, RunRef, Shard, Trigger,
 };
 use std::env;
 use std::io::Write as _;
@@ -93,6 +93,7 @@ impl Args {
             leg: self.value("--leg").map(str::to_owned),
             shard,
             trigger: Trigger::default(),
+            repo: repo_run(),
         })
     }
 }
@@ -132,6 +133,21 @@ pub fn cache() -> PathBuf {
     base.join("gatekeeper")
 }
 
+fn payload() -> serde_json::Value {
+    let text = std::fs::read_to_string(var("GITHUB_EVENT_PATH")).unwrap_or_default();
+    serde_json::from_str(&text).unwrap_or_default()
+}
+
+/// A private repo's run, a fork's pull request, or the repo's own: a lane's host is its own.
+pub fn repo_run() -> RepoRun {
+    let private = payload().pointer("/repository/private") == Some(&serde_json::Value::Bool(true));
+    match event() {
+        _ if private => RepoRun::Private,
+        Event::PullRequest { fork: true, .. } => RepoRun::Fork,
+        _ => RepoRun::Own,
+    }
+}
+
 /// Which run this is: a lane's, or the GitHub event; a pull request whose head repo is unknown counts as a fork.
 pub fn event() -> Event {
     if var("GITHUB_ACTIONS") != "true" {
@@ -146,8 +162,7 @@ pub fn event() -> Event {
             let Some(number) = number.and_then(|n| n.parse().ok()) else {
                 return Event::Other;
             };
-            let payload = std::fs::read_to_string(var("GITHUB_EVENT_PATH")).unwrap_or_default();
-            let payload: serde_json::Value = serde_json::from_str(&payload).unwrap_or_default();
+            let payload = payload();
             let head = payload.pointer("/pull_request/head/repo/full_name");
             let fork = head.and_then(serde_json::Value::as_str) != Some(&var("GITHUB_REPOSITORY"));
             Event::PullRequest { number, fork }

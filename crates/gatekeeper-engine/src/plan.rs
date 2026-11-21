@@ -1,7 +1,7 @@
 use crate::{Error, Result, graph, packs, scope};
 use gatekeeper_model::{
     Affected, Capability, Config, Decision, Filter, Gate, Graph, Host, Job, PackId, Plan, Planned,
-    Platform, Shard, Skip, Trigger, is_name,
+    Platform, RepoRun, Shard, Skip, Trigger, is_name,
 };
 use std::collections::{BTreeMap, BTreeSet};
 use std::num::NonZeroU32;
@@ -17,7 +17,8 @@ fn selected(gate: &Gate, graph: &Graph, affected: Option<&Affected>) -> Vec<Stri
     matched.cloned().collect()
 }
 
-fn decide(gate: &Gate, host: Host, trigger: &Trigger, projects: &[String]) -> Decision {
+fn decide(gate: &Gate, host: Host, filter: &Filter, projects: &[String]) -> Decision {
+    let trigger = &filter.trigger;
     let in_scope = match trigger {
         Trigger::Change(files) => gate.paths.is_empty() || files.iter().any(|f| gate.reads(f)),
         Trigger::Everything(_) => true,
@@ -27,6 +28,13 @@ fn decide(gate: &Gate, host: Host, trigger: &Trigger, projects: &[String]) -> De
     }
     if !gate.projects.is_empty() && projects.is_empty() {
         return Decision::Skip(Skip::NoAffectedProject);
+    }
+    if gate.needs.contains(&Capability::PrivateNames) {
+        match filter.repo {
+            RepoRun::Own => {}
+            RepoRun::Private => return Decision::Skip(Skip::PrivateRepo),
+            RepoRun::Fork => return Decision::Skip(Skip::ForkPullRequest),
+        }
     }
     ci_only(gate, host).map_or(Decision::Run, Decision::Skip)
 }
@@ -73,7 +81,7 @@ fn check_legs(config: &Config, gates: &[Gate]) -> Result<()> {
 struct Scoped<'a> {
     hosts: &'a dyn Fn(Platform) -> Host,
     graph: &'a Graph,
-    trigger: &'a Trigger,
+    filter: &'a Filter,
     affected: Option<&'a Affected>,
 }
 
@@ -98,7 +106,7 @@ fn leg_jobs(config: &Config, leg: &str, gates: Vec<Gate>, cx: &Scoped) -> Result
         .into_iter()
         .map(|gate| {
             let projects = selected(&gate, cx.graph, cx.affected);
-            let decision = decide(&gate, host, cx.trigger, &projects);
+            let decision = decide(&gate, host, cx.filter, &projects);
             Planned {
                 gate,
                 decision,
@@ -181,7 +189,7 @@ pub fn plan(
     let cx = Scoped {
         hosts,
         graph,
-        trigger: &filter.trigger,
+        filter,
         affected: affected.as_ref(),
     };
     let mut jobs = Vec::new();

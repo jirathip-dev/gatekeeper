@@ -57,7 +57,7 @@ jobs:
   gates:
     uses: jirathip-dev/gatekeeper/.github/workflows/gates.yml@3f9c2ab8…e8f9 # v1.0.0
     secrets:
-      private-names: ${{ secrets.GATEKEEPER_PRIVATE_NAMES }}
+      private-names: ${{ secrets.PRIVATE_NAMES }}
 ```
 
 The workflow is named by its commit; the tag is a comment for the reader. Each secret is passed by name;
@@ -249,7 +249,7 @@ jobs:
   gates:
     uses: jirathip-dev/gatekeeper/.github/workflows/gates.yml@3f9c2ab8…e8f9 # v1.0.0
     secrets:
-      private-names: ${{ secrets.GATEKEEPER_PRIVATE_NAMES }}
+      private-names: ${{ secrets.PRIVATE_NAMES }}
 ```
 
 Both `gates / done` and its own aggregate check are required, and its `ci.yml` is not frozen yet.
@@ -336,7 +336,7 @@ jobs:
   gates:
     uses: ./.github/workflows/gates.yml        # this commit's workflow, not a release
     secrets:
-      private-names: ${{ secrets.GATEKEEPER_PRIVATE_NAMES }}
+      private-names: ${{ secrets.PRIVATE_NAMES }}
   release-dry:
     uses: ./.github/workflows/release.yml      # builds, lists, signs with a throwaway key, checks; publishes nothing
     with:

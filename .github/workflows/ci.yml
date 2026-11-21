@@ -11,7 +11,7 @@ jobs:
   gates:
     uses: ./.github/workflows/gates.yml
     secrets:
-      private-names: ${{ secrets.GATEKEEPER_PRIVATE_NAMES }}
+      private-names: ${{ secrets.PRIVATE_NAMES }}
 
   version:
     runs-on: ubuntu-latest

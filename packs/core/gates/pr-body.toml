@@ -1,0 +1,4 @@
+about = "drover pr-body: the PR body names the head, has `## For humans`, has no \"Generated with\" line"
+fix = "edit the PR body: name the pushed head sha, add a `## For humans` section, drop the \"Generated with\" line"
+budget_secs = 2
+run = 'if [ -z "{pr-body}" ]; then echo "no PR body: nothing to check"; else {tool:drover} pr-body --file "{pr-body}" --head "${GATEKEEPER_HEAD:-$(git rev-parse HEAD)}"; fi'

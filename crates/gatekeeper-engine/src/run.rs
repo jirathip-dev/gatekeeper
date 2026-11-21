@@ -67,6 +67,8 @@ pub struct RunCtx {
     pub tools: BTreeMap<String, PathBuf>,
     /// The platform this host is: a gate of another fails `needs <platform>`.
     pub platform: Platform,
+    /// Set for every step: a fixture case's `env`.
+    pub env: Vec<(String, String)>,
 }
 
 /// The platform this binary runs on.
@@ -134,7 +136,11 @@ fn run_line(run: &str, (gate, vars): (&Gate, &[(&str, String)]), cx: &RunCtx) ->
         .base
         .as_ref()
         .map_or(String::new(), |b| format!("--base {b}"));
-    let mut line = run.replace("{--base}", &base);
+    let body = cx
+        .pr_body
+        .as_ref()
+        .map_or(String::new(), |p| p.to_string_lossy().into_owned());
+    let mut line = run.replace("{--base}", &base).replace("{pr-body}", &body);
     for dir in ["files", "scripts"] {
         let to = pack_dir(gate.id.pack, dir, &cx.out)?;
         line = line.replace(&format!("{{{dir}}}"), &to.to_string_lossy());
@@ -160,7 +166,10 @@ fn step(
 ) -> std::result::Result<(), Failure> {
     match step {
         Step::Run { run } => match run_line(run, (gate, vars), cx) {
-            Ok(line) => ended(runner::shell(&line, &cx.root, log, deadline), log),
+            Ok(line) => ended(
+                runner::shell(&line, (&cx.root, &cx.env), log, deadline),
+                log,
+            ),
             Err(e) => {
                 writeln!(log, "{e}").ok();
                 Err(Failure::Exit(127))
@@ -168,7 +177,7 @@ fn step(
         },
         Step::Tool { tool, args } => match fetch::resolve(tool, &cx.cache, &cx.tools) {
             Ok(bin) => ended(
-                runner::logged(&bin, &expand(args, cx), &cx.root, log, deadline),
+                runner::logged((&bin, &cx.env), &expand(args, cx), &cx.root, log, deadline),
                 log,
             ),
             Err(e) => {

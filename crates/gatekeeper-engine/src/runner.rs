@@ -15,7 +15,7 @@ pub enum Ended {
 
 /// Runs `program args` in `cwd` with its output appended to `log`, killed at `deadline`.
 pub fn logged(
-    program: &Path,
+    (program, env): (&Path, &[(String, String)]),
     args: &[String],
     cwd: &Path,
     log: &mut File,
@@ -27,6 +27,7 @@ pub fn logged(
     let out = log.try_clone().map_err(|e| Error(e.to_string()))?;
     let mut child = Command::new(program)
         .args(args)
+        .envs(env.iter().map(|(k, v)| (k, v)))
         .current_dir(cwd)
         .stdin(Stdio::null())
         .stdout(out)
@@ -51,9 +52,14 @@ pub fn logged(
 }
 
 /// `sh -c line` in `cwd`, logged.
-pub fn shell(line: &str, cwd: &Path, log: &mut File, deadline: Instant) -> Result<Ended> {
+pub fn shell(
+    line: &str,
+    (cwd, env): (&Path, &[(String, String)]),
+    log: &mut File,
+    deadline: Instant,
+) -> Result<Ended> {
     logged(
-        Path::new("sh"),
+        (Path::new("sh"), env),
         &["-c".to_owned(), line.to_owned()],
         cwd,
         log,

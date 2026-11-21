@@ -118,6 +118,7 @@ fn check(root: &Path, cached: bool) -> (Duration, Report) {
         swift: None,
         tools: std::collections::BTreeMap::new(),
         platform: run::platform(),
+        env: Vec::new(),
     };
     let report = run::run(&plan, &cx, &mut |_, _| {}).expect("run");
     let took = start.elapsed();
@@ -131,7 +132,7 @@ fn check_on_the_base_fixture_with_every_gate_stubbed_takes_under_200_ms() {
     for cached in [false, true] {
         let (took, report) = check(&root, cached);
         let gates: Vec<_> = report.jobs.iter().flat_map(|j| &j.gates).collect();
-        assert_eq!(gates.len(), 10);
+        assert_eq!(gates.len(), 12);
         assert!(
             gates
                 .iter()
@@ -151,7 +152,7 @@ fn a_check_whose_every_gate_hits_takes_under_200_ms() {
     check(&root, true);
     let (took, report) = check(&root, true);
     let gates: Vec<_> = report.jobs.iter().flat_map(|j| &j.gates).collect();
-    assert_eq!(gates.len(), 10);
+    assert_eq!(gates.len(), 12);
     assert!(
         gates
             .iter()

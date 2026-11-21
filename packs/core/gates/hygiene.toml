@@ -1,0 +1,8 @@
+about = "drover hygiene check: the tree, the PR's commit messages and its body against the private-names list"
+fix = "take the private name out at the place the hit names; in CI pass the private-names secret, which drover hygiene push writes"
+budget_secs = 5
+needs = ["private-names"]
+
+[[step]]
+tool = "drover"
+args = ["hygiene", "check", "{--base}", "{--pr-body}"]

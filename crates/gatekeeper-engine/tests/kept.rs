@@ -48,6 +48,7 @@ fn run_case(case: &Path) {
         swift: None,
         tools: BTreeMap::new(),
         platform: run::platform(),
+        env: Vec::new(),
     };
     let report = run::run(&plan, &cx, &mut |_, _| {}).expect("run");
     let gate = &report.jobs[0].gates[0];

@@ -1,5 +1,5 @@
-about = "drover lesson-check: every active check in .drover/rules.md passes"
-fix = "fix what the named check reports, or retire the check in a lesson PR"
+about = "drover lesson-check: every active check in .drover/rules.md passes, and the file is at most 30 lines"
+fix = "fix what the named check reports, delete the rules a check now enforces, or retire the check in a lesson PR"
 budget_secs = 5
 
 [[step]]

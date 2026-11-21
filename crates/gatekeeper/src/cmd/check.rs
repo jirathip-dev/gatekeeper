@@ -117,6 +117,7 @@ fn prepare(args: &Args, root: &Path) -> Result<(Plan, RunCtx, Option<usize>, Cac
         swift: config.swift.clone(),
         tools: config::tools(&config, root),
         platform: run::platform(),
+        env: Vec::new(),
     };
     let changed = match filter.trigger {
         Trigger::Change(files) => Some(files.len()),

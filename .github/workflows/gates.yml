@@ -114,6 +114,8 @@ jobs:
           SCOPE: ${{ inputs.scope }}
           BASE: ${{ github.event.pull_request.base.sha }}
           PR_BODY: ${{ github.event.pull_request.body }}
+          GATEKEEPER_HEAD: ${{ github.event.pull_request.head.sha }}
+          DROVER_PRIVATE_NAMES: ${{ secrets.private-names }}
         run: |
           set -- check --leg "$LEG" --results "$RUNNER_TEMP/gatekeeper-results"
           if [ -n "$TIER" ]; then mkdir -p "$RUNNER_TEMP/gatekeeper-results/$TIER"; fi
@@ -203,6 +205,8 @@ jobs:
           SCOPE: ${{ inputs.scope }}
           BASE: ${{ github.event.pull_request.base.sha }}
           PR_BODY: ${{ github.event.pull_request.body }}
+          GATEKEEPER_HEAD: ${{ github.event.pull_request.head.sha }}
+          DROVER_PRIVATE_NAMES: ${{ secrets.private-names }}
         run: |
           set -- check --leg "$LEG" --results "$RUNNER_TEMP/gatekeeper-results"
           if [ -n "$TIER" ]; then mkdir -p "$RUNNER_TEMP/gatekeeper-results/$TIER"; fi
