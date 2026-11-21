@@ -1,7 +1,7 @@
 use super::{Ident, Inputs};
 use crate::fetch::sha256_hex;
 use crate::{Error, Result};
-use gatekeeper_model::{Gate, Key, KeyParts, Shard, Unkeyed};
+use gatekeeper_model::{Gate, Key, KeyParts, Shard, Unkeyed, Workspace};
 use std::path::Path;
 
 /// A gate's key and its parts, or why it has none.
@@ -15,7 +15,7 @@ pub fn keyed(
     gate: &Gate,
     (shard, projects): (Shard, &[String]),
     ident: &Ident,
-    inputs: &Inputs,
+    (inputs, ws): (&Inputs, &Workspace),
     root: &Path,
 ) -> Result<Keyed> {
     if let Some(why) = Unkeyed::of(gate) {
@@ -32,7 +32,7 @@ pub fn keyed(
         platform: ident.platform.clone(),
         versions: ident.versions(gate, root),
         tools: ident.tools(gate)?,
-        inputs: inputs.of(gate).1,
+        inputs: inputs.of(gate, projects, ws).1,
     };
     let json = serde_json::to_string(&parts).map_err(|e| Error(e.to_string()))?;
     Ok(Keyed::Key(

@@ -310,3 +310,80 @@ fn a_rebuilt_repo_tool_misses() {
     assert_eq!(code, 0, "{third}");
     assert!(third.contains("ok    local/tooled"), "{third}");
 }
+
+const PROJECTS: &str = "about = \"per project\"\nfix = \"none\"\nbudget_secs = 5\nrun = \"test ! -e target/flag\"\nversions = [\"echo 1\"]\nprojects = [\"pkgs/*\"]\n";
+
+fn three_projects(name: &str, cache: &str) -> PathBuf {
+    let config = format!("{CONFIG}{cache}\n[scope]\ngraphs = [\"pnpm\"]\n");
+    let root = repo(name, &config, &[("each", PROJECTS)]);
+    let files = [
+        ("pnpm-workspace.yaml", "packages:\n  - 'pkgs/*'\n"),
+        ("pkgs/a/package.json", "{\"name\": \"a\"}"),
+        (
+            "pkgs/b/package.json",
+            "{\"name\": \"b\", \"dependencies\": {\"a\": \"*\"}}",
+        ),
+        ("pkgs/c/package.json", "{\"name\": \"c\"}"),
+    ];
+    for (path, text) in files {
+        fs::create_dir_all(root.join(path).parent().expect("parent")).expect("dir");
+        fs::write(root.join(path), text).expect("file");
+    }
+    git(&root, &["add", "-A"]);
+    git(&root, &["commit", "-q", "-m", "projects"]);
+    root
+}
+
+#[test]
+fn a_change_in_one_project_reruns_it_and_its_dependents_only() {
+    let root = three_projects("cache-projects", "recheck = 1000000\n");
+    let (code, list) = gk(&root, &["list"], &[]);
+    assert_eq!(code, 0, "{list}");
+    for project in ["pkgs/a", "pkgs/b", "pkgs/c"] {
+        let at = format!("\n    {project}  key ");
+        assert!(list.contains(&at), "{list}");
+    }
+    assert_eq!(gk(&root, &["check"], &[]).0, 0);
+    fs::write(root.join("pkgs/a/index.js"), "changed").expect("edit");
+    let (code, out) = gk(&root, &["check"], &[]);
+    assert_eq!(code, 0, "{out}");
+    assert!(out.contains("ok    local/each"), "{out}");
+    assert!(out.contains("      selected: pkgs/a pkgs/b\n"), "{out}");
+    assert!(out.contains("      projects: 2 run, 1 cached\n"), "{out}");
+    assert!(out.contains("1 of 3 gates cached"), "{out}");
+    let json = fs::read_to_string(root.join("target/gatekeeper/report.json")).expect("report");
+    let report: serde_json::Value = serde_json::from_str(&json).expect("json");
+    let cache = &report["jobs"][0]["gates"][0]["cache"]["projects"];
+    assert_eq!(cache["pkgs/a"], "ran", "{json}");
+    assert_eq!(cache["pkgs/b"], "ran", "{json}");
+    assert!(cache["pkgs/c"]["cached"]["proof"].is_object(), "{json}");
+    let (_, again) = gk(&root, &["check"], &[]);
+    assert!(again.contains("cached local/each"), "{again}");
+    assert!(again.contains("3 of 3 gates cached"), "{again}");
+}
+
+#[test]
+fn ci_done_fails_on_a_project_recheck_that_differs() {
+    let root = three_projects("cache-projects-done", "recheck = 1\n");
+    let pr = pull_request(&root, "o/r");
+    let check = ["check", "--results", "cache/results"];
+    assert_eq!(gk(&root, &check, &borrowed(&pr)).0, 0);
+    fs::create_dir_all(root.join("target")).expect("target");
+    fs::write(root.join("target/flag"), "an undeclared input").expect("flag");
+    let (code, out) = gk(&root, &check, &borrowed(&pr));
+    assert_eq!(code, 1, "{out}");
+    assert!(out.contains("cached pass does not hold"), "{out}");
+    fs::create_dir_all(root.join("reports/gates-local")).expect("reports");
+    fs::copy(
+        root.join("target/gatekeeper/report.json"),
+        root.join("reports/gates-local/report.json"),
+    )
+    .expect("copy");
+    let (code, table) = gk(
+        &root,
+        &["ci", "done", "--reports", "reports"],
+        &borrowed(&pr),
+    );
+    assert_eq!(code, 1, "{table}");
+    assert!(table.contains("3 rechecked, 3 differed"), "{table}");
+}

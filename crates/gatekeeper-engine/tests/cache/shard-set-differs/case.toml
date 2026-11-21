@@ -1,0 +1,45 @@
+gate = { run = "true", projects = ["pkgs/*"], versions = ["echo 1"], shards = { hosted = 2, self-hosted = 2 } }
+cache = {}
+scope = { graphs = ["pnpm"], ignore = ["docs/**"] }
+
+[files]
+"pnpm-workspace.yaml" = "packages:\n  - 'pkgs/*'\n"
+"pkgs/a/package.json" = '{"name": "a"}'
+"pkgs/b/package.json" = '{"name": "b", "dependencies": {"a": "*"}}'
+"pkgs/c/package.json" = '{"name": "c", "dependencies": {"b": "*"}}'
+"pkgs/d/package.json" = '{"name": "d"}'
+
+[[run]]
+trigger = "pr 41"
+ci = true
+changed = ["pkgs/a/x.txt"]
+expect = "ok"
+contains = '"projects":["pkgs/a","pkgs/b","pkgs/c"]'
+expect_store = { pr-41 = 2 }
+
+[[run]]
+trigger = "pr 41"
+ci = true
+changed = ["pkgs/a/x.txt"]
+expect = "cached"
+
+[[run]]
+trigger = "pr 41"
+ci = true
+changed = ["pkgs/d/x.txt"]
+expect = "ok"
+contains = '"projects":["pkgs/d"]'
+
+[[run]]
+trigger = "pr 41"
+ci = true
+changed = ["pkgs/a/x.txt"]
+edit = { "pkgs/d/x.txt" = "outside the set" }
+expect = "cached"
+
+[[run]]
+trigger = "pr 41"
+ci = true
+changed = ["pkgs/a/x.txt"]
+edit = { "pkgs/b/x.txt" = "inside the set" }
+expect = "ok"

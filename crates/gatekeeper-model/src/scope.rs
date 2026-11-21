@@ -33,10 +33,57 @@ pub struct Leg {
 }
 
 /// The workspace's projects by root folder (`.` the repo root), each with the roots it needs.
-#[derive(Debug, Default, Deserialize)]
+#[derive(Clone, Debug, Default, Deserialize)]
 #[serde(transparent)]
 pub struct Graph {
     pub projects: BTreeMap<String, BTreeSet<String>>,
+}
+
+impl Graph {
+    /// The project holding `file`: the deepest root it lies under.
+    #[must_use]
+    pub fn owner(&self, file: &str) -> Option<&String> {
+        self.projects
+            .keys()
+            .filter(|root| root.as_str() == "." || file.starts_with(&format!("{root}/")))
+            .max_by_key(|root| if root.as_str() == "." { 0 } else { root.len() })
+    }
+
+    /// `roots` and every project they need, directly or through another.
+    #[must_use]
+    pub fn reach(&self, roots: &[String]) -> BTreeSet<String> {
+        let mut reach: BTreeSet<String> = roots.iter().cloned().collect();
+        let mut todo: Vec<String> = roots.to_vec();
+        while let Some(root) = todo.pop() {
+            for need in self.projects.get(&root).into_iter().flatten() {
+                if reach.insert(need.clone()) {
+                    todo.push(need.clone());
+                }
+            }
+        }
+        reach
+    }
+}
+
+/// The graph and `[scope] ignore` a plan was cut with: what a `projects` gate's record reads.
+#[derive(Clone, Debug, Default)]
+pub struct Workspace {
+    pub graph: Graph,
+    pub ignore: Vec<Glob>,
+}
+
+impl Workspace {
+    /// Whether a project set's result reads `file`: a file of one it reaches, or one outside every project not ignored.
+    #[must_use]
+    pub fn reads(&self, reach: &BTreeSet<String>, file: &str) -> bool {
+        if file.starts_with(".gatekeeper/") {
+            return true;
+        }
+        match self.graph.owner(file) {
+            Some(root) => reach.contains(root),
+            None => !self.ignore.iter().any(|g| g.matches(file)),
+        }
+    }
 }
 
 /// What a run diffs against: the files a change touched, or everything and why.

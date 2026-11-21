@@ -1,0 +1,26 @@
+gate = { run = "true", projects = ["pkgs/*"], versions = ["echo 1"] }
+cache = {}
+scope = { graphs = ["pnpm"], ignore = ["docs/**"] }
+
+[files]
+"pnpm-workspace.yaml" = "packages:\n  - 'pkgs/*'\n"
+"pkgs/a/package.json" = '{"name": "a"}'
+"pkgs/b/package.json" = '{"name": "b", "dependencies": {"a": "*"}}'
+"pkgs/c/package.json" = '{"name": "c", "dependencies": {"b": "*"}}'
+"pkgs/d/package.json" = '{"name": "d"}'
+
+[[run]]
+trigger = "lane"
+expect = "ok"
+
+[[run]]
+trigger = "lane"
+edit = { "pkgs/d/x.txt" = "an unrelated project changes" }
+expect = "ok"
+contains = '"projects":["pkgs/d"]'
+
+[[run]]
+trigger = "lane"
+edit = { "pkgs/c/x.txt" = "a project nothing needs changes" }
+expect = "ok"
+contains = '"projects":["pkgs/c"]'

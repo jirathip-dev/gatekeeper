@@ -1,6 +1,6 @@
 use crate::fetch::sha256_hex;
 use crate::{Result, runner};
-use gatekeeper_model::Gate;
+use gatekeeper_model::{Gate, Workspace};
 use std::collections::BTreeMap;
 use std::path::Path;
 
@@ -46,13 +46,21 @@ pub fn read(root: &Path) -> Result<Inputs> {
 }
 
 impl Inputs {
-    /// How many files a gate reads and the sha256 of their sorted `id path` lines.
+    /// How many files a gate reads over `projects` and the sha256 of their sorted `id path` lines.
     #[must_use]
-    pub fn of(&self, gate: &Gate) -> (usize, String) {
+    pub fn of(&self, gate: &Gate, projects: &[String], ws: &Workspace) -> (usize, String) {
+        let reach = ws.graph.reach(projects);
+        let reads = |path: &str| {
+            if gate.projects.is_empty() {
+                gate.reads(path)
+            } else {
+                ws.reads(&reach, path)
+            }
+        };
         let lines: Vec<String> = self
             .files
             .iter()
-            .filter(|(path, _)| gate.reads(path))
+            .filter(|(path, _)| reads(path))
             .map(|(path, id)| format!("{id} {path}\n"))
             .collect();
         (lines.len(), sha256_hex(lines.concat().as_bytes()))
