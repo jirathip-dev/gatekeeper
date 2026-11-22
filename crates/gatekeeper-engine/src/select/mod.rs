@@ -1,4 +1,5 @@
 mod readers;
+pub mod replay;
 mod rules;
 mod split;
 pub mod vitest;
@@ -11,8 +12,8 @@ use crate::run::{RunCtx, millis, unrun};
 use crate::runner::{self, Ended};
 use crate::{Error, Result};
 use gatekeeper_model::{
-    Evidence, Failure, Full, GateId, GateReport, Outcome, Plan, Planned, Select, Selected,
-    Selection, Shard, Skip, TestFile, Timings, Trigger, Why, Widened,
+    Evidence, Failure, Files, Full, GateId, GateReport, Graph, Outcome, Plan, Planned, Select,
+    Selected, Selection, Shard, Skip, TestFile, Timings, Trigger, TsPack, Why, Widened,
 };
 use serde::Serialize;
 use std::collections::{BTreeMap, BTreeSet};
@@ -62,20 +63,12 @@ fn family(why: &Why) -> &'static str {
     }
 }
 
-fn count(n: usize) -> u32 {
-    u32::try_from(n).unwrap_or(u32::MAX)
-}
-
-fn by(selection: &Selection) -> BTreeMap<String, u32> {
-    let Selection::Files(files) = selection else {
-        return BTreeMap::new();
+fn by(files: &Files) -> impl Iterator<Item = (&'static str, usize)> + '_ {
+    let count = move |name| {
+        let has = |whys: &BTreeSet<Why>| whys.iter().any(|w| family(w) == name);
+        (name, files.reasons().values().filter(|w| has(w)).count())
     };
-    let has = |name: &str, whys: &BTreeSet<Why>| whys.iter().any(|w| family(w) == name);
-    let counted = FAMILIES.map(|name| {
-        let n = files.reasons().values().filter(|w| has(name, w)).count();
-        (name.to_owned(), count(n))
-    });
-    counted.into_iter().filter(|(_, n)| *n > 0).collect()
+    FAMILIES.into_iter().map(count).filter(|(_, n)| *n > 0)
 }
 
 fn line(selection: &Selection, universe: usize, took: Duration) -> String {
@@ -89,9 +82,7 @@ fn line(selection: &Selection, universe: usize, took: Duration) -> String {
             Widened::OutsideEveryProject(path) => format!("`{path}` is outside every project"),
         },
         Selection::Files(files) => {
-            let counts = by(selection);
-            let by = FAMILIES.iter().filter_map(|f| Some((f, counts.get(*f)?)));
-            let by: Vec<String> = by.map(|(name, n)| format!("{name} {n}")).collect();
+            let by: Vec<String> = by(files).map(|(name, n)| format!("{name} {n}")).collect();
             let secs = crate::ci::secs(millis(took));
             let n = files.reasons().len();
             return format!(
@@ -101,6 +92,10 @@ fn line(selection: &Selection, universe: usize, took: Duration) -> String {
         }
     };
     format!("selected all {universe} test files: {why}")
+}
+
+fn count(n: usize) -> u32 {
+    u32::try_from(n).unwrap_or(u32::MAX)
 }
 
 pub(crate) fn report_path(out: &Path, gate: &GateId) -> PathBuf {
@@ -119,28 +114,25 @@ fn recorded(cx: &RunCtx, gate: &GateId) -> Result<Timings> {
 }
 
 fn gather(
-    select: &Select,
-    plan: &Plan,
-    cx: &RunCtx,
+    (select, ts): (&Select, Option<&TsPack>),
+    (trigger, graph): (&Trigger, &Graph),
+    (root, env, base): (&Path, &[(String, String)], Option<&str>),
     (log, deadline): (&mut File, Instant),
 ) -> Result<(BTreeSet<TestFile>, Selection)> {
-    let ts = cx
-        .ts
-        .as_ref()
-        .ok_or_else(|| Error("[select] needs [ts]".into()))?;
-    match runner::shell(&ts.install, (&cx.root, &cx.env, &[]), log, deadline)? {
+    let ts = ts.ok_or_else(|| Error("[select] needs [ts]".into()))?;
+    match runner::shell(&ts.install, (root, env, &[]), log, deadline)? {
         Ended::Exit(0) => {}
         ended => return Err(Error(format!("[ts] install `{}`: {ended:?}", ts.install))),
     }
-    let universe = vitest::list(&cx.root, &select.vitest, None)?;
-    let closure = match (&plan.trigger, &cx.base) {
+    let universe = vitest::list(root, &select.vitest, None)?;
+    let closure = match (trigger, base) {
         (Trigger::Everything(_), _) => BTreeSet::new(),
-        (Trigger::Change(_), Some(base)) => vitest::list(&cx.root, &select.vitest, Some(base))?,
+        (Trigger::Change(_), Some(base)) => vitest::list(root, &select.vitest, Some(base))?,
         (Trigger::Change(_), None) => return Err(Error("a change with no base to list".into())),
     };
     let mut texts = BTreeMap::new();
     for test in &universe {
-        let path = cx.root.join(&test.0);
+        let path = root.join(&test.0);
         let text = fs::read_to_string(&path).map_err(|e| Error::at(&path, e))?;
         texts.insert(test.clone(), text);
     }
@@ -148,9 +140,9 @@ fn gather(
         universe: &universe,
         closure: &closure,
         texts: &texts,
-        graph: &plan.workspace.graph,
+        graph,
     };
-    let selection = rules::select(&plan.trigger, select, &ev);
+    let selection = rules::select(trigger, select, &ev);
     Ok((universe, selection))
 }
 
@@ -162,7 +154,12 @@ fn chosen(
 ) -> Result<Picked> {
     let gate = &planned.gate;
     let deadline = start + Duration::from_secs(u64::from(gate.budget.0).max(1) * 5);
-    let (universe, selection) = gather(select, plan, cx, (log, deadline))?;
+    let (universe, selection) = gather(
+        (select, cx.ts.as_ref()),
+        (&plan.trigger, &plan.workspace.graph),
+        (&cx.root, &cx.env, cx.base.as_deref()),
+        (log, deadline),
+    )?;
     let unreasoned = BTreeSet::new();
     let (full, listed): (_, BTreeMap<_, _>) = match &selection {
         Selection::Full(full) => (
@@ -176,8 +173,10 @@ fn chosen(
     let split_by = serde_json::to_string(&timings).map_err(|e| Error(e.to_string()))?;
     let whole: Vec<&str> = all.iter().map(|t| t.0.as_str()).collect();
     let digest = sha256_hex(format!("{}\n{split_by}", whole.join("\n")).as_bytes());
-    let slice = split(&all, &timings, shard);
-    let files: Vec<String> = slice.iter().map(|t| t.0.clone()).collect();
+    let files: Vec<String> = split(&all, &timings, shard)
+        .into_iter()
+        .map(|t| t.0)
+        .collect();
     let written = Written {
         gate: &gate.id,
         base: cx.base.as_deref(),
@@ -193,12 +192,16 @@ fn chosen(
     }
     let report = report_path(&cx.out, &gate.id);
     fs::remove_file(&report).ok();
+    let by = match &selection {
+        Selection::Files(f) => by(f).map(|(name, n)| (name.to_owned(), count(n))).collect(),
+        Selection::Full(_) => BTreeMap::new(),
+    };
     let selected = Selected {
         universe: count(universe.len()),
         selected: count(all.len()),
         slice: count(files.len()),
         full: full.cloned(),
-        by: by(&selection),
+        by,
         digest,
         took: millis(start.elapsed()),
     };

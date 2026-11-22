@@ -188,9 +188,6 @@ fn a_built_tools_archive_is_fetched_by_its_pin_and_refused_with_a_wrong_checksum
     assert_eq!(String::from_utf8_lossy(&out.stdout), "built\n");
 }
 
-// TODO(#41): farrier's [asset.*] pins land in #41, which drops this entry.
-const UNPINNED_EXEMPT: &[&str] = &["packs/core/tools/farrier.toml"];
-
 fn unpinned_build_targets(packs: &Path) -> Vec<String> {
     let mut unpinned = Vec::new();
     for pack in fs::read_dir(packs).expect("packs") {
@@ -199,9 +196,6 @@ fn unpinned_build_targets(packs: &Path) -> Vec<String> {
         };
         for file in tools {
             let path = file.expect("tool").path();
-            if UNPINNED_EXEMPT.iter().any(|e| path.ends_with(e)) {
-                continue;
-            }
             let text = fs::read_to_string(&path).expect("tool file");
             let ToolFile::Binary(tool) = toml::from_str(&text).expect("tool file parses") else {
                 continue;
@@ -224,21 +218,4 @@ fn every_pack_tool_with_a_build_recipe_pins_an_asset_for_each_build_target() {
     let packs = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../packs");
     let unpinned = unpinned_build_targets(&packs);
     assert!(unpinned.is_empty(), "no [asset.*] pin for: {unpinned:#?}");
-}
-
-#[test]
-fn only_the_named_exemption_skips_the_build_target_pin_check() {
-    let packs = scratch("fetch-unpinned").join("packs");
-    let tools = packs.join("core/tools");
-    fs::create_dir_all(&tools).expect("tools");
-    let recipe = "version = \"1\"\n\n[build]\ntargets = [\"aarch64-apple-darwin\"]\nbudget_minutes = 1\nbin = \"bin/x\"\nscript = \"true\"\n";
-    fs::write(tools.join("farrier.toml"), recipe).expect("farrier");
-    fs::write(tools.join("other.toml"), recipe).expect("other");
-    assert_eq!(
-        unpinned_build_targets(&packs),
-        [format!(
-            "{}: aarch64-apple-darwin",
-            tools.join("other.toml").display()
-        )]
-    );
 }

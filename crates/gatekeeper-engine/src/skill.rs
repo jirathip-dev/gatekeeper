@@ -71,7 +71,11 @@ fn skill_md(packs: &[(PackId, String)]) -> String {
          `.select.log`; it never runs fewer tests. \
          A sharded `[select]` gate writes vitest's JSON report to `{{report}}`; each CI shard selects the same list and runs \
          its slice, split by the times the last push to the integration branch recorded. `ci done` fails a gate whose \
-         shards selected different lists (rerun all jobs), and a shard no file fell into prints `skip` and passes.\n\n\
+         shards selected different lists (rerun all jobs), and a shard no file fell into prints `skip` and passes. \
+         `./.gatekeeper/run replay --gate <pack>/<gate> --runs runs.jsonl --other '<cmd> {{base}}'` measures it against another selector: \
+         each line of `runs.jsonl` is `{{\"pr\", \"base\", \"head\", \"failed\"}}`, both select in a scratch worktree of the head, and it prints \
+         per run the counts, the files only one chose and each missed failure, then the totals, into `target/gatekeeper/replay/`; \
+         it exits 1 when gatekeeper missed a failure.\n\n\
          ## Packs\n\n"
     );
     let list = packs

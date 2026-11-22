@@ -12,7 +12,12 @@ pub fn run(args: &[String]) -> ExitCode {
         Ok(root) => root,
         Err(e) => return cli::usage_error(&e),
     };
-    match pin::pin(&root, version, &run::out_dir(&root).join("pin")) {
+    match pin::pin(
+        &root,
+        version,
+        &run::out_dir(&root).join("pin"),
+        &cli::cache(),
+    ) {
         Ok(lines) => {
             for l in &lines {
                 say(l);
