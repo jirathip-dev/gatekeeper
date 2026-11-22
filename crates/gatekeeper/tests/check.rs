@@ -166,6 +166,44 @@ fn usage_and_config_errors_exit_2() {
 }
 
 #[test]
+fn a_select_gate_is_refused_where_it_cannot_select() {
+    let head = "about = \"unit\"\nfix = \"none\"\nbudget_secs = 5\n";
+    let table = "\n[select]\nvitest = \"vitest.config.ts\"\nfull = []\n";
+    let run = "run = \"vitest run {files}\"\n";
+    for (name, gate, says) in [
+        (
+            "select-steps",
+            format!("{head}[[step]]\n{run}{table}"),
+            "[select] runs one `run` line",
+        ),
+        (
+            "select-projects",
+            format!("{head}{run}projects = [\"apps/*\"]\n{table}"),
+            "give [select] or `projects`",
+        ),
+        (
+            "select-no-files",
+            format!("{head}run = \"vitest run\"\n{table}"),
+            "[select] needs `{files}`",
+        ),
+        (
+            "select-sharded",
+            format!("{head}{run}shards = {{ hosted = 2, self-hosted = 1 }}\n{table}"),
+            "needs `{report}`",
+        ),
+        (
+            "select-unconfigured",
+            format!("{head}{run}{table}"),
+            "local/unit: [select] needs [ts] and [scope]",
+        ),
+    ] {
+        let (code, out) = gk(&repo(name, CONFIG, &[("unit", &gate)]), &["list"], &[]);
+        assert_eq!(code, 2, "{name}: {out}");
+        assert!(out.contains(says), "{name}: {out}");
+    }
+}
+
+#[test]
 fn list_prints_the_planned_gates_with_budgets() {
     let root = three("list");
     let (code, out) = gk(&root, &["list"], &[]);

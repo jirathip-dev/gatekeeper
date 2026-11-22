@@ -1,4 +1,4 @@
-use crate::{Glob, Host, Platform, Toolchain};
+use crate::{Change, Glob, Host, Platform, Toolchain};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
@@ -90,7 +90,7 @@ impl Workspace {
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Trigger {
-    Change(BTreeSet<String>),
+    Change(BTreeSet<Change>),
     Everything(Widened),
 }
 

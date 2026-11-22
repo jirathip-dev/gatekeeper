@@ -1,4 +1,4 @@
-trigger = { change = ["apps/web/src/main.ts", "pnpm-lock.yaml"] }
+trigger = { change = [{ path = "apps/web/src/main.ts", kind = "modified" }, { path = "pnpm-lock.yaml", kind = "modified" }] }
 expect = { all = { outside-every-project = "pnpm-lock.yaml" } }
 ignore = ["docs/**"]
 

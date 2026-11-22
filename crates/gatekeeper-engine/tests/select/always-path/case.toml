@@ -1,0 +1,16 @@
+about = "a test under `always` is selected on every change, though it sits in a project"
+
+[select]
+vitest = "vitest.config.ts"
+always = ["packages/tools/guards/**"]
+full = []
+
+[files]
+"docs/guide.md" = "one\n"
+"packages/tools/guards/licence.test.ts" = "it('has a licence', () => {});\n"
+
+[change]
+"docs/guide.md" = "two\n"
+
+[expect]
+"packages/tools/guards/licence.test.ts" = ["always-path"]

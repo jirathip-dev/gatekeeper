@@ -1,0 +1,9 @@
+about = "a test whose imports reach a changed file is selected by vitest's closure"
+closure = ["apps/web/src/price.test.ts", "packages/ui/src/button.test.ts"]
+
+[change]
+"packages/ui/src/button.ts" = "export const button = (label: string) => label.trim();\n"
+
+[expect]
+"apps/web/src/price.test.ts" = ["closure"]
+"packages/ui/src/button.test.ts" = ["closure"]

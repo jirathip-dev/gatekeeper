@@ -1,0 +1,11 @@
+about = "a test whose code holds a changed file's repo path reads it"
+
+[files]
+"docker/Dockerfile" = "FROM node:22\n"
+"apps/web/src/docker.test.ts" = "readFileSync('docker/Dockerfile', 'utf8');\n"
+
+[change]
+"docker/Dockerfile" = "FROM node:24\n"
+
+[expect]
+"apps/web/src/docker.test.ts" = ["reads-path"]

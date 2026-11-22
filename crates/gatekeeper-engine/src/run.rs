@@ -3,8 +3,8 @@ use crate::cache::{self, Results};
 use crate::runner::{self, Ended};
 use crate::{Error, Result, VERSION, fetch, kept, packs};
 use gatekeeper_model::{
-    Decision, Failure, Gate, GateReport, Host, Job, JobReport, Millis, Outcome, PackId, Plan,
-    Planned, Platform, Report, Shard, Skip, Step, SwiftPack, TsPack, judge,
+    Change, ChangeKind, Decision, Failure, Gate, GateReport, Host, Job, JobReport, Millis, Outcome,
+    PackId, Plan, Planned, Platform, Report, Shard, Skip, Step, SwiftPack, TsPack, judge,
 };
 use std::cell::OnceCell;
 use std::collections::{BTreeMap, BTreeSet};
@@ -370,8 +370,28 @@ pub fn default_base(root: &Path, integration: &str) -> Option<String> {
 }
 
 /// # Errors
-pub fn changed(root: &Path, base: &str) -> Result<BTreeSet<String>> {
-    let diff = runner::ok("git", &["diff", "--name-only", "--no-renames", base], root)?;
+pub fn changed(root: &Path, base: &str) -> Result<BTreeSet<Change>> {
+    let diff = runner::ok(
+        "git",
+        &["diff", "--name-status", "--no-renames", base],
+        root,
+    )?;
     let new = runner::ok("git", &["ls-files", "--others", "--exclude-standard"], root)?;
-    Ok(diff.lines().chain(new.lines()).map(str::to_owned).collect())
+    let diffed = diff
+        .lines()
+        .filter_map(|l| l.split_once('\t'))
+        .map(|(status, path)| {
+            let kind = match status {
+                "A" => ChangeKind::Added,
+                "D" => ChangeKind::Deleted,
+                _ => ChangeKind::Modified,
+            };
+            (path, kind)
+        });
+    let added = new.lines().map(|path| (path, ChangeKind::Added));
+    let changes = diffed.chain(added).map(|(path, kind)| Change {
+        path: path.to_owned(),
+        kind,
+    });
+    Ok(changes.collect())
 }

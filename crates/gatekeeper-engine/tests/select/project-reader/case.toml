@@ -1,0 +1,14 @@
+about = "a test that names a touched project's root is selected, alone of its project"
+closure = ["apps/web/src/price.test.ts", "packages/ui/src/button.test.ts"]
+
+[files]
+"packages/tools/src/layout.test.ts" = "const ui = 'packages/ui/src';\n"
+"packages/tools/src/kit.test.ts" = "const kit = 'packages/ui-kit';\n"
+
+[change]
+"packages/ui/src/button.ts" = "export const button = (label: string) => label.trim();\n"
+
+[expect]
+"apps/web/src/price.test.ts" = ["closure"]
+"packages/ui/src/button.test.ts" = ["closure"]
+"packages/tools/src/layout.test.ts" = ["names-project"]

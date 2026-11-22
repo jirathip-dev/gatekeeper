@@ -9,7 +9,7 @@ pub fn affected(graph: &Graph, trigger: Trigger, ignore: &[Glob]) -> Affected {
         Trigger::Change(files) => files,
     };
     let mut hit = BTreeSet::new();
-    for file in files {
+    for file in files.into_iter().map(|c| c.path) {
         match graph.owner(&file) {
             Some(root) => {
                 hit.insert(root.clone());

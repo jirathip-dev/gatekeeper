@@ -1,0 +1,11 @@
+about = "a test in another project that names a deleted module by its import specifier is selected"
+delete = ["packages/ui/src/theme.ts"]
+
+[files]
+"packages/ui/src/theme.ts" = "export const theme = 'dark';\n"
+"apps/web/src/theme.test.ts" = "const spec = '@ui/theme';\nawait import(spec);\n"
+
+[expect]
+"apps/web/src/theme.test.ts" = ["widened-specifier"]
+"packages/ui/src/button.test.ts" = ["widened-former-project"]
+"packages/ui/src/label.test.ts" = ["widened-former-project"]

@@ -1,0 +1,9 @@
+about = "a deleted module that nothing imports selects its former project's tests"
+delete = ["packages/ui/src/old.ts"]
+
+[files]
+"packages/ui/src/old.ts" = "export const old = 1;\n"
+
+[expect]
+"packages/ui/src/button.test.ts" = ["widened-former-project"]
+"packages/ui/src/label.test.ts" = ["widened-former-project"]

@@ -1,4 +1,4 @@
-use crate::{GateId, Glob, Secs, Shards};
+use crate::{GateId, Glob, Secs, Select, Shards};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::fmt;
@@ -46,6 +46,8 @@ pub struct GateFile {
     pub versions: Vec<String>,
     #[serde(default = "yes")]
     pub cache: bool,
+    #[serde(default)]
+    pub select: Option<Select>,
 }
 
 fn yes() -> bool {
@@ -78,6 +80,8 @@ pub struct Gate {
     pub rule: Vec<String>,
     pub versions: Vec<String>,
     pub cache: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub select: Option<Select>,
 }
 
 impl Gate {
@@ -91,6 +95,9 @@ impl Gate {
 
     /// # Errors
     pub fn from_file(id: GateId, file: GateFile, pack: &PackFile) -> Result<Gate, &'static str> {
+        if file.select.is_some() {
+            select_refusal(&file)?;
+        }
         let steps = match (file.run, file.step) {
             (Some(run), s) if s.is_empty() => vec![Step::Run { run }],
             (None, s) if !s.is_empty() => s,
@@ -117,8 +124,26 @@ impl Gate {
             rule: file.rule,
             versions: file.versions,
             cache: file.cache,
+            select: file.select,
         })
     }
+}
+
+fn select_refusal(file: &GateFile) -> Result<(), &'static str> {
+    let Some(run) = file.run.as_deref().filter(|_| file.step.is_empty()) else {
+        return Err("[select] runs one `run` line, not `[[step]]`");
+    };
+    if !file.projects.is_empty() {
+        return Err("give [select] or `projects`, not both");
+    }
+    if !run.contains("{files}") {
+        return Err("[select] needs `{files}` in `run`: the selected test files go there");
+    }
+    let sharded = file.shards.hosted.get() > 1 || file.shards.self_hosted.get() > 1;
+    if sharded && !run.contains("{report}") {
+        return Err("a sharded [select] gate needs `{report}` in `run`: shards are split by time");
+    }
+    Ok(())
 }
 
 /// `run` is the repo's toolchain through `sh -c`; `tool` a pinned tool; `check` a built-in check.

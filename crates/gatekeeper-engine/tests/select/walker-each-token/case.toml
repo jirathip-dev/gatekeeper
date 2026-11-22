@@ -1,0 +1,33 @@
+about = "each walker token makes a test that names the directory a walker"
+
+[files]
+"docs/guide.md" = "one\n"
+"packages/tools/src/walk-readdir.test.ts" = "readdirSync(join(root, 'docs'));\n"
+"packages/tools/src/walk-opendir.test.ts" = "await opendir(join(root, 'docs'));\n"
+"packages/tools/src/walk-scandir.test.ts" = "scandir(join(root, 'docs'));\n"
+"packages/tools/src/walk-glob.test.ts" = "globSync('docs/**');\n"
+"packages/tools/src/walk-fdir.test.ts" = "new fdir().crawl('docs');\n"
+"packages/tools/src/walk-meta-glob.test.ts" = "import.meta.glob('/docs/*.md');\n"
+"packages/tools/src/walk-ls-files.test.ts" = "run(['ls-files', 'docs']);\n"
+"packages/tools/src/walk-git-grep.test.ts" = "sh('git grep TODO', 'docs');\n"
+"packages/tools/src/walk-exec-file.test.ts" = "execFileSync('find', ['docs']);\n"
+"packages/tools/src/walk-exec-sync.test.ts" = "execSync(['find', 'docs'].join(' '));\n"
+"packages/tools/src/walk-spawn.test.ts" = "spawn('find', ['docs']);\n"
+"packages/tools/src/walk-global.test.ts" = "globalThis.dir = 'docs';\n"
+"packages/tools/src/walk-none.test.ts" = "const dir = 'docs';\n"
+
+[change]
+"docs/guide.md" = "two\n"
+
+[expect]
+"packages/tools/src/walk-readdir.test.ts" = ["reads-walks-dir"]
+"packages/tools/src/walk-opendir.test.ts" = ["reads-walks-dir"]
+"packages/tools/src/walk-scandir.test.ts" = ["reads-walks-dir"]
+"packages/tools/src/walk-glob.test.ts" = ["reads-walks-dir"]
+"packages/tools/src/walk-fdir.test.ts" = ["reads-walks-dir"]
+"packages/tools/src/walk-meta-glob.test.ts" = ["reads-walks-dir"]
+"packages/tools/src/walk-ls-files.test.ts" = ["reads-walks-dir"]
+"packages/tools/src/walk-git-grep.test.ts" = ["reads-walks-dir"]
+"packages/tools/src/walk-exec-file.test.ts" = ["reads-walks-dir"]
+"packages/tools/src/walk-exec-sync.test.ts" = ["reads-walks-dir"]
+"packages/tools/src/walk-spawn.test.ts" = ["reads-walks-dir"]

@@ -1,0 +1,3 @@
+about = "a run that is not a change runs the full suite"
+trigger = { everything = "forced" }
+full = { not-a-change = "forced" }
