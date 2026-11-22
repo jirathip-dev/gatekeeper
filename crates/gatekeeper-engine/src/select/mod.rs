@@ -154,7 +154,6 @@ fn chosen(
     })
 }
 
-/// A `[select]` gate's files, `None` for any other gate; a selection that cannot be computed fails the gate.
 pub(crate) fn pick(
     planned: &Planned,
     plan: &Plan,
