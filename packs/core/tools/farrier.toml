@@ -1,5 +1,20 @@
 version = "git-04d7a80"
 
+[asset.aarch64-apple-darwin]
+url = "https://github.com/jirathip-dev/gatekeeper/releases/download/tool-farrier-git-04d7a80-cf97cf57a838/farrier-git-04d7a80-aarch64-apple-darwin.tar.gz"
+sha256 = "ac6c7035c55da19a91f5ee244c421e68e5e3802703390e256e04b40cb7726518"
+bin = "bin/farrier"
+
+[asset.aarch64-unknown-linux-gnu]
+url = "https://github.com/jirathip-dev/gatekeeper/releases/download/tool-farrier-git-04d7a80-cf97cf57a838/farrier-git-04d7a80-aarch64-unknown-linux-gnu.tar.gz"
+sha256 = "8a3b5bcb717cf425ed58b857033a86023421f238faa14d8759084d7e4384f0b4"
+bin = "bin/farrier"
+
+[asset.x86_64-unknown-linux-gnu]
+url = "https://github.com/jirathip-dev/gatekeeper/releases/download/tool-farrier-git-04d7a80-cf97cf57a838/farrier-git-04d7a80-x86_64-unknown-linux-gnu.tar.gz"
+sha256 = "8125813bc252474c5b51c6e5f195b4c9b534523062151134d8337b9b14975f26"
+bin = "bin/farrier"
+
 [build]
 targets = ["x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu", "aarch64-apple-darwin"]
 budget_minutes = 20
