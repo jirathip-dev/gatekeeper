@@ -8,6 +8,9 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{Duration, Instant};
 
+#[path = "support/ci.rs"]
+mod ci;
+
 fn copy(from: &Path, to: &Path) {
     for entry in fs::read_dir(from).expect("fixture") {
         let path = entry.expect("entry").path();
@@ -139,10 +142,7 @@ fn check_on_the_base_fixture_with_every_gate_stubbed_takes_under_200_ms() {
                 .all(|g| matches!(g.outcome, Outcome::Passed { .. })),
             "{gates:?}"
         );
-        assert!(
-            took < Duration::from_millis(200),
-            "cache {cached}: took {took:?}"
-        );
+        ci::assert_under(took, Duration::from_millis(200), &format!("cache {cached}"));
     }
 }
 
@@ -159,5 +159,5 @@ fn a_check_whose_every_gate_hits_takes_under_200_ms() {
             .all(|g| matches!(g.outcome, Outcome::Cached(_))),
         "{gates:?}"
     );
-    assert!(took < Duration::from_millis(200), "took {took:?}");
+    ci::assert_under(took, Duration::from_millis(200), "every gate hits");
 }
