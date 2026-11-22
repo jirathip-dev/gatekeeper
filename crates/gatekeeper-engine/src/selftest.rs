@@ -111,27 +111,18 @@ fn run_case(gate: &Gate, case: Option<&str>, out: &Path, bench: &Bench) -> Resul
         .exists()
         .then(|| config::load(&dir))
         .transpose()?;
-    let cx = RunCtx {
-        out: run::out_dir(&dir),
-        root: dir.clone(),
-        cache: bench.cache.clone(),
-        base: Some(base),
-        pr_body,
-        host: Host::Lane,
-        job_start: None,
-        manifest: config
-            .as_ref()
-            .map_or("Cargo.toml", config::manifest)
-            .to_owned(),
-        results: None,
-        ts: config.as_ref().and_then(|c| c.ts.clone()),
-        swift: config.and_then(|c| c.swift),
-        tools: bench.tools.clone(),
-        platform: bench.platform,
-        after_reports: None,
-        env: env(&prefixes),
-        timings: None,
-    };
+    let mut cx = RunCtx::lane(&dir, &bench.cache);
+    cx.base = Some(base);
+    cx.pr_body = pr_body;
+    config
+        .as_ref()
+        .map_or("Cargo.toml", config::manifest)
+        .clone_into(&mut cx.manifest);
+    cx.ts = config.as_ref().and_then(|c| c.ts.clone());
+    cx.swift = config.and_then(|c| c.swift);
+    cx.tools = bench.tools.clone();
+    cx.platform = bench.platform;
+    cx.env = env(&prefixes);
     fs::create_dir_all(&cx.out).map_err(|e| Error::at(&cx.out, e))?;
     let report = run::gate(gate, (Shard::ONE, None), &[], &cx)?;
     let log = fs::read_to_string(dir.join(&report.log)).unwrap_or_default();

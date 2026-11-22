@@ -44,24 +44,10 @@ fn repo(case: &Path, name: &str) -> PathBuf {
 }
 
 fn ctx(root: &Path, case: &Path, expect: &Expect) -> RunCtx {
-    RunCtx {
-        out: run::out_dir(root),
-        root: root.to_path_buf(),
-        cache: root.join("cache"),
-        base: None,
-        pr_body: None,
-        host: expect.host,
-        job_start: None,
-        manifest: "Cargo.toml".into(),
-        after_reports: expect.after_reports.then(|| case.join("reports")),
-        ts: None,
-        results: None,
-        swift: None,
-        tools: std::collections::BTreeMap::new(),
-        platform: run::platform(),
-        env: Vec::new(),
-        timings: None,
-    }
+    let mut cx = RunCtx::lane(root, &root.join("cache"));
+    cx.host = expect.host;
+    cx.after_reports = expect.after_reports.then(|| case.join("reports"));
+    cx
 }
 
 fn run_case(case: &Path) {

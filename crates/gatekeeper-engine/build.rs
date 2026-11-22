@@ -62,5 +62,32 @@ fn main() -> io::Result<()> {
     }
     println!("cargo::rustc-env=GATEKEEPER_SOURCE={:016x}", hash.finish());
     let out = PathBuf::from(env::var("OUT_DIR").map_err(io::Error::other)?);
-    fs::write(out.join("packs.rs"), src)
+    fs::write(out.join("packs.rs"), src)?;
+    fs::write(
+        out.join("topics.rs"),
+        topics(&manifest.join("src/skill/topics"))?,
+    )
+}
+
+fn topics(dir: &Path) -> io::Result<String> {
+    let mut files = Vec::new();
+    walk(dir, &mut files)?;
+    files.sort();
+    let mut src = String::from("pub static TOPICS: &[(&str, &str)] = &[\n");
+    for file in files
+        .iter()
+        .filter(|f| f.extension().is_some_and(|e| e == "md"))
+    {
+        let name = file
+            .file_stem()
+            .map_or_else(String::new, |n| n.to_string_lossy().into_owned());
+        writeln!(
+            src,
+            "    ({name:?}, include_str!({:?})),",
+            file.display().to_string()
+        )
+        .map_err(io::Error::other)?;
+    }
+    src.push_str("];\n");
+    Ok(src)
 }

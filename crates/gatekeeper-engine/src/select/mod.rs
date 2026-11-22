@@ -8,12 +8,12 @@ pub use rules::select;
 pub use split::split;
 
 use crate::fetch::sha256_hex;
-use crate::run::{RunCtx, millis, unrun};
+use crate::run::{RunCtx, Vars};
 use crate::runner::{self, Ended};
 use crate::{Error, Result};
 use gatekeeper_model::{
-    Evidence, Failure, Files, Full, GateId, GateReport, Graph, Outcome, Plan, Planned, Select,
-    Selected, Selection, Shard, Skip, TestFile, Timings, Trigger, TsPack, Why, Widened,
+    Evidence, Failure, Files, Full, GateId, GateReport, Graph, Millis, Outcome, Plan, Planned,
+    Select, Selected, Selection, Shard, Skip, TestFile, Timings, Trigger, TsPack, Why, Widened,
 };
 use serde::Serialize;
 use std::collections::{BTreeMap, BTreeSet};
@@ -30,6 +30,15 @@ pub struct Picked {
     pub start: Instant,
     pub report: PathBuf,
     pub selected: Selected,
+}
+
+impl Picked {
+    pub(crate) fn vars(&self) -> Vars {
+        vec![
+            ("{files}", "\"$@\"".to_owned()),
+            ("{report}", self.report.to_string_lossy().into_owned()),
+        ]
+    }
 }
 
 #[derive(Serialize)]
@@ -83,7 +92,7 @@ fn line(selection: &Selection, universe: usize, took: Duration) -> String {
         },
         Selection::Files(files) => {
             let by: Vec<String> = by(files).map(|(name, n)| format!("{name} {n}")).collect();
-            let secs = crate::ci::secs(millis(took));
+            let secs = crate::ci::secs(Millis::from(took));
             let n = files.reasons().len();
             return format!(
                 "selected {n} of {universe} test files in {secs}: {}",
@@ -98,7 +107,7 @@ fn count(n: usize) -> u32 {
     u32::try_from(n).unwrap_or(u32::MAX)
 }
 
-pub(crate) fn report_path(out: &Path, gate: &GateId) -> PathBuf {
+fn report_path(out: &Path, gate: &GateId) -> PathBuf {
     out.join(format!("{}.vitest.json", gate.file_stem()))
 }
 
@@ -194,7 +203,7 @@ fn chosen(
         full: full.cloned(),
         by: counts(&selection),
         digest,
-        took: millis(start.elapsed()),
+        took: start.elapsed().into(),
     };
     Ok(sliced(
         (files, selected),
@@ -257,35 +266,33 @@ pub(crate) fn pick(
         });
     let log = path.strip_prefix(&cx.root).unwrap_or(&path);
     let log = log.to_string_lossy().into_owned();
-    let took = millis(start.elapsed());
+    let ended = |outcome| {
+        let mut report = GateReport::unrun(&planned.gate, outcome);
+        report.took = start.elapsed().into();
+        report.log = log;
+        report
+    };
     match picked {
-        Ok(p) if p.files.is_empty() => Err(Box::new(GateReport {
-            took,
-            log,
-            note: Some(p.note),
-            selection: Some(p.selected),
-            ..unrun(planned, Outcome::Skipped(Skip::EmptyShard))
-        })),
+        Ok(p) if p.files.is_empty() => {
+            let mut report = ended(Outcome::Skipped(Skip::EmptyShard));
+            report.note = Some(p.note);
+            report.selection = Some(p.selected);
+            Err(Box::new(report))
+        }
         Ok(p) => Ok(Some(p)),
-        Err(_) => Err(Box::new(GateReport {
-            took,
-            log,
-            ..unrun(planned, Outcome::Failed(Failure::Exit(1)))
-        })),
+        Err(_) => Err(Box::new(ended(Outcome::Failed(Failure::Exit(1))))),
     }
 }
 
 pub(crate) fn reported(
     picked: Option<&Picked>,
-    report: GateReport,
+    mut report: GateReport,
     root: &Path,
 ) -> Result<GateReport> {
     let Some(p) = picked else {
         return Ok(report);
     };
-    Ok(GateReport {
-        selection: Some(p.selected.clone()),
-        files: vitest::times(root, &p.report)?,
-        ..report
-    })
+    report.selection = Some(p.selected.clone());
+    report.files = vitest::times(root, &p.report)?;
+    Ok(report)
 }

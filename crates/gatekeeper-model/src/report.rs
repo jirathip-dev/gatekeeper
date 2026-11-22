@@ -1,14 +1,21 @@
 use crate::{
-    Affected, CacheNote, GateId, Hit, Platform, ProjectCache, Proof, Secs, Selected, Shard, Skip,
-    TestFile,
+    Affected, CacheNote, Gate, GateId, Hit, Platform, ProjectCache, Proof, Secs, Selected, Shard,
+    Skip, TestFile,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use std::time::Duration;
 
 /// Milliseconds: a measured time.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Default, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct Millis(pub u64);
+
+impl From<Duration> for Millis {
+    fn from(d: Duration) -> Self {
+        Millis(u64::try_from(d.as_millis()).unwrap_or(u64::MAX))
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case")]
@@ -114,6 +121,7 @@ pub struct JobReport {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct GateReport {
     pub id: GateId,
     pub outcome: Outcome,
@@ -134,6 +142,26 @@ pub struct GateReport {
     /// Each test file's time, from the JSON report a `[select]` gate's line wrote to `{report}`.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub files: BTreeMap<TestFile, Millis>,
+}
+
+impl GateReport {
+    /// A gate that did not run, or has not yet: its outcome and budget, no time, no log, nothing kept.
+    #[must_use]
+    pub fn unrun(gate: &Gate, outcome: Outcome) -> GateReport {
+        GateReport {
+            id: gate.id.clone(),
+            outcome,
+            took: Millis(0),
+            budget: gate.budget,
+            log: String::new(),
+            kept: Vec::new(),
+            projects: Vec::new(),
+            note: None,
+            cache: None,
+            selection: None,
+            files: BTreeMap::new(),
+        }
+    }
 }
 
 /// What the result cache saved and caught over a run's gates.
