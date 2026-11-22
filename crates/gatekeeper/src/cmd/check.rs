@@ -1,7 +1,7 @@
 use crate::cli::{self, Args, say};
 use gatekeeper_engine::ci::{self, secs};
 use gatekeeper_engine::run::{self, RunCtx};
-use gatekeeper_engine::{Error, VERSION, config, plan};
+use gatekeeper_engine::{Error, VERSION, config, plan, scope};
 use gatekeeper_model::{
     CacheMode, CacheNote, CacheTotals, Failure, Gate, GateReport, Host, Outcome, Plan, Trigger,
     Widened, job_label,
@@ -29,6 +29,15 @@ fn cache_lines(r: &GateReport) -> Vec<String> {
     }
 }
 
+fn notes(gate: &Gate, r: &GateReport) -> Vec<String> {
+    let dir = r.log.rsplit_once('/').map_or("", |(d, _)| d);
+    let stem = r.id.file_stem();
+    let list = (gate.select.is_some() && r.note.is_some())
+        .then(|| format!("list: {dir}/{stem}.selection.json"));
+    let notes = r.note.iter().cloned().chain(list);
+    notes.chain(cache_lines(r)).collect()
+}
+
 fn show(root: &Path, gate: &Gate, r: &GateReport) {
     let word = r.outcome.word();
     match &r.outcome {
@@ -50,7 +59,7 @@ fn show(root: &Path, gate: &Gate, r: &GateReport) {
             if !r.projects.is_empty() {
                 say(&format!("      selected: {}", r.projects.join(" ")));
             }
-            for line in r.note.iter().cloned().chain(cache_lines(r)) {
+            for line in notes(gate, r) {
                 say(&format!("      {line}"));
             }
             for kept in &r.kept {
@@ -99,7 +108,7 @@ fn prepare(args: &Args, root: &Path) -> Result<(Plan, RunCtx, Option<usize>, Cac
         _ if args.has("--all") => Trigger::Everything(Widened::Forced),
         _ if pushed => Trigger::Everything(Widened::NotAPullRequest),
         None => Trigger::Everything(Widened::NoBase),
-        Some(b) => Trigger::Change(run::changed(root, b)?),
+        Some(b) => Trigger::Change(scope::changed(root, b)?),
     };
     let plan = plan::repo(&config, root, &|_| host, &filter)?;
     let (mode, results) = cli::results(&config, args, root)?;

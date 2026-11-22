@@ -1,5 +1,7 @@
-use gatekeeper_model::{Affected, Glob, Graph, Trigger, Widened};
+use crate::{Result, runner};
+use gatekeeper_model::{Affected, Change, ChangeKind, Glob, Graph, Trigger, Widened};
 use std::collections::BTreeSet;
+use std::path::Path;
 
 /// The projects a change can reach: those holding a changed file, then every project that needs one of them.
 #[must_use]
@@ -30,4 +32,31 @@ pub fn affected(graph: &Graph, trigger: Trigger, ignore: &[Glob]) -> Affected {
         }
         hit.extend(more);
     }
+}
+
+/// # Errors
+pub fn changed(root: &Path, base: &str) -> Result<BTreeSet<Change>> {
+    let diff = runner::ok(
+        "git",
+        &["diff", "--name-status", "--no-renames", base],
+        root,
+    )?;
+    let new = runner::ok("git", &["ls-files", "--others", "--exclude-standard"], root)?;
+    let diffed = diff
+        .lines()
+        .filter_map(|l| l.split_once('\t'))
+        .map(|(status, path)| {
+            let kind = match status {
+                "A" => ChangeKind::Added,
+                "D" => ChangeKind::Deleted,
+                _ => ChangeKind::Modified,
+            };
+            (path, kind)
+        });
+    let added = new.lines().map(|path| (path, ChangeKind::Added));
+    let changes = diffed.chain(added).map(|(path, kind)| Change {
+        path: path.to_owned(),
+        kind,
+    });
+    Ok(changes.collect())
 }

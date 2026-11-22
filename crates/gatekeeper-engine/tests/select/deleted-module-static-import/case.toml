@@ -1,0 +1,7 @@
+about = "vitest still lists a test whose static import names a deleted module, and the module's project widens"
+closure = ["packages/ui/src/label.test.ts"]
+delete = ["packages/ui/src/label.ts"]
+
+[expect]
+"packages/ui/src/button.test.ts" = ["widened-former-project"]
+"packages/ui/src/label.test.ts" = ["closure", "widened-former-project", "widened-specifier"]

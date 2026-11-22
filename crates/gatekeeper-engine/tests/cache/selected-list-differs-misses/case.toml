@@ -1,0 +1,32 @@
+gate = { run = "true {files}", versions = ["echo 1"], select = { vitest = "vitest.config.ts", full = [] } }
+cache = {}
+scope = { graphs = ["pnpm"] }
+ts = { projects = ["."], install = "true" }
+
+[files]
+"pnpm-workspace.yaml" = "packages:\n  - 'pkgs/*'\n"
+"pkgs/a/package.json" = '{"name": "a"}'
+"pkgs/b/package.json" = '{"name": "b"}'
+"pkgs/a/a.test.ts" = "readdirSync(here);\n"
+"pkgs/b/b.test.ts" = "readdirSync(here);\n"
+"vitest.config.ts" = "export default {};\n"
+"node_modules/.bin/vitest" = """
+#!/bin/sh
+case "$*" in
+  *--changed*) echo '[]' ;;
+  *) echo '[{"file": "pkgs/a/a.test.ts"}, {"file": "pkgs/b/b.test.ts"}]' ;;
+esac
+"""
+
+[[run]]
+trigger = "lane"
+changed = ["pkgs/a/x.txt"]
+expect = "ok"
+expect_store = { host = 1 }
+
+[[run]]
+trigger = "lane"
+changed = ["pkgs/b/x.txt"]
+expect = "ok"
+contains = "selected 1 of 2 test files"
+expect_store = { host = 2 }

@@ -61,6 +61,14 @@ fn skill_md(packs: &[(PackId, String)]) -> String {
          A `projects` gate keeps one record per project, over that project, every project it needs and every file outside all projects \
          that `[scope] ignore` keeps: a change reruns the projects it reaches, and the row says how many ran and how many were cached. \
          A sharded CI job keeps one record for its whole set of projects and is cached only while that set and its files are unchanged.\n\n\
+         A gate with `[select]` runs only the test files a change can reach, passed to its `run` line in place of `{{files}}`. \
+         Its row prints `selected N of M test files in Xs:` with a count per rule (closure, always, readers, project-readers, widened), \
+         or `selected all M test files:` and why, then `list: target/gatekeeper/<pack>-<gate>.selection.json`. \
+         Why did a test run, or not? That file names each selected file with every rule that selected it: `closure` (vitest lists its imports \
+         reaching a changed file), `always`, `reads` (its code names a changed file's path or basename, or it walks that file's project or a \
+         directory above it), `names-project`, `widened` (a deleted file's project or import specifier). Rerun a failing test with the same \
+         command: the same tree and base select the same files. A selection that cannot be computed fails the gate with its \
+         `.select.log`; it never runs fewer tests.\n\n\
          ## Packs\n\n"
     );
     let list = packs

@@ -28,7 +28,7 @@ fn planned(args: &Args) -> Result<(Plan, Vec<String>), Error> {
                 let mut line = Vec::new();
                 for unit in units {
                     let name = if each { unit.concat() } else { String::new() };
-                    let at = (job.shard, unit);
+                    let at = (job.shard, unit, None);
                     let key = match key::keyed(&p.gate, at, &ident, (&inputs, ws), &root)? {
                         Keyed::Key(key, _) => {
                             let short = key.0.get(..12).unwrap_or_default();

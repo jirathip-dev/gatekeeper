@@ -78,6 +78,12 @@ pattern = "fs::"
 paths = ["crates/gatekeeper-engine/src/select/rules.rs", "crates/gatekeeper-engine/src/select/readers.rs", "crates/gatekeeper-engine/src/select/split.rs"]
 reason = "the selection rules are pure: evidence in, a selection out"
 
+[[ban]]
+pattern = ".bin/vitest"
+paths = ["crates/*/src/**"]
+except = ["crates/gatekeeper-engine/src/select/vitest.rs"]
+reason = "one module finds and runs the repo's vitest"
+
 [[size]]
 paths = ["crates/*/src/**/*.rs"]
 max_file_lines = 400

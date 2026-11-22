@@ -1,0 +1,6 @@
+about = "cargo test against a real vitest: each selection case lists exactly its closure for the change and exactly its tests without it"
+fix = "make the case's `closure` what vitest lists for it, or fix select/vitest.rs; the pinned vitest is in tests/select/_base"
+budget_secs = 180
+setup = ["rust", "node"]
+paths = ["crates/gatekeeper-engine/src/select/**", "crates/gatekeeper-engine/tests/select/**", "crates/gatekeeper-engine/tests/select.rs"]
+run = "mkdir -p target/select-vitest && cp crates/gatekeeper-engine/tests/select/_base/package.json crates/gatekeeper-engine/tests/select/_base/package-lock.json target/select-vitest/ && npm ci --prefix target/select-vitest --no-audit --no-fund --loglevel=error && cargo test -p gatekeeper-engine --test select --locked -- --ignored"

@@ -1,13 +1,14 @@
 use crate::baseline::{self, Baseline};
 use crate::cache::{self, Results};
 use crate::runner::{self, Ended};
+use crate::select::{self, Picked};
 use crate::{Error, Result, VERSION, fetch, kept, packs};
 use gatekeeper_model::{
-    Change, ChangeKind, Decision, Failure, Gate, GateReport, Host, Job, JobReport, Millis, Outcome,
-    PackId, Plan, Planned, Platform, Report, Shard, Skip, Step, SwiftPack, TsPack, judge,
+    Decision, Failure, Gate, GateReport, Host, Job, JobReport, Millis, Outcome, PackId, Plan,
+    Planned, Platform, Report, Shard, Skip, Step, SwiftPack, TsPack, judge,
 };
 use std::cell::OnceCell;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::fs::{self, File};
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
@@ -81,7 +82,7 @@ pub fn platform() -> Platform {
     }
 }
 
-fn millis(d: Duration) -> Millis {
+pub(crate) fn millis(d: Duration) -> Millis {
     Millis(u64::try_from(d.as_millis()).unwrap_or(u64::MAX))
 }
 
@@ -131,7 +132,9 @@ fn ended(r: Result<Ended>, log: &mut File) -> std::result::Result<(), Failure> {
     }
 }
 
-fn run_line(run: &str, (gate, vars): (&Gate, &[(&str, String)]), cx: &RunCtx) -> Result<String> {
+type At<'a> = (&'a Gate, &'a [(&'a str, String)], &'a [String]);
+
+fn run_line(run: &str, (gate, vars, _): At, cx: &RunCtx) -> Result<String> {
     let base = cx
         .base
         .as_ref()
@@ -141,6 +144,9 @@ fn run_line(run: &str, (gate, vars): (&Gate, &[(&str, String)]), cx: &RunCtx) ->
         .as_ref()
         .map_or(String::new(), |p| p.to_string_lossy().into_owned());
     let mut line = run.replace("{--base}", &base).replace("{pr-body}", &body);
+    if gate.select.is_some() {
+        line = line.replace("{files}", "\"$@\"");
+    }
     for dir in ["files", "scripts"] {
         let to = pack_dir(gate.id.pack, dir, &cx.out)?;
         line = line.replace(&format!("{{{dir}}}"), &to.to_string_lossy());
@@ -157,7 +163,7 @@ fn run_line(run: &str, (gate, vars): (&Gate, &[(&str, String)]), cx: &RunCtx) ->
 
 fn step(
     step: &Step,
-    (gate, vars): (&Gate, &[(&str, String)]),
+    at: At,
     cx: &RunCtx,
     log: &mut File,
     deadline: Instant,
@@ -165,9 +171,9 @@ fn step(
     note: &OnceCell<String>,
 ) -> std::result::Result<(), Failure> {
     match step {
-        Step::Run { run } => match run_line(run, (gate, vars), cx) {
+        Step::Run { run } => match run_line(run, at, cx) {
             Ok(line) => ended(
-                runner::shell(&line, (&cx.root, &cx.env), log, deadline),
+                runner::shell(&line, (&cx.root, &cx.env, at.2), log, deadline),
                 log,
             ),
             Err(e) => {
@@ -227,21 +233,21 @@ fn here(gate: &Gate, cx: &RunCtx, log: &mut File) -> std::result::Result<(), Fai
 
 pub(crate) fn gate(
     gate: &Gate,
-    shard: Shard,
+    (shard, picked): (Shard, Option<&Picked>),
     projects: &[String],
     cx: &RunCtx,
 ) -> Result<GateReport> {
     let path = cx.out.join(format!("{}.log", gate.id.file_stem()));
     let mut log = File::create(&path).map_err(|e| Error::at(&path, e))?;
-    let start = Instant::now();
+    let start = picked.map_or_else(Instant::now, |p| p.start);
     let deadline = start + Duration::from_secs(u64::from(gate.budget.0).max(1) * 5);
     let mut listed = Baseline::load(&cx.root, &gate.id)?;
     let vars = [
         ("{shard}", shard.to_string()),
         ("{projects}", projects.join(" ")),
     ];
-    let at = (gate, &vars[..]);
-    let summary = OnceCell::new();
+    let at = (gate, &vars[..], picked.map_or(&[][..], |p| &p.files[..]));
+    let summary = picked.map_or_else(OnceCell::new, |p| OnceCell::from(p.note.clone()));
     let result = here(gate, cx, &mut log)
         .and_then(|()| {
             let mut steps = gate.steps.iter();
@@ -327,16 +333,21 @@ pub fn run(plan: &Plan, cx: &RunCtx, seen: &mut dyn FnMut(&Gate, &GateReport)) -
         for planned in &job.gates {
             let done = match planned.decision {
                 Decision::Run if !waited => unrun(planned, Outcome::Skipped(Skip::AfterFailed)),
-                Decision::Run => {
-                    let run = |projects: &[String]| gate(&planned.gate, job.shard, projects, cx);
-                    match &cx.results {
-                        Some(res) => {
-                            let at = (job.shard, &plan.workspace);
-                            cache::gate(res, planned, at, &cx.root, run)?
+                Decision::Run => match select::pick(planned, plan, cx) {
+                    Err(failed) => *failed,
+                    Ok(picked) => {
+                        let at = (job.shard, picked.as_ref());
+                        let run = |projects: &[String]| gate(&planned.gate, at, projects, cx);
+                        match &cx.results {
+                            Some(res) => {
+                                let digest = picked.as_ref().map(|p| p.digest.as_str());
+                                let at = (job.shard, &plan.workspace, digest);
+                                cache::gate(res, planned, at, &cx.root, run)?
+                            }
+                            None => run(&planned.projects)?,
                         }
-                        None => run(&planned.projects)?,
                     }
-                }
+                },
                 Decision::Skip(skip) => unrun(planned, Outcome::Skipped(skip)),
             };
             seen(&planned.gate, &done);
@@ -367,31 +378,4 @@ pub fn default_base(root: &Path, integration: &str) -> Option<String> {
     let branch = format!("origin/{integration}");
     let out = runner::ok("git", &["merge-base", &branch, "HEAD"], root).ok()?;
     Some(out.trim().to_owned())
-}
-
-/// # Errors
-pub fn changed(root: &Path, base: &str) -> Result<BTreeSet<Change>> {
-    let diff = runner::ok(
-        "git",
-        &["diff", "--name-status", "--no-renames", base],
-        root,
-    )?;
-    let new = runner::ok("git", &["ls-files", "--others", "--exclude-standard"], root)?;
-    let diffed = diff
-        .lines()
-        .filter_map(|l| l.split_once('\t'))
-        .map(|(status, path)| {
-            let kind = match status {
-                "A" => ChangeKind::Added,
-                "D" => ChangeKind::Deleted,
-                _ => ChangeKind::Modified,
-            };
-            (path, kind)
-        });
-    let added = new.lines().map(|path| (path, ChangeKind::Added));
-    let changes = diffed.chain(added).map(|(path, kind)| Change {
-        path: path.to_owned(),
-        kind,
-    });
-    Ok(changes.collect())
 }
