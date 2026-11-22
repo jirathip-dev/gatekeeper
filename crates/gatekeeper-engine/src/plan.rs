@@ -142,6 +142,23 @@ fn leg_jobs(config: &Config, leg: &str, gates: Vec<Gate>, cx: &Scoped) -> Result
         .collect())
 }
 
+fn check_off(config: &Config, gates: &[Gate]) -> Result<()> {
+    for (id, why) in &config.off {
+        if why.trim().is_empty() {
+            return Err(Error(format!("[off] `{id}` needs a reason")));
+        }
+        if id.pack == PackId::Core && id.name() == "pin" {
+            return Err(Error(format!("[off] `{id}` guards the pin and stays on")));
+        }
+        if !gates.iter().any(|g| g.id == *id) {
+            return Err(Error(format!(
+                "[off] names `{id}`, which no configured pack has"
+            )));
+        }
+    }
+    Ok(())
+}
+
 fn check_filter(filter: &Filter, gates: &[Gate]) -> Result<()> {
     let packs: BTreeSet<PackId> = gates.iter().map(|g| g.id.pack).collect();
     if let Some(p) = filter.packs.iter().find(|p| !packs.contains(p)) {
@@ -182,19 +199,7 @@ pub fn plan(
         })?;
         gate.budget = *secs;
     }
-    for (id, why) in &config.off {
-        if why.trim().is_empty() {
-            return Err(Error(format!("[off] `{id}` needs a reason")));
-        }
-        if id.pack == PackId::Core && id.name() == "pin" {
-            return Err(Error(format!("[off] `{id}` guards the pin and stays on")));
-        }
-        if !gates.iter().any(|g| g.id == *id) {
-            return Err(Error(format!(
-                "[off] names `{id}`, which no configured pack has"
-            )));
-        }
-    }
+    check_off(config, &gates)?;
     check_legs(config, &gates)?;
     check_filter(filter, &gates)?;
     let chosen = |g: &Gate| {
