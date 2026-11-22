@@ -51,6 +51,8 @@ pub struct KeyParts {
     pub versions: BTreeMap<String, String>,
     pub tools: BTreeMap<String, String>,
     pub inputs: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub files: Option<String>,
 }
 
 /// Why a gate has no key and always runs.

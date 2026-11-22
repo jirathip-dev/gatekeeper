@@ -246,6 +246,8 @@ pub struct Plan {
     pub affected: Option<Affected>,
     #[serde(skip)]
     pub workspace: Workspace,
+    #[serde(skip)]
+    pub trigger: Trigger,
     pub jobs: Vec<Job>,
 }
 

@@ -23,6 +23,8 @@ struct Case {
     fake_tool: Option<String>,
     #[serde(default)]
     scope: Option<toml::Table>,
+    #[serde(default)]
+    ts: Option<toml::Table>,
     run: Vec<Run>,
 }
 
@@ -226,6 +228,11 @@ fn run_case(case_dir: &Path) {
     fs::create_dir_all(root.join(".gatekeeper/gates")).expect("gates dir");
     fs::write(root.join(".gitignore"), "target/\n").expect("ignore");
     write(&root, &case.files);
+    if case.files.contains_key("node_modules/.bin/vitest") {
+        let bin = root.join("node_modules/.bin/vitest");
+        let chmod = Command::new("chmod").arg("+x").arg(bin).status();
+        assert!(chmod.expect("chmod").success());
+    }
     write_gate(&root, &case.gate);
     if let Some(tool) = &case.fake_tool {
         plant_tool(tool, &tools);
@@ -237,6 +244,10 @@ fn run_case(case_dir: &Path) {
     if let Some(table) = &case.scope {
         config.push_str("[scope]\n");
         config.push_str(&toml::to_string(table).expect("scope"));
+    }
+    if let Some(table) = &case.ts {
+        config.push_str("[ts]\n");
+        config.push_str(&toml::to_string(table).expect("ts"));
     }
     if let Some(table) = &case.cache {
         let mut table = table.clone();
@@ -264,7 +275,7 @@ fn each_cache_case_reports_what_its_runs_expect() {
         run_case(&entry.expect("entry").path());
         seen += 1;
     }
-    assert_eq!(seen, 37);
+    assert_eq!(seen, 39);
 }
 
 fn run_step(at: &str, step: &Run, config: &Config, dir: &Path, i: u64) {
@@ -297,13 +308,13 @@ fn run_step(at: &str, step: &Run, config: &Config, dir: &Path, i: u64) {
         out: run::out_dir(&root),
         root: root.clone(),
         cache: tools.clone(),
-        base: None,
+        base: step.changed.as_ref().map(|_| "HEAD".to_owned()),
         pr_body: None,
         host,
         job_start: None,
         manifest: "Cargo.toml".into(),
         after_reports: None,
-        ts: None,
+        ts: config.ts.clone(),
         swift: None,
         tools: BTreeMap::new(),
         platform: run::platform(),

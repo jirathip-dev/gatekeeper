@@ -132,7 +132,7 @@ fn run_case(gate: &Gate, case: Option<&str>, out: &Path, bench: &Bench) -> Resul
         env: env(&prefixes),
     };
     fs::create_dir_all(&cx.out).map_err(|e| Error::at(&cx.out, e))?;
-    let report = run::gate(gate, Shard::ONE, &[], &cx)?;
+    let report = run::gate(gate, (Shard::ONE, None), &[], &cx)?;
     let log = fs::read_to_string(dir.join(&report.log)).unwrap_or_default();
     Ok((report.outcome.fails(), log))
 }

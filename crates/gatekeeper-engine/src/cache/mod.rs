@@ -71,7 +71,7 @@ struct Unit<'a> {
 fn units<'a>(
     res: &Results,
     planned: &'a Planned,
-    (shard, ws): (Shard, &Workspace),
+    (shard, ws, files): (Shard, &Workspace, Option<&str>),
     root: &Path,
 ) -> Result<std::result::Result<Vec<Unit<'a>>, Unkeyed>> {
     let units: Vec<&[String]> = if per_project(&planned.gate, shard) {
@@ -81,7 +81,7 @@ fn units<'a>(
     };
     let mut found = Vec::new();
     for projects in units {
-        let at = (shard, projects);
+        let at = (shard, projects, files);
         match key::keyed(&planned.gate, at, &res.ident, (&res.inputs, ws), root)? {
             Keyed::No(why) => return Ok(Err(why)),
             Keyed::Key(key, parts) => {
@@ -128,7 +128,7 @@ fn all_hit(found: &[Unit]) -> Option<Hit> {
 pub(crate) fn gate(
     res: &Results,
     planned: &Planned,
-    at: (Shard, &Workspace),
+    at: (Shard, &Workspace, Option<&str>),
     root: &Path,
     run: impl FnOnce(&[String]) -> Result<GateReport>,
 ) -> Result<GateReport> {

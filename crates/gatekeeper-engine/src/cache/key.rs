@@ -13,7 +13,7 @@ pub enum Keyed {
 /// # Errors
 pub fn keyed(
     gate: &Gate,
-    (shard, projects): (Shard, &[String]),
+    (shard, projects, files): (Shard, &[String], Option<&str>),
     ident: &Ident,
     (inputs, ws): (&Inputs, &Workspace),
     root: &Path,
@@ -23,7 +23,7 @@ pub fn keyed(
     }
     let file = serde_json::to_string(gate).map_err(|e| Error(e.to_string()))?;
     let parts = KeyParts {
-        schema: 1,
+        schema: 2,
         engine: ident.engine.clone(),
         gate: gate.id.clone(),
         gate_file: sha256_hex(file.as_bytes()),
@@ -33,6 +33,7 @@ pub fn keyed(
         versions: ident.versions(gate, root),
         tools: ident.tools(gate)?,
         inputs: inputs.of(gate, projects, ws).1,
+        files: files.map(str::to_owned),
     };
     let json = serde_json::to_string(&parts).map_err(|e| Error(e.to_string()))?;
     Ok(Keyed::Key(

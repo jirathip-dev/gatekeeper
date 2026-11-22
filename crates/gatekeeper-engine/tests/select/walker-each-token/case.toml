@@ -1,4 +1,5 @@
 about = "each walker token makes a test that names the directory a walker"
+closure = ["packages/tools/src/walk-meta-glob.test.ts"]
 
 [files]
 "docs/guide.md" = "one\n"
@@ -25,7 +26,7 @@ about = "each walker token makes a test that names the directory a walker"
 "packages/tools/src/walk-scandir.test.ts" = ["reads-walks-dir"]
 "packages/tools/src/walk-glob.test.ts" = ["reads-walks-dir"]
 "packages/tools/src/walk-fdir.test.ts" = ["reads-walks-dir"]
-"packages/tools/src/walk-meta-glob.test.ts" = ["reads-walks-dir"]
+"packages/tools/src/walk-meta-glob.test.ts" = ["closure", "reads-walks-dir"]
 "packages/tools/src/walk-ls-files.test.ts" = ["reads-walks-dir"]
 "packages/tools/src/walk-git-grep.test.ts" = ["reads-walks-dir"]
 "packages/tools/src/walk-exec-file.test.ts" = ["reads-walks-dir"]

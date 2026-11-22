@@ -217,6 +217,7 @@ pub fn plan(
     Ok(Plan {
         affected,
         workspace,
+        trigger: filter.trigger.clone(),
         jobs,
     })
 }

@@ -51,20 +51,16 @@ pub fn logged(
     }
 }
 
-/// `sh -c line` in `cwd`, logged.
+/// `sh -c line sh args…` in `cwd`, logged: `"$@"` in the line is `args`, one argument each.
 pub fn shell(
     line: &str,
-    (cwd, env): (&Path, &[(String, String)]),
+    (cwd, env, args): (&Path, &[(String, String)], &[String]),
     log: &mut File,
     deadline: Instant,
 ) -> Result<Ended> {
-    logged(
-        (Path::new("sh"), env),
-        &["-c".to_owned(), line.to_owned()],
-        cwd,
-        log,
-        deadline,
-    )
+    let mut all = vec!["-c".to_owned(), line.to_owned(), "sh".to_owned()];
+    all.extend_from_slice(args);
+    logged((Path::new("sh"), env), &all, cwd, log, deadline)
 }
 
 /// Runs `program args` in `cwd` on the caller's terminal; its exit code.
