@@ -1,0 +1,12 @@
+about = "a walker is selected for a change in its own project, not in another"
+
+[files]
+"apps/web/src/banner.css" = "p { color: red; }\n"
+"apps/web/src/no-inline.test.ts" = "readdirSync(here);\n"
+"packages/tools/src/tree.test.ts" = "readdirSync(here);\n"
+
+[change]
+"apps/web/src/banner.css" = "p { color: blue; }\n"
+
+[expect]
+"apps/web/src/no-inline.test.ts" = ["reads-walks-project"]

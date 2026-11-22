@@ -1,0 +1,11 @@
+about = "a test in no project is selected on every change"
+
+[files]
+"docs/guide.md" = "one\n"
+"scripts/release.test.ts" = "it('releases', () => {});\n"
+
+[change]
+"docs/guide.md" = "two\n"
+
+[expect]
+"scripts/release.test.ts" = ["always-no-project"]

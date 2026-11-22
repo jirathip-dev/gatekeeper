@@ -1,0 +1,15 @@
+about = "a top-level directory is named only between quotes or slashes"
+
+[files]
+"docs/guide.md" = "one\n"
+"packages/tools/src/docs-join.test.ts" = "readdirSync(join(root, 'docs'));\n"
+"packages/tools/src/docs-template.test.ts" = "readdirSync(`${root}/docs/`);\n"
+"packages/tools/src/docs-site.test.ts" = "readdirSync(join(root, 'docs-site'));\n"
+"packages/tools/src/docs-title.test.ts" = "it('reads the docs', () => readdirSync(root));\n"
+
+[change]
+"docs/guide.md" = "two\n"
+
+[expect]
+"packages/tools/src/docs-join.test.ts" = ["reads-walks-dir"]
+"packages/tools/src/docs-template.test.ts" = ["reads-walks-dir"]

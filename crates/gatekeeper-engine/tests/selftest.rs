@@ -21,6 +21,7 @@ fn always_passing(name: &str) -> Gate {
         rule: Vec::new(),
         versions: Vec::new(),
         cache: true,
+        select: None,
     }
 }
 

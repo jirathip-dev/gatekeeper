@@ -12,6 +12,7 @@ pub mod plan;
 pub mod run;
 pub(crate) mod runner;
 pub mod scope;
+pub mod select;
 pub mod selftest;
 pub mod skill;
 

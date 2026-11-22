@@ -1,4 +1,4 @@
-trigger = { change = ["packages/ui/button.ts"] }
+trigger = { change = [{ path = "packages/ui/button.ts", kind = "modified" }] }
 expect = { projects = ["apps/admin", "apps/web", "packages/ui"] }
 ignore = ["docs/**"]
 

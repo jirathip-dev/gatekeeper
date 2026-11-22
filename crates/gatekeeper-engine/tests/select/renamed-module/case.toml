@@ -1,0 +1,11 @@
+about = "a renamed-away module is a deleted one: its former project's tests run"
+closure = ["packages/ui/src/label.test.ts"]
+delete = ["packages/ui/src/label.ts"]
+
+[change]
+"packages/ui/src/tag.ts" = "export const label = (text: string) => text.toUpperCase();\n"
+"packages/ui/src/label.test.ts" = "import { expect, it } from 'vitest';\nimport { label } from './tag';\n\nit('shouts', () => expect(label('ok')).toBe('OK'));\n"
+
+[expect]
+"packages/ui/src/button.test.ts" = ["widened-former-project"]
+"packages/ui/src/label.test.ts" = ["closure", "widened-former-project"]

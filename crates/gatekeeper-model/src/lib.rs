@@ -3,6 +3,7 @@ mod gate;
 mod glob;
 mod report;
 mod scope;
+mod select;
 
 pub use cache::{
     CacheConfig, CacheMode, CacheNote, Event, Hit, Key, KeyParts, Off, ProjectCache, Proof,
@@ -16,6 +17,10 @@ pub use report::{
 };
 pub use scope::{
     Affected, Graph, GraphKind, Leg, ScopeConfig, Shard, Shards, Trigger, Widened, Workspace,
+};
+pub use select::{
+    Always, Change, ChangeKind, Evidence, Files, Full, Read, Select, Selection, TestFile, Walk,
+    Why, Widen,
 };
 
 use serde::{Deserialize, Serialize};

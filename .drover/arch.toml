@@ -21,6 +21,10 @@ glob = "*/fixtures/**"
 dir = "crates/gatekeeper-engine/tests/cache"
 glob = "*/case.toml"
 
+[[collect]]
+dir = "crates/gatekeeper-engine/tests/select"
+glob = "*/case.toml"
+
 [[layer]]
 name = "model"
 paths = ["crates/gatekeeper-model/src/**"]
@@ -63,6 +67,16 @@ reason = "the cli reads the environment once and passes typed values"
 pattern = "github.event_name"
 paths = [".github/workflows/gates.yml"]
 reason = "ci plan decides which runs read and write the result cache; the workflow only moves the folder"
+
+[[ban]]
+pattern = "runner::"
+paths = ["crates/gatekeeper-engine/src/select/rules.rs", "crates/gatekeeper-engine/src/select/readers.rs", "crates/gatekeeper-engine/src/select/split.rs"]
+reason = "the selection rules are pure: evidence in, a selection out"
+
+[[ban]]
+pattern = "fs::"
+paths = ["crates/gatekeeper-engine/src/select/rules.rs", "crates/gatekeeper-engine/src/select/readers.rs", "crates/gatekeeper-engine/src/select/split.rs"]
+reason = "the selection rules are pure: evidence in, a selection out"
 
 [[size]]
 paths = ["crates/*/src/**/*.rs"]
