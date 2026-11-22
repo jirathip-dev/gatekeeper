@@ -1,0 +1,13 @@
+about = "every Swatinem/rust-cache step in .github/workflows/ sets cache-bin: false, so a self-hosted runner's ~/.cargo/bin is never cached or cleaned"
+fix = "add cache-bin: false under the named rust-cache step's with:"
+budget_secs = 1
+paths = [".github/workflows/**"]
+run = '''
+awk '
+function flush() { if (at && !off) { print where ": Swatinem/rust-cache without cache-bin: false"; bad = 1 } at = 0; off = 0 }
+FNR == 1 || /^ *- [A-Za-z_-]+:/ { flush() }
+/uses: *Swatinem\/rust-cache@/ { at = 1; where = FILENAME ":" FNR }
+/^ *cache-bin: *false *(#.*)?$/ { off = 1 }
+END { flush(); exit bad }
+' .github/workflows/*.yml
+'''
