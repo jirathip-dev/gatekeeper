@@ -182,6 +182,21 @@ It checks the signature, rewrites `[pin]`, the `uses: …gates.yml@<sha> # v<ver
 run `check`: a stricter gate can turn the repo red only in that one PR. `core/pin` fails a `uses:` line whose sha
 is not the pinned build's commit or whose comment is not its version, and an edited wrapper.
 
+Upgrading from v1.1.1 or older: that release's `pin` cannot pin, so run the new release's own binary once at the
+repo root (`t` is `aarch64-apple-darwin` or `x86_64-unknown-linux-gnu`):
+
+```
+$ t=aarch64-apple-darwin
+$ base=https://github.com/jirathip-dev/gatekeeper/releases/download/v1.1.2
+$ curl -sSfLO "$base/gatekeeper-$t" -sSfLO "$base/SHA256SUMS"
+$ grep " gatekeeper-$t\$" SHA256SUMS | shasum -a 256 -c
+$ chmod +x "gatekeeper-$t"
+$ ./gatekeeper-$t pin 1.1.2
+$ rm "gatekeeper-$t" SHA256SUMS
+```
+
+After that `./.gatekeeper/run pin` works as usual.
+
 ## Workflows
 
 All are `workflow_call`, called by commit with the tag as a comment.
