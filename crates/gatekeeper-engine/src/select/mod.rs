@@ -1,4 +1,5 @@
 mod readers;
+pub mod replay;
 mod rules;
 pub mod vitest;
 
@@ -9,13 +10,14 @@ use crate::run::{RunCtx, millis, unrun};
 use crate::runner::{self, Ended};
 use crate::{Error, Result};
 use gatekeeper_model::{
-    Evidence, Failure, Full, GateId, GateReport, Outcome, Plan, Planned, Select, Selection,
-    TestFile, Trigger, Why, Widened,
+    Evidence, Failure, Files, Full, GateId, GateReport, Graph, Outcome, Plan, Planned, Select,
+    Selection, TestFile, Trigger, TsPack, Why, Widened,
 };
 use serde::Serialize;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{self, File};
 use std::io::Write as _;
+use std::path::Path;
 use std::time::{Duration, Instant};
 
 /// A `[select]` gate's test files for this job: its `{files}`, their digest in the key, the selection line.
@@ -49,6 +51,14 @@ fn family(why: &Why) -> &'static str {
     }
 }
 
+fn by(files: &Files) -> impl Iterator<Item = (&'static str, usize)> + '_ {
+    let count = move |name| {
+        let has = |whys: &BTreeSet<Why>| whys.iter().any(|w| family(w) == name);
+        (name, files.reasons().values().filter(|w| has(w)).count())
+    };
+    FAMILIES.into_iter().map(count).filter(|(_, n)| *n > 0)
+}
+
 fn line(selection: &Selection, universe: usize, took: Duration) -> String {
     let why = match selection {
         Selection::Full(Full::File(path)) => format!("`{path}` changed (full)"),
@@ -60,12 +70,7 @@ fn line(selection: &Selection, universe: usize, took: Duration) -> String {
             Widened::OutsideEveryProject(path) => format!("`{path}` is outside every project"),
         },
         Selection::Files(files) => {
-            let by = FAMILIES.map(|name| {
-                let has = |whys: &BTreeSet<Why>| whys.iter().any(|w| family(w) == name);
-                (name, files.reasons().values().filter(|w| has(w)).count())
-            });
-            let by = by.iter().filter(|(_, n)| *n > 0);
-            let by: Vec<String> = by.map(|(name, n)| format!("{name} {n}")).collect();
+            let by: Vec<String> = by(files).map(|(name, n)| format!("{name} {n}")).collect();
             let secs = crate::ci::secs(millis(took));
             let n = files.reasons().len();
             return format!(
@@ -78,28 +83,25 @@ fn line(selection: &Selection, universe: usize, took: Duration) -> String {
 }
 
 fn gather(
-    select: &Select,
-    plan: &Plan,
-    cx: &RunCtx,
+    (select, ts): (&Select, Option<&TsPack>),
+    (trigger, graph): (&Trigger, &Graph),
+    (root, env, base): (&Path, &[(String, String)], Option<&str>),
     (log, deadline): (&mut File, Instant),
 ) -> Result<(BTreeSet<TestFile>, Selection)> {
-    let ts = cx
-        .ts
-        .as_ref()
-        .ok_or_else(|| Error("[select] needs [ts]".into()))?;
-    match runner::shell(&ts.install, (&cx.root, &cx.env, &[]), log, deadline)? {
+    let ts = ts.ok_or_else(|| Error("[select] needs [ts]".into()))?;
+    match runner::shell(&ts.install, (root, env, &[]), log, deadline)? {
         Ended::Exit(0) => {}
         ended => return Err(Error(format!("[ts] install `{}`: {ended:?}", ts.install))),
     }
-    let universe = vitest::list(&cx.root, &select.vitest, None)?;
-    let closure = match (&plan.trigger, &cx.base) {
+    let universe = vitest::list(root, &select.vitest, None)?;
+    let closure = match (trigger, base) {
         (Trigger::Everything(_), _) => BTreeSet::new(),
-        (Trigger::Change(_), Some(base)) => vitest::list(&cx.root, &select.vitest, Some(base))?,
+        (Trigger::Change(_), Some(base)) => vitest::list(root, &select.vitest, Some(base))?,
         (Trigger::Change(_), None) => return Err(Error("a change with no base to list".into())),
     };
     let mut texts = BTreeMap::new();
     for test in &universe {
-        let path = cx.root.join(&test.0);
+        let path = root.join(&test.0);
         let text = fs::read_to_string(&path).map_err(|e| Error::at(&path, e))?;
         texts.insert(test.clone(), text);
     }
@@ -107,9 +109,9 @@ fn gather(
         universe: &universe,
         closure: &closure,
         texts: &texts,
-        graph: &plan.workspace.graph,
+        graph,
     };
-    let selection = rules::select(&plan.trigger, select, &ev);
+    let selection = rules::select(trigger, select, &ev);
     Ok((universe, selection))
 }
 
@@ -121,7 +123,12 @@ fn chosen(
 ) -> Result<Picked> {
     let gate = &planned.gate;
     let deadline = start + Duration::from_secs(u64::from(gate.budget.0).max(1) * 5);
-    let (universe, selection) = gather(select, plan, cx, (log, deadline))?;
+    let (universe, selection) = gather(
+        (select, cx.ts.as_ref()),
+        (&plan.trigger, &plan.workspace.graph),
+        (&cx.root, &cx.env, cx.base.as_deref()),
+        (log, deadline),
+    )?;
     let unreasoned = BTreeSet::new();
     let (full, listed): (_, BTreeMap<_, _>) = match &selection {
         Selection::Full(full) => (

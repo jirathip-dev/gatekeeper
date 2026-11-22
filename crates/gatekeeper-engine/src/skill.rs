@@ -68,7 +68,11 @@ fn skill_md(packs: &[(PackId, String)]) -> String {
          reaching a changed file), `always`, `reads` (its code names a changed file's path or basename, or it walks that file's project or a \
          directory above it), `names-project`, `widened` (a deleted file's project or import specifier). Rerun a failing test with the same \
          command: the same tree and base select the same files. A selection that cannot be computed fails the gate with its \
-         `.select.log`; it never runs fewer tests.\n\n\
+         `.select.log`; it never runs fewer tests. \
+         `./.gatekeeper/run replay --gate <pack>/<gate> --runs runs.jsonl --other '<cmd> {{base}}'` measures it against another selector: \
+         each line of `runs.jsonl` is `{{\"pr\", \"base\", \"head\", \"failed\"}}`, both select in a scratch worktree of the head, and it prints \
+         per run the counts, the files only one chose and each missed failure, then the totals, into `target/gatekeeper/replay/`; \
+         it exits 1 when gatekeeper missed a failure.\n\n\
          ## Packs\n\n"
     );
     let list = packs
