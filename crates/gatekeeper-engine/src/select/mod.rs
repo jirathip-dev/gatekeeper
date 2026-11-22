@@ -186,33 +186,52 @@ fn chosen(
         files: listed,
     };
     written.save(&cx.out)?;
-    let mut note = line(&selection, universe.len(), start.elapsed());
-    if shard.of.get() > 1 {
-        note = format!("{note} · shard {shard} runs {}", files.len());
-    }
-    let report = report_path(&cx.out, &gate.id);
-    fs::remove_file(&report).ok();
-    let by = match &selection {
-        Selection::Files(f) => by(f).map(|(name, n)| (name.to_owned(), count(n))).collect(),
-        Selection::Full(_) => BTreeMap::new(),
-    };
+    let note = line(&selection, universe.len(), start.elapsed());
     let selected = Selected {
         universe: count(universe.len()),
         selected: count(all.len()),
         slice: count(files.len()),
         full: full.cloned(),
-        by,
+        by: counts(&selection),
         digest,
         took: millis(start.elapsed()),
     };
-    Ok(Picked {
+    Ok(sliced(
+        (files, selected),
+        note,
+        shard,
+        (&cx.out, &gate.id, start),
+    ))
+}
+
+fn counts(selection: &Selection) -> BTreeMap<String, u32> {
+    match selection {
+        Selection::Files(f) => by(f).map(|(name, n)| (name.to_owned(), count(n))).collect(),
+        Selection::Full(_) => BTreeMap::new(),
+    }
+}
+
+fn sliced(
+    (files, selected): (Vec<String>, Selected),
+    note: String,
+    shard: Shard,
+    (out, gate, start): (&Path, &GateId, Instant),
+) -> Picked {
+    let note = if shard.of.get() > 1 {
+        format!("{note} · shard {shard} runs {}", files.len())
+    } else {
+        note
+    };
+    let report = report_path(out, gate);
+    fs::remove_file(&report).ok();
+    Picked {
         digest: sha256_hex(files.join("\n").as_bytes()),
         files,
         note,
         start,
         report,
         selected,
-    })
+    }
 }
 
 pub(crate) fn pick(
