@@ -38,7 +38,7 @@ struct TestFile(RepoPath);
 struct Evidence<'a> {
     universe: &'a BTreeSet<TestFile>,        // `vitest list --filesOnly` under the gate's config
     closure: &'a BTreeSet<TestFile>,         // the same with `--changed <base>`
-    texts: &'a BTreeMap<TestFile, String>,   // each test file's own text
+    texts: &'a BTreeMap<TestFile, String>,   // each test file's own text; the rules read its code (below)
     graph: &'a Graph,                        // the projects (G10)
 }
 
@@ -67,7 +67,8 @@ enum Why {
     Widened(Widen),
 }
 enum Always { Path, NoProject }
-enum Read { Path(RepoPath), Basename(RepoPath), Walks }
+enum Read { Path(RepoPath), Basename(RepoPath), Walks(Walk) }   // the changed file
+enum Walk { Project(ProjectRoot), Dir(RepoPath) }               // the project they share; the deepest directory named
 enum Widen { FormerProject(RepoPath), Specifier(RepoPath) }   // the deleted file
 ```
 
@@ -81,17 +82,27 @@ union below, over the tests of the universe; an empty union is `Full(Empty)`.
 | `Closure` | vitest lists it for `--changed <base>` |
 | `Always(Path)` | it matches a glob of `always` |
 | `Always(NoProject)` | no project of the graph holds it |
-| `Reads(Path)` | its text contains a changed file's repo path |
-| `Reads(Basename)` | a changed file's basename has an extension, and its text contains the basename as a whole token |
-| `Reads(Walks)` | anything changed, and its text has a walker token |
-| `NamesProject` | its text contains, as a whole token, the root of a project that holds a changed file |
+| `Reads(Path)` | its code contains a changed file's repo path |
+| `Reads(Basename)` | a changed file's basename has an extension, and its code contains the basename as a whole token |
+| `Reads(Walks(Project))` | its code has a walker token, and its project holds a changed file |
+| `Reads(Walks(Dir))` | its code has a walker token and names an ancestor directory of a changed file |
+| `NamesProject` | its code contains, as a whole token, the root of a project that holds a changed file |
 | `Widened(FormerProject)` | a deleted file that was no test file lay in its project |
-| `Widened(Specifier)` | a deleted file that was no test file is named by an import specifier in its text |
+| `Widened(Specifier)` | a deleted file that was no test file is named by an import specifier in its code |
 
 - **Changed file** covers added, modified and deleted ones; the two `Widened` rules read only deleted ones.
+- **Code**: a test file's text without its comment-only lines, those whose first characters after blanks are
+  `//`, `/*`, `*` or `<!--`. Every text rule reads the code. A comment after code on the same line still counts.
 - **A whole token**: the characters before and after the match are not a letter, a digit, `_`, `-` or `.`.
-- **Walker tokens**: a name starting with `readdir`; a name starting with `glob` but not `global`;
-  `import.meta.glob`; `git ls-files`; a name starting with `execFile` or `spawn`.
+- **Walker tokens**: a name starting with `readdir`, `opendir`, `scandir`, `execFile` or `spawn`; a name starting
+  with `glob` but not `global`; the names `fdir` and `execSync`; `import.meta.glob`; `ls-files`; `git grep`.
+- **Names an ancestor directory**: for `a/b/c/f.ts` the directories are `a/b/c`, `a/b` and `a`. One of two or
+  more segments is named when the code holds its segments in order as a whole token, with any run of `/`, `\`,
+  quotes, commas, `+` and blanks between two of them: `'supabase/migrations'` and
+  `join(root, "supabase", "migrations")` both name it. A top-level directory is named only between quotes or
+  slashes: `"docs"`, `/docs/`. A file at the repo's root has no ancestor directory.
+- A walker runs for its own project or a directory it names, never for every change. A test in no project is
+  `Always(NoProject)` already.
 - **Was a test file**: its name has `.test.` or `.spec.` before its last extension. A deleted test file widens
   nothing.
 - **Named by an import specifier**: a quoted string in the text ends with `/` and the deleted file's name

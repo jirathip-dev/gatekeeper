@@ -58,6 +58,7 @@ this test run" and "why did that one not":
   "files": {
     "apps/web/src/price.test.ts": ["closure"],
     "packages/tools/src/config.test.ts": [{ "reads": { "basename": "supabase/config.toml" } }],
+    "packages/tools/src/workflows.test.ts": [{ "reads": { "walks": { "dir": ".github/workflows" } } }],
     "packages/ui/src/button.test.ts": [{ "widened": { "former-project": "packages/ui/src/old.ts" } }],
     "tests/guards/licence.test.ts": [{ "always": "path" }] } }
 ```

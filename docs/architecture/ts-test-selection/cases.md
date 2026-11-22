@@ -38,8 +38,9 @@ Two tests read every case:
 
 - **pure**, in `cargo test`: `closure` and the workspace's test files are the evidence; `select` must return
   exactly `expect`, files and reasons.
-- **real vitest**, in gatekeeper's own gate `select-vitest`: the case is laid out as a git repo, and the
-  repo's vitest must list exactly `closure` for the change and exactly the workspace's tests without it.
+- **real vitest**, in gatekeeper's own gate `select-vitest`: the case is laid out as a git repo, and vitest
+  must list exactly `closure` for the change and exactly the workspace's tests without it. vitest is pinned in
+  `_base/package.json` and its lockfile, and only this gate installs it (the owner's yes, q2965).
 
 So a stubbed closure cannot drift from what vitest does.
 
@@ -58,8 +59,12 @@ test also fails when a reason or a `Full` kind appears in no case.
 | fs-readers, the repo path | `reader-path` | `docker/Dockerfile` modified; a test's text has `'docker/Dockerfile'` | it: `reads-path` (no extension, so the basename rule is silent) |
 | fs-readers, the basename | `reader-basename` | above | `banner.test.ts`: `reads-basename` |
 | fs-readers, a whole token only | `reader-basename-not-a-token` | `supabase/config.toml` modified; one test names `my-config.toml`, one `config.toml.bak`, a guard exists | the guard only |
-| fs-readers, walkers | `reader-walker-each-token` | `docs/guide.md` modified; six tests with `readdirSync`, `globSync`, `import.meta.glob`, `git ls-files`, `execFileSync`, `spawn`; one with `globalThis` | the six: `reads-walks`. The `globalThis` test is not selected |
-| project readers | `project-reader` | `packages/ui/src/button.ts` modified; `packages/tools/src/layout.test.ts` has `'packages/ui/src'` | it: `names-project`. A test naming `packages/ui-kit` is not selected |
+| fs-readers, a walker in the changed file's project | `walker-own-project` | `apps/web/src/banner.css` modified, imported by nothing; `apps/web/src/no-inline.test.ts` and `packages/tools/src/tree.test.ts` each call `readdirSync(here)` | the first: `reads-walks-project`. The walker in `packages/tools` is not selected |
+| fs-readers, a walker that names a directory above the changed file | `walker-ancestor-dir` | `.github/workflows/ci.yml` modified; one walker in `packages/tools` has `join(root, '.github', 'workflows')`, one has `'supabase/migrations'` | the first: `reads-walks-dir`. The second is not selected |
+| fs-readers, a top-level directory only between quotes or slashes | `walker-top-level-dir` | `docs/guide.md` modified; four walkers, with `join(root, 'docs')`, `` `${root}/docs/` ``, `'docs-site'` and `'reads the docs'` | the first two: `reads-walks-dir` |
+| fs-readers, each walker token | `walker-each-token` | `docs/guide.md` modified; eleven tests that name `'docs'`, one token each: `readdirSync`, `opendir`, `scandir`, `globSync`, `fdir`, `import.meta.glob`, `ls-files`, `git grep`, `execFileSync`, `execSync`, `spawn`; two more that name it, one with `globalThis`, one with no token | the eleven: `reads-walks-dir`. The other two are not selected |
+| the text rules skip comment-only lines | `comment-only-line` | `supabase/config.toml` modified; one test names `config.toml` on a `//` line and on a `*` line of a block comment; one has `load(dir) // config.toml` | the second: `reads-basename`. The first is not selected |
+| project readers, per test | `project-reader` | `packages/ui/src/button.ts` modified; `packages/tools/src/layout.test.ts` has `'packages/ui/src'` | it: `names-project`. A test naming `packages/ui-kit` is not selected, nor is `sum.test.ts` beside it in `packages/tools` |
 
 ## The widenings
 

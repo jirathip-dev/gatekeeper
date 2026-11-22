@@ -4,14 +4,15 @@
 
 Decision: a test gate may ask for per-file selection. gatekeeper then runs only the test files a change can
 reach: those whose imports reach a changed file (asked of the repo's own vitest), the always-run guards, tests
-that read a changed file by path, and a deleted file's project. A file outside every project no longer runs
-everything. Shards cut one list by recorded time; the result cache keeps one record per job.
+that read a changed file by path or walk its project or a folder above it, and a deleted file's project. A file
+outside every project no longer runs everything. Shards cut one list by recorded time; one cache record per job.
 Slices: the rules and their cases; vitest and the run; shards and timings; the replay report; one adoption each.
-Open questions: project readers, the one test or its whole project? May gatekeeper's own tests install vitest?
+Open questions: none. Revised on the owner's answers: walkers narrowed, project readers per test, vitest allowed.
 
 ## Status
 
-Proposed 2026-11-22. Nothing is built. The issues below are filed once the owner approves.
+Proposed 2026-11-22; revised the same day on the owner's answers (q2965, near the end). Nothing is built. The
+issues below are filed once the owner approves.
 
 ## Question
 
@@ -86,10 +87,11 @@ Decided by the owner already (2026-11-20): until it does, such a repo does not f
    `projects` stays for every other gate. Shape: `usage.md`.
 2. **The rules.** Everything, when the run is not a change or a changed file matches `full` or `.gatekeeper/**`.
    Otherwise the union: the closure vitest lists; tests under `always` and tests in no project; tests whose own
-   text holds a changed file's path, its basename as a whole token, or a walker token; tests whose text names a
-   touched project; and for a deleted file that was no test, its project's tests and the tests that name it by
-   import specifier. An empty union is everything. Each selected file carries every rule that selected it.
-   Exact wording: `shapes.md`.
+   code holds a changed file's path or its basename as a whole token; tests that walk directories or shell out,
+   when they lie in a changed file's project or name a directory above it; tests whose code names a touched
+   project; and for a deleted file that was no test, its project's tests and the tests that name it by import
+   specifier. Comment-only lines are not read. An empty union is everything. Each selected file carries every
+   rule that selected it. Exact wording: `shapes.md`.
 3. **Each job selects for itself.** A lane's run and each CI shard run the install, the two vitest lists and the
    rules, inside the gate's time. Each report carries a digest of the list; `done` fails a gate whose shards
    disagree. A selection that cannot be computed fails the gate; it never narrows.
@@ -132,12 +134,17 @@ Decided by the owner already (2026-11-20): until it does, such a repo does not f
 - A module deleted in one project and still imported by an unchanged module of another selects neither side's
   tests beyond the deleted file's project. `ts/tsc` fails that change.
 - No import graph follows a lockfile. `full` is required so each repo writes that line once, in review.
-- Tests with a walker token run on every change. They are few by nature; the selection line counts them.
+- A walker runs for a change in its own project or under a directory it names, not on every change. One that
+  builds its directory from a variable, or walks the repo's root, names nothing: `always` is for such a test.
+- A code line that starts with `*` (a wrapped multiplication, a generator method) is read as a comment.
+- Project readers are per test, and match the touched project itself, not the projects that need it: a test
+  that reads one of those by path sees no changed file, and one that imports it is in the closure.
 - vitest matches a file argument by substring, so `a.test.ts` can also run `a.test.tsx`. More tests, never fewer.
 - vitest's own trigger stays: a changed `package.json` or vitest config lists every test of that config.
 - Every result record misses once, when the key's schema changes.
-- The binary gains no dependency. gatekeeper's repo would gain vitest in one test workspace's lockfile (open
-  question 2).
+- The binary gains no dependency. gatekeeper's repo gains vitest, pinned, in the `package.json` and lockfile of
+  one test workspace, `tests/select/_base`; only the gate `select-vitest` installs it. That manifest is outside
+  the root one's workspaces, so the deps check does not read it: S2's commit carries `Deps: #46` as the record.
 - The build is about 1,200 lines of `src/`, over the 498 lines of headroom. The raise is its own issue, before S1.
 
 ## Issues, in order
@@ -152,16 +159,20 @@ Filed after approval, each carrying the five criteria and its rows of `cases.md`
 | S4 | `replay`: the verb, `replay.json` and `replay.md`. | S2 |
 | S5 | One adoption per consumer, in its repo: the gate file, a replay over at least 30 merged pull requests with its totals in the issue, the consumer's selector deleted, then its workflow frozen (#1, adoption 9). | S3, S4 |
 
-## Open questions for the owner
+## Answered by the owner (q2965, 2026-11-22)
 
-1. **Project readers.** The issue says "tests of any project whose text references a project the change
-   touches". I took it per test: a test whose own text names the touched project's root is selected. The other
-   reading selects every test of a project when any of its files names the touched project. The first is
-   tighter and reads only test files; the second is a superset. One rule and one case change if it is the second.
-2. **vitest in gatekeeper's own tests.** Proving the stubbed closures against a real vitest puts vitest in one
-   test workspace's `package.json` and lockfile in this repo, installed only by the gate `select-vitest`. Without
-   it the cases prove the rules but not that vitest answers as they assume; the first adopter's replay would be
-   the first real run.
+No question is open.
+
+| Asked or proposed | Answer | Where it landed |
+|---|---|---|
+| Walkers: the first draft ran every test with a walker token on every change | Revise: as the source selector does. A walker is selected when it lies in a changed file's project or names a directory above the changed file; `opendir` and `git grep` are walker tokens; comment-only lines are skipped | `shapes.md`, the rules; the cases `walker-own-project`, `walker-ancestor-dir`, `walker-top-level-dir`, `walker-each-token`, `comment-only-line` |
+| Project readers: the one test, or its whole project? | Per test | unchanged; the case `project-reader` now also shows its neighbour is not selected |
+| May gatekeeper's own tests install vitest? | Yes, in one test workspace | decision 7; the gate `select-vitest` in S2 |
+
+Two things in the walker rule are this lane's reading, both wider than the answer's words and never narrower.
+The ancestor-directory half applies to every changed file, not only one outside every project: a repo whose
+root is itself a project has no such file. The token list also takes the source selector's `scandir`, `fdir`
+and `execSync`.
 
 ## `.drover/arch.toml` lines
 

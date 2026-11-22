@@ -6,7 +6,7 @@
 crates/gatekeeper-model/src/select.rs        the types of shapes.md; no I/O
 crates/gatekeeper-engine/src/select/
   rules.rs     the union: trigger, [select] and evidence in, Selection out; pure
-  readers.rs   the text rules: path, basename token, walker, project root, import specifier; pure
+  readers.rs   the text rules over a test's code: path, basename token, walker, project root, import specifier; pure
   split.rs     files, timings and a shard in, the slice out; pure
   vitest.rs    the only place that finds and runs the repo's vitest: the universe, the closure, the JSON report
   mod.rs       one gate's selection: install, gather the evidence, select, split, note, selection.json
