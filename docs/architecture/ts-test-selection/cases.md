@@ -40,7 +40,7 @@ Two tests read every case:
   exactly `expect`, files and reasons.
 - **real vitest**, in gatekeeper's own gate `select-vitest`: the case is laid out as a git repo, and vitest
   must list exactly `closure` for the change and exactly the workspace's tests without it. vitest is pinned in
-  `_base/package.json` and its lockfile, and only this gate installs it (the owner's yes, q2965).
+  `_base/package.json` and its lockfile, and only this gate installs it (the owner's yes in the owner's answers, 2026-11-22).
 
 So a stubbed closure cannot drift from what vitest does.
 

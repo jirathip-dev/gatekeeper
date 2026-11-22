@@ -56,8 +56,8 @@ Open questions: none. Revised on the owner's answers: walkers narrowed, project 
 - Let a pull request write the times another run splits by.
 - Change a gate that has no `[select]` table.
 
-## What the owner decides
+## What the owner decided
 
-Approve, revise or reject. Nothing is open. The first round's answers (q2965) are in: a walker runs for its own
+Approved 2026-11-22. Nothing is open. The owner's answers, 2026-11-22, are in: a walker runs for its own
 project or a folder it names, no longer on every change, and comment-only lines are not read; project readers
 are per test; gatekeeper's repo may install vitest in one test workspace (`adr.md`, "Answered by the owner").

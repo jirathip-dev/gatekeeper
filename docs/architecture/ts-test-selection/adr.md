@@ -11,8 +11,8 @@ Open questions: none. Revised on the owner's answers: walkers narrowed, project 
 
 ## Status
 
-Proposed 2026-11-22; revised the same day on the owner's answers (q2965, near the end). Nothing is built. The
-issues below are filed once the owner approves.
+Proposed 2026-11-22; revised the same day on the owner's answers, 2026-11-22 (near the end); approved the same
+day. Nothing is built. The issues below are filed now.
 
 ## Question
 
@@ -159,7 +159,7 @@ Filed after approval, each carrying the five criteria and its rows of `cases.md`
 | S4 | `replay`: the verb, `replay.json` and `replay.md`. | S2 |
 | S5 | One adoption per consumer, in its repo: the gate file, a replay over at least 30 merged pull requests with its totals in the issue, the consumer's selector deleted, then its workflow frozen (#1, adoption 9). | S3, S4 |
 
-## Answered by the owner (q2965, 2026-11-22)
+## Answered by the owner (the owner's answers, 2026-11-22)
 
 No question is open.
 
