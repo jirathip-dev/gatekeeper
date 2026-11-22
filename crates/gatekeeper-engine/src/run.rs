@@ -70,11 +70,12 @@ pub fn run(plan: &Plan, cx: &RunCtx, seen: &mut dyn FnMut(&Gate, &GateReport)) -
         let waited = after_passed(job, &report.jobs, cx)?;
         let mut gates = Vec::new();
         for planned in &job.gates {
-            let unrun = |skip| GateReport::unrun(&planned.gate, Outcome::Skipped(skip));
-            let done = match planned.decision {
-                Decision::Run if !waited => unrun(Skip::AfterFailed),
+            let unrun = |outcome| GateReport::unrun(&planned.gate, outcome);
+            let done = match &planned.decision {
+                Decision::Run if !waited => unrun(Outcome::Skipped(Skip::AfterFailed)),
                 Decision::Run => one(planned, plan, job, cx)?,
-                Decision::Skip(skip) => unrun(skip),
+                Decision::Skip(skip) => unrun(Outcome::Skipped(*skip)),
+                Decision::Off(why) => unrun(Outcome::Off(why.clone())),
             };
             seen(&planned.gate, &done);
             gates.push(done);

@@ -59,6 +59,7 @@ pub enum Outcome {
     Failed(Failure),
     OverBudget,
     Skipped(Skip),
+    Off(String),
 }
 
 impl Outcome {
@@ -76,6 +77,7 @@ impl Outcome {
             Outcome::Failed(_) => "FAIL",
             Outcome::OverBudget => "OVER",
             Outcome::Skipped(_) => "skip",
+            Outcome::Off(_) => "off",
         }
     }
 }

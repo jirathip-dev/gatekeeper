@@ -42,6 +42,7 @@ fn show(root: &Path, gate: &Gate, r: &GateReport) {
     let word = r.outcome.word();
     match &r.outcome {
         Outcome::Skipped(why) => say(&format!("{word:<5} {:<18} {:>16}  {why}", r.id, "")),
+        Outcome::Off(why) => say(&format!("{word:<5} {:<18} {:>16}  off: {why}", r.id, "")),
         Outcome::Cached(hit) => say(&format!(
             "{word} {:<17} ({}) / {:>4}s   {}",
             r.id,
