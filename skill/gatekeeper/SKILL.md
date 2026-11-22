@@ -1,9 +1,9 @@
 ---
 name: gatekeeper
-description: Read, fix and rerun a failing gatekeeper gate (gatekeeper 1.1.1).
+description: Read, fix and rerun a failing gatekeeper gate (gatekeeper 1.1.2).
 ---
 
-# gatekeeper 1.1.1
+# gatekeeper 1.1.2
 
 `./.gatekeeper/run check` is what CI runs and what a lane runs. A failing gate prints `FAIL  <pack>/<gate>`, its log's tail, its `fix:` line, its log path and the command that reruns it alone.
 
