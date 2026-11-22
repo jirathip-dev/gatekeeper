@@ -148,6 +148,8 @@ pub struct Config {
     #[serde(default)]
     pub budgets: BTreeMap<GateId, Secs>,
     #[serde(default)]
+    pub off: BTreeMap<GateId, String>,
+    #[serde(default)]
     pub rust: Option<RustPack>,
     #[serde(default)]
     pub scope: Option<ScopeConfig>,
@@ -289,11 +291,12 @@ pub struct Planned {
     pub projects: Vec<String>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Decision {
     Run,
     Skip(Skip),
+    Off(String),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]

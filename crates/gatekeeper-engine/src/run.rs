@@ -339,7 +339,7 @@ pub fn run(plan: &Plan, cx: &RunCtx, seen: &mut dyn FnMut(&Gate, &GateReport)) -
         let waited = after_passed(job, &report.jobs, cx)?;
         let mut gates = Vec::new();
         for planned in &job.gates {
-            let done = match planned.decision {
+            let done = match &planned.decision {
                 Decision::Run if !waited => unrun(planned, Outcome::Skipped(Skip::AfterFailed)),
                 Decision::Run => match select::pick(planned, (plan, job.shard), cx) {
                     Err(failed) => *failed,
@@ -357,7 +357,8 @@ pub fn run(plan: &Plan, cx: &RunCtx, seen: &mut dyn FnMut(&Gate, &GateReport)) -
                         select::reported(picked.as_ref(), report, &cx.root)?
                     }
                 },
-                Decision::Skip(skip) => unrun(planned, Outcome::Skipped(skip)),
+                Decision::Skip(skip) => unrun(planned, Outcome::Skipped(*skip)),
+                Decision::Off(why) => unrun(planned, Outcome::Off(why.clone())),
             };
             seen(&planned.gate, &done);
             gates.push(done);

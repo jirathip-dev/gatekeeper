@@ -114,7 +114,10 @@ fn leg_jobs(config: &Config, leg: &str, gates: Vec<Gate>, cx: &Scoped) -> Result
         .into_iter()
         .map(|gate| {
             let projects = selected(&gate, cx.graph, cx.affected);
-            let decision = decide(&gate, host, cx.filter, &projects);
+            let decision = match config.off.get(&gate.id) {
+                Some(why) => Decision::Off(why.clone()),
+                None => decide(&gate, host, cx.filter, &projects),
+            };
             Planned {
                 gate,
                 decision,
@@ -178,6 +181,19 @@ pub fn plan(
             ))
         })?;
         gate.budget = *secs;
+    }
+    for (id, why) in &config.off {
+        if why.trim().is_empty() {
+            return Err(Error(format!("[off] `{id}` needs a reason")));
+        }
+        if id.pack == PackId::Core && id.name() == "pin" {
+            return Err(Error(format!("[off] `{id}` guards the pin and stays on")));
+        }
+        if !gates.iter().any(|g| g.id == *id) {
+            return Err(Error(format!(
+                "[off] names `{id}`, which no configured pack has"
+            )));
+        }
     }
     check_legs(config, &gates)?;
     check_filter(filter, &gates)?;

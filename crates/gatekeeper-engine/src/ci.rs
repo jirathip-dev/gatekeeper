@@ -158,7 +158,10 @@ fn row(table: &mut String, jr: &JobReport, g: &GateReport) -> Result<()> {
         secs(g.took),
         g.budget.0,
         g.outcome.word(),
-        g.note.as_deref().unwrap_or_default(),
+        match &g.outcome {
+            Outcome::Off(why) => format!("off: {why}"),
+            _ => g.note.clone().unwrap_or_default(),
+        },
         proved(g)
     )
     .map_err(|e| Error(e.to_string()))

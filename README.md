@@ -47,6 +47,18 @@ recheck = 1
 The `ts` pack needs a `[ts]` table (`projects`, `install`); the `swift` pack a `[swift]` table (`sources`, and
 `packages` or `projects`). `core/deps` reads `.gatekeeper/deps.toml`: each direct dependency with its reason.
 
+A gate that cannot pass at adoption, even with a baseline, is turned off alone in `[off]`, each with its reason;
+the rest of its pack still runs:
+
+```toml
+[off]
+"rust/clippy" = "pre-adoption pedantic findings; own issue"
+"core/cap" = "no line cap at adoption"
+```
+
+`check`, `list` and the `gates / done` summary show each one as `off: <reason>`. An entry with an empty reason, a gate
+no configured pack has, or `core/pin` is a config error.
+
 `.github/workflows/ci.yml`, the whole file. The workflow is named by its commit; the tag is a comment:
 
 ```yaml

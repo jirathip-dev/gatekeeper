@@ -550,3 +550,77 @@ fn a_run_line_gets_a_pinned_tool_by_name_from_the_cache_in_under_2_s_and_an_unpi
     assert_eq!(code, 2, "{out}");
     assert!(out.contains("{tool:nope} is no pinned tool"), "{out}");
 }
+
+#[test]
+fn an_off_gate_shows_its_reason_and_the_rest_of_its_pack_runs_and_passes() {
+    let off = format!("{CONFIG}\n[off]\n\"local/a-bad\" = \"pre-adoption findings; own issue\"\n");
+    let root = repo("check-off", &off, &[("a-bad", BAD), ("c-ok", OK)]);
+    let (code, out) = gk(&root, &["check"], &[]);
+    assert_eq!(code, 0, "{out}");
+    let line = out.lines().find(|l| l.starts_with("off   local/a-bad"));
+    let line = line.expect("off line");
+    assert!(
+        line.ends_with("off: pre-adoption findings; own issue"),
+        "{line}"
+    );
+    assert!(out.contains("ok    local/c-ok"), "{out}");
+    let (code, list) = gk(&root, &["list"], &[]);
+    assert_eq!(code, 0, "{list}");
+    assert!(
+        list.contains("(off: pre-adoption findings; own issue)"),
+        "{list}"
+    );
+    let reports = root.join("reports/gates-local");
+    fs::create_dir_all(&reports).expect("reports");
+    let report = root.join("target/gatekeeper/report.json");
+    fs::copy(report, reports.join("report.json")).expect("copy");
+    let (code, table) = gk(&root, &["ci", "done", "--reports", "reports"], &[]);
+    assert_eq!(code, 0, "{table}");
+    let row = table
+        .lines()
+        .find(|l| l.contains("local/a-bad"))
+        .expect("row");
+    assert!(
+        row.contains("| off | off: pre-adoption findings; own issue |"),
+        "{row}"
+    );
+}
+
+#[test]
+fn an_off_entry_without_a_reason_for_an_unknown_gate_or_for_the_pin_is_a_config_error() {
+    for (name, entry, says) in [
+        (
+            "off-no-reason",
+            "\"local/c-ok\" = \" \"",
+            "[off] `local/c-ok` needs a reason",
+        ),
+        (
+            "off-unknown-gate",
+            "\"local/nope\" = \"why\"",
+            "[off] names `local/nope`, which no configured pack has",
+        ),
+        (
+            "off-unknown-pack",
+            "\"nopack/x\" = \"why\"",
+            "`nopack/x` is not a gate id",
+        ),
+        (
+            "off-unconfigured-pack",
+            "\"rust/clippy\" = \"why\"",
+            "[off] names `rust/clippy`, which no configured pack has",
+        ),
+        (
+            "off-pin",
+            "\"core/pin\" = \"why\"",
+            "[off] `core/pin` guards the pin and stays on",
+        ),
+    ] {
+        let config = format!("{CONFIG}\n[off]\n{entry}\n");
+        let root = repo(name, &config, &[("c-ok", OK)]);
+        for verb in ["check", "list"] {
+            let (code, out) = gk(&root, &[verb], &[]);
+            assert_eq!(code, 2, "{name} {verb}: {out}");
+            assert!(out.contains(says), "{name} {verb}: {out}");
+        }
+    }
+}
