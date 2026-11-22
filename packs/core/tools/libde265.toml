@@ -1,5 +1,20 @@
 version = "1.0.16"
 
+[asset.aarch64-apple-darwin]
+url = "https://github.com/jirathip-dev/gatekeeper/releases/download/tool-libde265-1.0.16-67bd6057854c/libde265-1.0.16-aarch64-apple-darwin.tar.gz"
+sha256 = "aecac91f366681b8483d582d296db1b75042214f5e36d6c8d1427b65bf317d8b"
+bin = "lib/pkgconfig/libde265.pc"
+
+[asset.aarch64-unknown-linux-gnu]
+url = "https://github.com/jirathip-dev/gatekeeper/releases/download/tool-libde265-1.0.16-67bd6057854c/libde265-1.0.16-aarch64-unknown-linux-gnu.tar.gz"
+sha256 = "feefaa63ee65a36627ef7cdd910a99f79f52cddd533538d78aab1d1ec92bfe88"
+bin = "lib/pkgconfig/libde265.pc"
+
+[asset.x86_64-unknown-linux-gnu]
+url = "https://github.com/jirathip-dev/gatekeeper/releases/download/tool-libde265-1.0.16-67bd6057854c/libde265-1.0.16-x86_64-unknown-linux-gnu.tar.gz"
+sha256 = "2e9526d3215af3eea109a1025724668f8e2bb8e305c4ce11b6ad97ef22c15b62"
+bin = "lib/pkgconfig/libde265.pc"
+
 [build]
 targets = ["x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu", "aarch64-apple-darwin"]
 budget_minutes = 10
