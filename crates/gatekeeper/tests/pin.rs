@@ -175,17 +175,33 @@ fn pin_refuses_a_signature_whose_trusted_comment_names_another_tag() {
 }
 
 #[test]
-fn pin_runs_the_pinned_farrier_never_one_on_path() {
+fn pin_fetches_farrier_from_its_pinned_asset_and_refuses_one_whose_sha256_differs() {
     let (root, release) = setup(
-        "pin-no-farrier",
+        "pin-farrier-asset",
         &format!("jirathip-dev/gatekeeper v1.2.3 {SHA}"),
     );
     let config = read(&root, ".gatekeeper/config.toml")
         .replace("[tools]\nfarrier = \"../bin/farrier\"\n\n", "");
     fs::write(root.join(".gatekeeper/config.toml"), &config).expect("config");
+    let target = gatekeeper_engine::fetch::host_target().expect("a pinned host target");
+    let recipe = fs::read_to_string(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../packs/core/tools/farrier.toml"),
+    )
+    .expect("farrier.toml");
+    let (_, pinned) = recipe
+        .split_once(&format!("[asset.{target}]\nurl = \""))
+        .expect("an asset for the host target");
+    let url = &pinned[..pinned.find('"').expect("url ends")];
+    let name = url.rsplit('/').next().expect("asset name");
+    fs::write(release.join(name), "not the pinned farrier").expect("stand-in");
     let (code, out) = pin(&root, &release);
     assert_eq!(code, 1, "{out}");
-    assert!(out.contains("gatekeeper pin: farrier: "), "{out}");
+    assert!(
+        out.contains(&format!("gatekeeper pin: farrier: {url}: sha256 "))
+            && out.contains("refused"),
+        "{out}"
+    );
+    assert_eq!(read(&release, "fetched"), format!("{url}\n"));
     assert!(!release.join("farrier.args").exists());
     assert_eq!(read(&root, ".gatekeeper/config.toml"), config);
     assert_eq!(read(&root, ".github/workflows/ci.yml"), CI);
