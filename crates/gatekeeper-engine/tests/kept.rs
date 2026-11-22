@@ -2,7 +2,6 @@ use gatekeeper_engine::plan;
 use gatekeeper_engine::run::{self, RunCtx};
 use gatekeeper_model::{Config, Filter, Host};
 use serde::Deserialize;
-use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -31,24 +30,7 @@ fn run_case(case: &Path) {
             .expect("config");
     let plan = plan::repo(&config, &root, &|_| Host::Lane, &Filter::default()).expect("plan");
     let upload = plan.jobs[0].gates[0].gate.uploads[0].name.clone();
-    let cx = RunCtx {
-        out: run::out_dir(&root),
-        root: root.clone(),
-        cache: root.join("cache"),
-        base: None,
-        pr_body: None,
-        host: Host::Lane,
-        job_start: None,
-        manifest: "Cargo.toml".into(),
-        after_reports: None,
-        ts: None,
-        results: None,
-        swift: None,
-        tools: BTreeMap::new(),
-        platform: run::platform(),
-        env: Vec::new(),
-        timings: None,
-    };
+    let cx = RunCtx::lane(&root, &root.join("cache"));
     let report = run::run(&plan, &cx, &mut |_, _| {}).expect("run");
     let gate = &report.jobs[0].gates[0];
     assert_eq!(

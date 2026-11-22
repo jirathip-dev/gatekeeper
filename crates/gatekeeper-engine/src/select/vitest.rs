@@ -1,4 +1,3 @@
-use crate::run::millis;
 use crate::{Error, Result, runner};
 use gatekeeper_model::{Millis, TestFile};
 use serde::Deserialize;
@@ -65,7 +64,7 @@ pub fn times(root: &Path, path: &Path) -> Result<BTreeMap<TestFile, Millis>> {
     let relative = relative(root)?;
     let timed = report.test_results.iter().map(|r| {
         let secs = Duration::try_from_secs_f64((r.end_time - r.start_time) / 1000.0);
-        (relative(&r.name), millis(secs.unwrap_or_default()))
+        (relative(&r.name), secs.unwrap_or_default().into())
     });
     Ok(timed.collect())
 }

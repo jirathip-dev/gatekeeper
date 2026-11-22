@@ -1,0 +1,116 @@
+use crate::cache::Results;
+use crate::{Error, Result, fetch, runner};
+use gatekeeper_model::{Host, Platform, SwiftPack, TsPack};
+use std::cell::OnceCell;
+use std::collections::BTreeMap;
+use std::path::{Path, PathBuf};
+use std::time::SystemTime;
+
+/// What a built-in check reads: the repo, its scratch folder, the tool cache, the packs' tables, the base; where it notes a summary.
+pub struct CheckCx<'a> {
+    pub root: &'a Path,
+    pub scratch: &'a Path,
+    pub cache: &'a Path,
+    pub manifest: &'a str,
+    pub ts: Option<&'a TsPack>,
+    pub swift: Option<&'a SwiftPack>,
+    pub tools: &'a BTreeMap<String, PathBuf>,
+    pub base: Option<&'a str>,
+    pub note: &'a OnceCell<String>,
+}
+
+impl CheckCx<'_> {
+    /// # Errors
+    pub fn ts(&self) -> Result<&TsPack> {
+        self.ts.ok_or_else(|| {
+            Error("the ts pack's checks need [ts] in .gatekeeper/config.toml".into())
+        })
+    }
+
+    /// # Errors
+    pub fn swift(&self) -> Result<&SwiftPack> {
+        self.swift.ok_or_else(|| {
+            Error("the swift pack's checks need [swift] in .gatekeeper/config.toml".into())
+        })
+    }
+
+    /// # Errors
+    pub fn tool(&self, name: &str) -> Result<PathBuf> {
+        fetch::resolve(name, self.cache, self.tools)
+    }
+}
+
+/// Where and how a plan runs; `out` takes the logs and `report.json`.
+#[non_exhaustive]
+pub struct RunCtx {
+    pub root: PathBuf,
+    pub out: PathBuf,
+    pub cache: PathBuf,
+    pub base: Option<String>,
+    pub pr_body: Option<PathBuf>,
+    pub host: Host,
+    pub job_start: Option<SystemTime>,
+    pub manifest: String,
+    /// The reports and kept files of the leg an `after` job waits for, downloaded in CI.
+    pub after_reports: Option<PathBuf>,
+    pub ts: Option<TsPack>,
+    /// `None` when this run neither reads nor writes the result cache.
+    pub results: Option<Results>,
+    pub swift: Option<SwiftPack>,
+    /// `[tools]`: the tools this repo builds itself, by absolute path.
+    pub tools: BTreeMap<String, PathBuf>,
+    /// The platform this host is: a gate of another fails `needs <platform>`.
+    pub platform: Platform,
+    /// Set for every step: a fixture case's `env`.
+    pub env: Vec<(String, String)>,
+    /// `--timings`: the recorded times a sharded `[select]` gate splits by, one `<gate>.json` each.
+    pub timings: Option<PathBuf>,
+}
+
+impl RunCtx {
+    /// A lane's plain run of the repo at `root`: no base, no result cache, this host's platform.
+    #[must_use]
+    pub fn lane(root: &Path, cache: &Path) -> RunCtx {
+        RunCtx {
+            root: root.to_path_buf(),
+            out: out_dir(root),
+            cache: cache.to_path_buf(),
+            base: None,
+            pr_body: None,
+            host: Host::Lane,
+            job_start: None,
+            manifest: "Cargo.toml".into(),
+            after_reports: None,
+            ts: None,
+            results: None,
+            swift: None,
+            tools: BTreeMap::new(),
+            platform: platform(),
+            env: Vec::new(),
+            timings: None,
+        }
+    }
+}
+
+/// The platform this binary runs on.
+#[must_use]
+pub fn platform() -> Platform {
+    if cfg!(target_os = "macos") {
+        Platform::Macos
+    } else {
+        Platform::Linux
+    }
+}
+
+#[must_use]
+pub fn out_dir(root: &Path) -> PathBuf {
+    root.join("target/gatekeeper")
+}
+
+/// The merge base with `origin/<integration>`, when that branch is fetched.
+#[must_use]
+pub fn default_base(root: &Path, integration: &str) -> Option<String> {
+    let branch = format!("origin/{integration}");
+    let out = runner::ok("git", &["merge-base", &branch, "HEAD"], root).ok()?;
+    Some(out.trim().to_owned())
+}

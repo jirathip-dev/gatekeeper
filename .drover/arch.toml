@@ -1,6 +1,7 @@
 generated = ["crates/gatekeeper/src/cmd/mod.rs", "crates/gatekeeper-engine/src/check/mod.rs", "skill/gatekeeper/**"]
 generate = "sh scripts/gen.sh"
 frozen = ["crates/gatekeeper-engine/src/skill.rs"]
+shared = ["crates/gatekeeper-engine/src/run.rs"]
 
 [[collect]]
 dir = "crates/gatekeeper/src/cmd"
@@ -97,6 +98,10 @@ reason = "one module finds and runs the repo's vitest"
 paths = ["crates/*/src/**/*.rs"]
 max_file_lines = 400
 max_fn_lines = 60
+
+[[size]]
+paths = ["crates/gatekeeper-engine/src/run.rs"]
+max_file_lines = 150
 
 [comments]
 policy = "strict"

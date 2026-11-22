@@ -10,7 +10,6 @@ pub use mode::mode;
 pub use versions::Ident;
 
 use crate::Result;
-use crate::run::unrun;
 use gatekeeper_model::{
     CacheConfig, CacheNote, Failure, Gate, GateReport, Hit, Key, KeyParts, Millis, Outcome,
     Planned, ProjectCache, Proof, Refusal, RunRef, Shard, Tier, Unkeyed, Workspace,
@@ -135,25 +134,22 @@ pub(crate) fn gate(
     let mut found = match units(res, planned, at, root)? {
         Ok(found) => found,
         Err(why) => {
-            let report = run(&planned.projects)?;
-            let cache = Some(CacheNote::Unkeyed(why));
-            return Ok(GateReport { cache, ..report });
+            let mut report = run(&planned.projects)?;
+            report.cache = Some(CacheNote::Unkeyed(why));
+            return Ok(report);
         }
     };
     let cache = note(&found, per_project(&planned.gate, at.0));
     if let Some(hit) = all_hit(&found) {
-        return Ok(GateReport {
-            projects: planned.projects.clone(),
-            cache,
-            ..unrun(planned, Outcome::Cached(hit))
-        });
+        let mut report = GateReport::unrun(&planned.gate, Outcome::Cached(hit));
+        report.projects.clone_from(&planned.projects);
+        report.cache = cache;
+        return Ok(report);
     }
     found.retain(|u| !matches!(u.note, ProjectCache::Cached(_)));
     let ran: Vec<String> = found.iter().flat_map(|u| u.projects.to_vec()).collect();
-    let report = GateReport {
-        cache,
-        ..run(&ran)?
-    };
+    let mut report = run(&ran)?;
+    report.cache = cache;
     settle(res, report, found)
 }
 

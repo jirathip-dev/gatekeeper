@@ -112,24 +112,18 @@ fn prepare(args: &Args, root: &Path) -> Result<(Plan, RunCtx, Option<usize>, Cac
     };
     let plan = plan::repo(&config, root, &|_| host, &filter)?;
     let (mode, results) = cli::results(&config, args, root)?;
-    let cx = RunCtx {
-        root: root.to_path_buf(),
-        out: run::out_dir(root),
-        cache: cli::cache(),
-        base,
-        pr_body: args.value("--pr-body").map(PathBuf::from),
-        host,
-        job_start: cli::job_start(),
-        manifest: config::manifest(&config).to_owned(),
-        after_reports: args.value("--after-reports").map(PathBuf::from),
-        ts: config.ts.clone(),
-        results,
-        swift: config.swift.clone(),
-        tools: config::tools(&config, root),
-        platform: run::platform(),
-        env: Vec::new(),
-        timings: args.value("--timings").map(PathBuf::from),
-    };
+    let mut cx = RunCtx::lane(root, &cli::cache());
+    cx.base = base;
+    cx.pr_body = args.value("--pr-body").map(PathBuf::from);
+    cx.host = host;
+    cx.job_start = cli::job_start();
+    config::manifest(&config).clone_into(&mut cx.manifest);
+    cx.after_reports = args.value("--after-reports").map(PathBuf::from);
+    cx.ts.clone_from(&config.ts);
+    cx.swift.clone_from(&config.swift);
+    cx.tools = config::tools(&config, root);
+    cx.results = results;
+    cx.timings = args.value("--timings").map(PathBuf::from);
     let changed = match filter.trigger {
         Trigger::Change(files) => Some(files.len()),
         Trigger::Everything(_) => None,

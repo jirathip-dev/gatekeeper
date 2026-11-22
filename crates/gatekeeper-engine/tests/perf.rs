@@ -106,24 +106,8 @@ fn check(root: &Path, cached: bool) -> (Duration, Report) {
         &Filter::default(),
     )
     .expect("plan");
-    let cx = RunCtx {
-        out: run::out_dir(root),
-        root: root.to_path_buf(),
-        cache: root.join("cache"),
-        base: None,
-        pr_body: None,
-        host: Host::Lane,
-        job_start: None,
-        manifest: "Cargo.toml".into(),
-        after_reports: None,
-        ts: None,
-        results: cached.then(|| results(root)),
-        swift: None,
-        tools: std::collections::BTreeMap::new(),
-        platform: run::platform(),
-        env: Vec::new(),
-        timings: None,
-    };
+    let mut cx = RunCtx::lane(root, &root.join("cache"));
+    cx.results = cached.then(|| results(root));
     let report = run::run(&plan, &cx, &mut |_, _| {}).expect("run");
     let took = start.elapsed();
     assert!(cx.out.join("report.json").is_file());

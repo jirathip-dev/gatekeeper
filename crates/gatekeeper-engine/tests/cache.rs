@@ -304,24 +304,11 @@ fn run_step(at: &str, step: &Run, config: &Config, dir: &Path, i: u64) {
         ..Filter::default()
     };
     let plan = plan::repo(config, &root, &|_| host, &filter).expect("plan");
-    let cx = RunCtx {
-        out: run::out_dir(&root),
-        root: root.clone(),
-        cache: tools.clone(),
-        base: step.changed.as_ref().map(|_| "HEAD".to_owned()),
-        pr_body: None,
-        host,
-        job_start: None,
-        manifest: "Cargo.toml".into(),
-        after_reports: None,
-        ts: config.ts.clone(),
-        swift: None,
-        tools: BTreeMap::new(),
-        platform: run::platform(),
-        env: Vec::new(),
-        timings: None,
-        results: results(config, step, &root, &store, i),
-    };
+    let mut cx = RunCtx::lane(&root, &tools);
+    cx.base = step.changed.as_ref().map(|_| "HEAD".to_owned());
+    cx.host = host;
+    cx.ts.clone_from(&config.ts);
+    cx.results = results(config, step, &root, &store, i);
     let report = run::run(&plan, &cx, &mut |_, _| {}).expect("run");
     let gate = &report.jobs[0].gates[0];
     assert_eq!(gate.outcome.word(), step.expect, "{at}: {gate:?}");
