@@ -71,9 +71,10 @@ pub fn run(args: &[String]) -> ExitCode {
     }
     let mut keys = keys.into_iter();
     for p in plan.jobs.iter().flat_map(|j| &j.gates) {
-        let skip = match p.decision {
+        let skip = match &p.decision {
             Decision::Run => String::new(),
             Decision::Skip(why) => format!("  (skip: {why})"),
+            Decision::Off(why) => format!("  (off: {why})"),
         };
         let key = keys.next().unwrap_or_default();
         say(&format!(
