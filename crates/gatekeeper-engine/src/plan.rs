@@ -20,7 +20,9 @@ fn selected(gate: &Gate, graph: &Graph, affected: Option<&Affected>) -> Vec<Stri
 fn decide(gate: &Gate, host: Host, filter: &Filter, projects: &[String]) -> Decision {
     let trigger = &filter.trigger;
     let in_scope = match trigger {
-        Trigger::Change(files) => gate.paths.is_empty() || files.iter().any(|f| gate.reads(f)),
+        Trigger::Change(files) => {
+            gate.paths.is_empty() || files.iter().any(|f| gate.reads(&f.path))
+        }
         Trigger::Everything(_) => true,
     };
     if !in_scope {
@@ -71,6 +73,12 @@ fn check_legs(config: &Config, gates: &[Gate]) -> Result<()> {
         if !gate.projects.is_empty() && config.scope.is_none() {
             return Err(Error(format!(
                 "{}: `projects` needs [scope] graphs in the config",
+                gate.id
+            )));
+        }
+        if gate.select.is_some() && (config.ts.is_none() || config.scope.is_none()) {
+            return Err(Error(format!(
+                "{}: [select] needs [ts] and [scope] graphs in the config",
                 gate.id
             )));
         }

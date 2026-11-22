@@ -1,4 +1,4 @@
-trigger = { change = ["apps/web/src/main.ts"] }
+trigger = { change = [{ path = "apps/web/src/main.ts", kind = "modified" }] }
 expect = { projects = ["apps/web"] }
 ignore = ["docs/**"]
 

@@ -1,0 +1,12 @@
+about = "a walker that names a directory above the changed file is selected"
+
+[files]
+".github/workflows/ci.yml" = "on: push\n"
+"packages/tools/src/workflows.test.ts" = "readdirSync(join(root, '.github', 'workflows'));\n"
+"packages/tools/src/migrations.test.ts" = "readdirSync(join(root, 'supabase/migrations'));\n"
+
+[change]
+".github/workflows/ci.yml" = "on: pull_request\n"
+
+[expect]
+"packages/tools/src/workflows.test.ts" = ["reads-walks-dir"]

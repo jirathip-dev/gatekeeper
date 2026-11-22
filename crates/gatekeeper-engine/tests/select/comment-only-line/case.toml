@@ -1,0 +1,12 @@
+about = "the text rules skip comment-only lines, not a comment after code"
+
+[files]
+"supabase/config.toml" = "one = 1\n"
+"packages/tools/src/commented.test.ts" = "// reads config.toml\n/**\n * config.toml\n */\nit('loads', () => {});\n"
+"packages/tools/src/trailing.test.ts" = "load(dir); // config.toml\n"
+
+[change]
+"supabase/config.toml" = "one = 2\n"
+
+[expect]
+"packages/tools/src/trailing.test.ts" = ["reads-basename"]

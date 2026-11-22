@@ -1,0 +1,8 @@
+about = "a change under .gatekeeper/ runs the full suite"
+full = { file = ".gatekeeper/config.toml" }
+
+[files]
+".gatekeeper/config.toml" = "packs = []\n"
+
+[change]
+".gatekeeper/config.toml" = "packs = [\"ts\"]\n"

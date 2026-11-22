@@ -1,0 +1,11 @@
+about = "a test that reads a changed file beside it is found by the file's basename"
+
+[files]
+"apps/web/src/banner.html" = "<p>one</p>"
+"apps/web/src/banner.test.ts" = "readFileSync(new URL('./banner.html', import.meta.url));\n"
+
+[change]
+"apps/web/src/banner.html" = "<p>two</p>"
+
+[expect]
+"apps/web/src/banner.test.ts" = ["reads-basename"]

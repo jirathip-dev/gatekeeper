@@ -1,0 +1,8 @@
+about = "a change no rule selects a test for runs the full suite"
+full = "empty"
+
+[files]
+"docs/guide.md" = "one\n"
+
+[change]
+"docs/guide.md" = "two\n"

@@ -1,0 +1,9 @@
+about = "a changed file of `full` runs the full suite"
+full = { file = "package-lock.json" }
+
+[select]
+vitest = "vitest.config.ts"
+full = ["package-lock.json"]
+
+[change]
+"package-lock.json" = "{}\n"

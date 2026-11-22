@@ -1,0 +1,11 @@
+about = "a changed vitest config lists every test of that config, inside the closure"
+closure = ["apps/web/src/price.test.ts", "packages/tools/src/sum.test.ts", "packages/ui/src/button.test.ts", "packages/ui/src/label.test.ts"]
+
+[change]
+"vitest.config.ts" = "export default {};\n"
+
+[expect]
+"apps/web/src/price.test.ts" = ["closure"]
+"packages/tools/src/sum.test.ts" = ["closure"]
+"packages/ui/src/button.test.ts" = ["closure"]
+"packages/ui/src/label.test.ts" = ["closure"]

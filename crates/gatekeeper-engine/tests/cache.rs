@@ -2,7 +2,9 @@ use gatekeeper_engine::cache::{self, Ident, Results};
 use gatekeeper_engine::fetch::{self, ToolFile};
 use gatekeeper_engine::plan;
 use gatekeeper_engine::run::{self, RunCtx};
-use gatekeeper_model::{CacheMode, Config, Event, Filter, Host, RunRef, Trigger};
+use gatekeeper_model::{
+    CacheMode, Change, ChangeKind, Config, Event, Filter, Host, RunRef, Trigger,
+};
 use serde::Deserialize;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
@@ -281,10 +283,13 @@ fn run_step(at: &str, step: &Run, config: &Config, dir: &Path, i: u64) {
         Host::Lane
     };
     let filter = Filter {
-        trigger: step
-            .changed
-            .clone()
-            .map_or_else(Trigger::default, Trigger::Change),
+        trigger: step.changed.clone().map_or_else(Trigger::default, |files| {
+            let modified = |path| Change {
+                path,
+                kind: ChangeKind::Modified,
+            };
+            Trigger::Change(files.into_iter().map(modified).collect())
+        }),
         ..Filter::default()
     };
     let plan = plan::repo(config, &root, &|_| host, &filter).expect("plan");
