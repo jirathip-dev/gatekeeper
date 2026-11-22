@@ -1,0 +1,4 @@
+about = "no timings at all: every file takes one second, an even split by path that every shard agrees on"
+shards = 3
+files = ["a.test.ts", "b.test.ts", "c.test.ts", "d.test.ts", "e.test.ts", "f.test.ts", "g.test.ts"]
+slices = [["a.test.ts", "d.test.ts", "g.test.ts"], ["b.test.ts", "e.test.ts"], ["c.test.ts", "f.test.ts"]]

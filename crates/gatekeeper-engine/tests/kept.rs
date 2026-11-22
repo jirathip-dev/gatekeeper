@@ -47,6 +47,7 @@ fn run_case(case: &Path) {
         tools: BTreeMap::new(),
         platform: run::platform(),
         env: Vec::new(),
+        timings: None,
     };
     let report = run::run(&plan, &cx, &mut |_, _| {}).expect("run");
     let gate = &report.jobs[0].gates[0];

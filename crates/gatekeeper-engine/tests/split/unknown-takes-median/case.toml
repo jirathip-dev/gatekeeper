@@ -1,0 +1,5 @@
+about = "a file with no time takes the median of those that have one, 500 here: at one second it would go first, to shard 1"
+shards = 2
+files = ["a.test.ts", "b.test.ts", "c.test.ts", "new.test.ts"]
+timings = { "a.test.ts" = 900, "b.test.ts" = 100, "c.test.ts" = 500 }
+slices = [["a.test.ts", "b.test.ts"], ["c.test.ts", "new.test.ts"]]

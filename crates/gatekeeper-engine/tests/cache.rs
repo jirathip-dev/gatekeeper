@@ -319,6 +319,7 @@ fn run_step(at: &str, step: &Run, config: &Config, dir: &Path, i: u64) {
         tools: BTreeMap::new(),
         platform: run::platform(),
         env: Vec::new(),
+        timings: None,
         results: results(config, step, &root, &store, i),
     };
     let report = run::run(&plan, &cx, &mut |_, _| {}).expect("run");

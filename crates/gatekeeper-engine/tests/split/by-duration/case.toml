@@ -1,0 +1,5 @@
+about = "longest first, each to the lightest shard, the lowest index on a tie"
+shards = 2
+files = ["a.test.ts", "b.test.ts", "c.test.ts", "d.test.ts", "e.test.ts"]
+timings = { "a.test.ts" = 100, "b.test.ts" = 500, "c.test.ts" = 400, "d.test.ts" = 300, "e.test.ts" = 200 }
+slices = [["a.test.ts", "b.test.ts", "e.test.ts"], ["c.test.ts", "d.test.ts"]]

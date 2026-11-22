@@ -1,0 +1,5 @@
+about = "a full run's files are the whole universe, split by time the same way: the split never sees why a file runs"
+shards = 2
+files = ["apps/web/src/price.test.ts", "packages/tools/src/sum.test.ts", "packages/ui/src/button.test.ts", "packages/ui/src/label.test.ts"]
+timings = { "apps/web/src/price.test.ts" = 3000, "packages/ui/src/button.test.ts" = 1000, "packages/ui/src/label.test.ts" = 1000, "packages/tools/src/sum.test.ts" = 1000 }
+slices = [["apps/web/src/price.test.ts"], ["packages/tools/src/sum.test.ts", "packages/ui/src/button.test.ts", "packages/ui/src/label.test.ts"]]

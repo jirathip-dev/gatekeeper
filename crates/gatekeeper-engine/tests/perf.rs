@@ -122,6 +122,7 @@ fn check(root: &Path, cached: bool) -> (Duration, Report) {
         tools: std::collections::BTreeMap::new(),
         platform: run::platform(),
         env: Vec::new(),
+        timings: None,
     };
     let report = run::run(&plan, &cx, &mut |_, _| {}).expect("run");
     let took = start.elapsed();

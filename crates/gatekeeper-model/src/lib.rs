@@ -19,8 +19,8 @@ pub use scope::{
     Affected, Graph, GraphKind, Leg, ScopeConfig, Shard, Shards, Trigger, Widened, Workspace,
 };
 pub use select::{
-    Always, Change, ChangeKind, Evidence, Files, Full, Read, Select, Selection, TestFile, Walk,
-    Why, Widen,
+    Always, Change, ChangeKind, Evidence, Files, Full, Read, Select, Selected, Selection, TestFile,
+    Timings, Walk, Why, Widen,
 };
 
 use serde::{Deserialize, Serialize};
@@ -305,6 +305,7 @@ pub enum Skip {
     CiOnly(Capability),
     PrivateRepo,
     ForkPullRequest,
+    EmptyShard,
 }
 
 impl fmt::Display for Skip {
@@ -318,6 +319,7 @@ impl fmt::Display for Skip {
             Skip::ForkPullRequest => {
                 f.write_str("a fork's pull request has no secrets; it runs on the merge push")
             }
+            Skip::EmptyShard => f.write_str("no selected test file fell in this shard"),
         }
     }
 }

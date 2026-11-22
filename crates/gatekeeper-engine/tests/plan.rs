@@ -43,6 +43,27 @@ fn repo(case: &Path, name: &str) -> PathBuf {
     root
 }
 
+fn ctx(root: &Path, case: &Path, expect: &Expect) -> RunCtx {
+    RunCtx {
+        out: run::out_dir(root),
+        root: root.to_path_buf(),
+        cache: root.join("cache"),
+        base: None,
+        pr_body: None,
+        host: expect.host,
+        job_start: None,
+        manifest: "Cargo.toml".into(),
+        after_reports: expect.after_reports.then(|| case.join("reports")),
+        ts: None,
+        results: None,
+        swift: None,
+        tools: std::collections::BTreeMap::new(),
+        platform: run::platform(),
+        env: Vec::new(),
+        timings: None,
+    }
+}
+
 fn run_case(case: &Path) {
     let name = case.file_name().expect("name").to_string_lossy();
     let root = repo(case, &name);
@@ -62,7 +83,7 @@ fn run_case(case: &Path) {
         .collect();
     assert_eq!(jobs, expect.jobs, "{name}");
     if let Some(done) = &expect.done {
-        let (_, problems) = ci::done(&plan, &case.join("reports")).expect("done");
+        let (_, problems) = ci::done(&plan, &case.join("reports"), None).expect("done");
         assert_eq!(problems.len(), done.len(), "{name}: {problems:?}");
         for (got, want) in problems.iter().zip(done) {
             assert!(got.starts_with(want.as_str()), "{name}: {got}");
@@ -71,23 +92,7 @@ fn run_case(case: &Path) {
     if expect.outcomes.is_empty() {
         return;
     }
-    let cx = RunCtx {
-        out: run::out_dir(&root),
-        root: root.clone(),
-        cache: root.join("cache"),
-        base: None,
-        pr_body: None,
-        host: expect.host,
-        job_start: None,
-        manifest: "Cargo.toml".into(),
-        after_reports: expect.after_reports.then(|| case.join("reports")),
-        ts: None,
-        results: None,
-        swift: None,
-        tools: std::collections::BTreeMap::new(),
-        platform: run::platform(),
-        env: Vec::new(),
-    };
+    let cx = ctx(&root, case, &expect);
     let report = run::run(&plan, &cx, &mut |_, _| {}).expect("run");
     let got: BTreeMap<String, String> = report
         .jobs
@@ -114,5 +119,5 @@ fn each_shards_and_legs_case_plans_and_runs_as_its_folder_expects() {
         run_case(&entry.expect("entry").path());
         seen += 1;
     }
-    assert_eq!(seen, 6);
+    assert_eq!(seen, 8);
 }

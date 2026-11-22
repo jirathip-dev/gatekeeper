@@ -25,6 +25,10 @@ glob = "*/case.toml"
 dir = "crates/gatekeeper-engine/tests/select"
 glob = "*/case.toml"
 
+[[collect]]
+dir = "crates/gatekeeper-engine/tests/split"
+glob = "*/case.toml"
+
 [[layer]]
 name = "model"
 paths = ["crates/gatekeeper-model/src/**"]

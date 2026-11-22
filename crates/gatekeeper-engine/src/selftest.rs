@@ -130,6 +130,7 @@ fn run_case(gate: &Gate, case: Option<&str>, out: &Path, bench: &Bench) -> Resul
         platform: bench.platform,
         after_reports: None,
         env: env(&prefixes),
+        timings: None,
     };
     fs::create_dir_all(&cx.out).map_err(|e| Error::at(&cx.out, e))?;
     let report = run::gate(gate, (Shard::ONE, None), &[], &cx)?;

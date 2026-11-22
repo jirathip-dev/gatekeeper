@@ -70,6 +70,8 @@ pub struct RunCtx {
     pub platform: Platform,
     /// Set for every step: a fixture case's `env`.
     pub env: Vec<(String, String)>,
+    /// `--timings`: the recorded times a sharded `[select]` gate splits by, one `<gate>.json` each.
+    pub timings: Option<PathBuf>,
 }
 
 /// The platform this binary runs on.
@@ -145,7 +147,9 @@ fn run_line(run: &str, (gate, vars, _): At, cx: &RunCtx) -> Result<String> {
         .map_or(String::new(), |p| p.to_string_lossy().into_owned());
     let mut line = run.replace("{--base}", &base).replace("{pr-body}", &body);
     if gate.select.is_some() {
+        let report = select::report_path(&cx.out, &gate.id);
         line = line.replace("{files}", "\"$@\"");
+        line = line.replace("{report}", &report.to_string_lossy());
     }
     for dir in ["files", "scripts"] {
         let to = pack_dir(gate.id.pack, dir, &cx.out)?;
@@ -282,6 +286,8 @@ pub(crate) fn gate(
         projects: projects.to_vec(),
         note: summary.into_inner(),
         cache: None,
+        selection: None,
+        files: BTreeMap::new(),
     })
 }
 
@@ -296,6 +302,8 @@ pub(crate) fn unrun(planned: &Planned, outcome: Outcome) -> GateReport {
         projects: Vec::new(),
         note: None,
         cache: None,
+        selection: None,
+        files: BTreeMap::new(),
     }
 }
 
@@ -333,19 +341,20 @@ pub fn run(plan: &Plan, cx: &RunCtx, seen: &mut dyn FnMut(&Gate, &GateReport)) -
         for planned in &job.gates {
             let done = match planned.decision {
                 Decision::Run if !waited => unrun(planned, Outcome::Skipped(Skip::AfterFailed)),
-                Decision::Run => match select::pick(planned, plan, cx) {
+                Decision::Run => match select::pick(planned, (plan, job.shard), cx) {
                     Err(failed) => *failed,
                     Ok(picked) => {
                         let at = (job.shard, picked.as_ref());
                         let run = |projects: &[String]| gate(&planned.gate, at, projects, cx);
-                        match &cx.results {
+                        let report = match &cx.results {
                             Some(res) => {
                                 let digest = picked.as_ref().map(|p| p.digest.as_str());
                                 let at = (job.shard, &plan.workspace, digest);
                                 cache::gate(res, planned, at, &cx.root, run)?
                             }
                             None => run(&planned.projects)?,
-                        }
+                        };
+                        select::reported(picked.as_ref(), report, &cx.root)?
                     }
                 },
                 Decision::Skip(skip) => unrun(planned, Outcome::Skipped(skip)),

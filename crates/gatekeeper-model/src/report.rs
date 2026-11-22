@@ -1,5 +1,9 @@
-use crate::{Affected, CacheNote, GateId, Hit, Platform, ProjectCache, Proof, Secs, Shard, Skip};
+use crate::{
+    Affected, CacheNote, GateId, Hit, Platform, ProjectCache, Proof, Secs, Selected, Shard, Skip,
+    TestFile,
+};
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 /// Milliseconds: a measured time.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Default, Serialize, Deserialize)]
@@ -123,6 +127,11 @@ pub struct GateReport {
     pub note: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cache: Option<CacheNote>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selection: Option<Selected>,
+    /// Each test file's time, from the JSON report a `[select]` gate's line wrote to `{report}`.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub files: BTreeMap<TestFile, Millis>,
 }
 
 /// What the result cache saved and caught over a run's gates.
