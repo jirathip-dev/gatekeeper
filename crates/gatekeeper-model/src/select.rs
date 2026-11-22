@@ -1,4 +1,4 @@
-use crate::{Glob, Graph, Widened};
+use crate::{Glob, Graph, Millis, Widened};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -115,4 +115,26 @@ pub enum Walk {
 pub enum Widen {
     FormerProject(String),
     Specifier(String),
+}
+
+/// `<timings>/<gate>.json`: what the last full run on the integration branch measured, per test file.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Timings {
+    pub schema: u32,
+    pub files: BTreeMap<TestFile, Millis>,
+}
+
+/// A `[select]` gate's selection as one job made it; `ci done` fails a gate whose shards disagree.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Selected {
+    pub universe: u32,
+    pub selected: u32,
+    pub slice: u32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub full: Option<Full>,
+    pub by: BTreeMap<String, u32>,
+    pub digest: String,
+    pub took: Millis,
 }

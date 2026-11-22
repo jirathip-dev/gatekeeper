@@ -1,0 +1,3 @@
+{"version": "0.1.0", "jobs": [{"leg": "local", "shard": "2/2", "host": {"kind": "github-hosted", "warm_cache": true}, "setup": 0,
+  "gates": [{"id": "local/unit", "outcome": {"passed": {"slow": false}}, "took": 10, "budget": 5, "log": "target/gatekeeper/local-unit.log",
+    "selection": {"universe": 4, "selected": 3, "slice": 1, "by": {"closure": 3}, "digest": "9e8f7a6b9e8f7a6b9e8f7a6b9e8f7a6b9e8f7a6b9e8f7a6b9e8f7a6b9e8f7a6b", "took": 3}}]}]}

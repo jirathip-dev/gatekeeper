@@ -1,0 +1,5 @@
+about = "fewer files than shards: the shards past the files get none, and are skipped as EmptyShard"
+shards = 4
+files = ["a.test.ts", "b.test.ts"]
+timings = { "a.test.ts" = 100, "b.test.ts" = 200 }
+slices = [["b.test.ts"], ["a.test.ts"], [], []]

@@ -68,7 +68,10 @@ fn skill_md(packs: &[(PackId, String)]) -> String {
          reaching a changed file), `always`, `reads` (its code names a changed file's path or basename, or it walks that file's project or a \
          directory above it), `names-project`, `widened` (a deleted file's project or import specifier). Rerun a failing test with the same \
          command: the same tree and base select the same files. A selection that cannot be computed fails the gate with its \
-         `.select.log`; it never runs fewer tests.\n\n\
+         `.select.log`; it never runs fewer tests. \
+         A sharded `[select]` gate writes vitest's JSON report to `{{report}}`; each CI shard selects the same list and runs \
+         its slice, split by the times the last push to the integration branch recorded. `ci done` fails a gate whose \
+         shards selected different lists (rerun all jobs), and a shard no file fell into prints `skip` and passes.\n\n\
          ## Packs\n\n"
     );
     let list = packs

@@ -128,6 +128,7 @@ fn prepare(args: &Args, root: &Path) -> Result<(Plan, RunCtx, Option<usize>, Cac
         tools: config::tools(&config, root),
         platform: run::platform(),
         env: Vec::new(),
+        timings: args.value("--timings").map(PathBuf::from),
     };
     let changed = match filter.trigger {
         Trigger::Change(files) => Some(files.len()),
@@ -136,7 +137,7 @@ fn prepare(args: &Args, root: &Path) -> Result<(Plan, RunCtx, Option<usize>, Cac
     Ok((plan, cx, changed, mode))
 }
 
-const VALUED: [&str; 8] = [
+const VALUED: [&str; 9] = [
     "--results",
     "--pack",
     "--leg",
@@ -145,6 +146,7 @@ const VALUED: [&str; 8] = [
     "--base",
     "--pr-body",
     "--after-reports",
+    "--timings",
 ];
 
 fn header(plan: &Plan, cx: &RunCtx, changed: Option<usize>, mode: &CacheMode) {
@@ -164,7 +166,7 @@ fn header(plan: &Plan, cx: &RunCtx, changed: Option<usize>, mode: &CacheMode) {
     }
 }
 
-/// `check [--pack P] [--leg L] [--shard I/N] [--gate ID] [--base REV] [--pr-body FILE] [--after-reports DIR] [--results DIR] [--all] [--no-cache]`.
+/// `check [--pack P] [--leg L] [--shard I/N] [--gate ID] [--base REV] [--pr-body FILE] [--after-reports DIR] [--results DIR] [--timings DIR] [--all] [--no-cache]`.
 pub fn run(args: &[String]) -> ExitCode {
     let parsed = Args::parse(args, &VALUED, &["--all", "--no-cache"]);
     let root = match cli::root() {

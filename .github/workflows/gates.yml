@@ -33,6 +33,7 @@ jobs:
     outputs:
       matrix: ${{ steps.plan.outputs.matrix }}
       after: ${{ steps.plan.outputs.after }}
+      timings-save: ${{ steps.plan.outputs.timings-save }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - id: pin
@@ -49,14 +50,22 @@ jobs:
         with:
           cache-bin: false
           key: plan
+      - id: timings
+        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: target/gatekeeper-timings
+          key: gatekeeper-timings-1-
+          restore-keys: gatekeeper-timings-1-
+          lookup-only: true
       - id: plan
         env:
           PACKS: ${{ inputs.packs }}
           RUNNERS: ${{ inputs.runners }}
           SCOPE: ${{ inputs.scope }}
+          TIMINGS: ${{ steps.timings.outputs.cache-matched-key }}
         run: |
           case "$SCOPE" in auto | full) ;; *) echo "scope: auto or full, not $SCOPE"; exit 2 ;; esac
-          set -- ci plan --pack "$PACKS" --runners "$RUNNERS"
+          set -- ci plan --pack "$PACKS" --runners "$RUNNERS" --timings "$TIMINGS"
           if [ "$SCOPE" = full ]; then set -- "$@" --all; fi
           ./.gatekeeper/run "$@" >> "$GITHUB_OUTPUT"
 
@@ -106,6 +115,12 @@ jobs:
           path: ${{ runner.temp }}/gatekeeper-results/${{ matrix.results-tier }}
           key: ${{ matrix.results-own }}
           restore-keys: ${{ matrix.results-own }}
+      - if: matrix.timings != ''
+        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: target/gatekeeper-timings
+          key: ${{ matrix.timings }}
+          fail-on-cache-miss: true
       - name: gates
         env:
           GATEKEEPER_CACHE_HIT: ${{ steps.rust-cache.outputs.cache-hit || steps.tools.outputs.cache-hit }}
@@ -113,6 +128,7 @@ jobs:
           SHARD: ${{ matrix.shard }}
           AFTER: ${{ matrix.after }}
           TIER: ${{ matrix.results-tier }}
+          TIMINGS: ${{ matrix.timings }}
           SCOPE: ${{ inputs.scope }}
           BASE: ${{ github.event.pull_request.base.sha }}
           PR_BODY: ${{ github.event.pull_request.body }}
@@ -122,6 +138,7 @@ jobs:
           set -- check --leg "$LEG" --results "$RUNNER_TEMP/gatekeeper-results"
           if [ -n "$TIER" ]; then mkdir -p "$RUNNER_TEMP/gatekeeper-results/$TIER"; fi
           if [ -n "$SHARD" ]; then set -- "$@" --shard "$SHARD"; fi
+          if [ -n "$TIMINGS" ]; then set -- "$@" --timings target/gatekeeper-timings; fi
           if [ -n "$AFTER" ]; then set -- "$@" --after-reports "$RUNNER_TEMP/after"; fi
           if [ "$SCOPE" = full ]; then set -- "$@" --all; fi
           if [ -n "$BASE" ]; then
@@ -198,6 +215,12 @@ jobs:
           path: ${{ runner.temp }}/gatekeeper-results/${{ matrix.results-tier }}
           key: ${{ matrix.results-own }}
           restore-keys: ${{ matrix.results-own }}
+      - if: matrix.timings != ''
+        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: target/gatekeeper-timings
+          key: ${{ matrix.timings }}
+          fail-on-cache-miss: true
       - name: gates
         env:
           GATEKEEPER_CACHE_HIT: ${{ steps.rust-cache.outputs.cache-hit || steps.tools.outputs.cache-hit }}
@@ -205,6 +228,7 @@ jobs:
           SHARD: ${{ matrix.shard }}
           AFTER: ${{ matrix.after }}
           TIER: ${{ matrix.results-tier }}
+          TIMINGS: ${{ matrix.timings }}
           SCOPE: ${{ inputs.scope }}
           BASE: ${{ github.event.pull_request.base.sha }}
           PR_BODY: ${{ github.event.pull_request.body }}
@@ -214,6 +238,7 @@ jobs:
           set -- check --leg "$LEG" --results "$RUNNER_TEMP/gatekeeper-results"
           if [ -n "$TIER" ]; then mkdir -p "$RUNNER_TEMP/gatekeeper-results/$TIER"; fi
           if [ -n "$SHARD" ]; then set -- "$@" --shard "$SHARD"; fi
+          if [ -n "$TIMINGS" ]; then set -- "$@" --timings target/gatekeeper-timings; fi
           if [ -n "$AFTER" ]; then set -- "$@" --after-reports "$RUNNER_TEMP/after"; fi
           if [ "$SCOPE" = full ]; then set -- "$@" --all; fi
           if [ -n "$BASE" ]; then
@@ -272,4 +297,9 @@ jobs:
       - env:
           PACKS: ${{ inputs.packs }}
           RUNNERS: ${{ inputs.runners }}
-        run: ./.gatekeeper/run ci "done" --pack "$PACKS" --runners "$RUNNERS" --reports "$RUNNER_TEMP/reports" | tee -a "$GITHUB_STEP_SUMMARY"
+        run: ./.gatekeeper/run ci "done" --pack "$PACKS" --runners "$RUNNERS" --reports "$RUNNER_TEMP/reports" --timings-out target/gatekeeper-timings | tee -a "$GITHUB_STEP_SUMMARY"
+      - if: always() && needs.plan.outputs.timings-save != '' && hashFiles('target/gatekeeper-timings/*.json') != ''
+        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: target/gatekeeper-timings
+          key: ${{ needs.plan.outputs.timings-save }}${{ github.run_id }}-${{ github.run_attempt }}

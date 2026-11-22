@@ -1,11 +1,15 @@
 use crate::{Error, Result};
 use gatekeeper_model::{
-    CacheMode, CacheNote, CacheTotals, GateReport, Host, Millis, Outcome, Plan, Platform, Report,
-    Tier, Toolchain, artifact, job_label,
+    CacheMode, CacheNote, CacheTotals, GateId, GateReport, Host, JobReport, Millis, Outcome, Plan,
+    Platform, Report, Selected, Tier, Timings, Toolchain, artifact, job_label,
 };
 use serde_json::{Map, Value, json};
+use std::collections::BTreeMap;
 use std::fmt::Write as _;
 use std::path::Path;
+
+/// The prefix of every timings entry; a push to the integration branch saves one under it.
+pub const TIMINGS: &str = "gatekeeper-timings-1-";
 
 /// `12.3s`.
 #[must_use]
@@ -45,7 +49,7 @@ pub fn matrix(
     plan: &Plan,
     runners: &Map<String, Value>,
     checkout: bool,
-    mode: &CacheMode,
+    (mode, timings, save): (&CacheMode, &str, bool),
 ) -> Result<String> {
     let mut entries = Vec::new();
     for job in &plan.jobs {
@@ -63,25 +67,116 @@ pub fn matrix(
         });
         if let (Some(e), Value::Object(r)) = (entry.as_object_mut(), results(mode, &name)) {
             e.extend(r);
+            let selects = job.gates.iter().any(|g| g.gate.select.is_some());
+            if selects && job.shard.of.get() > 1 {
+                e.insert("timings".into(), timings.into());
+            }
         }
         entries.push(entry);
     }
     let (after, first): (Vec<_>, Vec<_>) = entries.into_iter().partition(|e| e["after"] != "");
+    let selects = plan.jobs.iter().flat_map(|j| &j.gates);
+    let save = save && selects.clone().any(|g| g.gate.select.is_some());
     Ok(format!(
-        "matrix={}\nafter={}",
+        "matrix={}\nafter={}\ntimings-save={}",
         json!({ "include": first }),
-        json!({ "include": after })
+        json!({ "include": after }),
+        if save { TIMINGS } else { "" }
     ))
 }
 
+#[derive(Default)]
+struct Sliced {
+    reports: BTreeMap<GateId, usize>,
+    selected: BTreeMap<GateId, Vec<(String, Selected)>>,
+    times: BTreeMap<GateId, Timings>,
+}
+
+impl Sliced {
+    fn add(&mut self, label: String, g: &GateReport) {
+        *self.reports.entry(g.id.clone()).or_default() += 1;
+        if let Some(s) = &g.selection {
+            let shards = self.selected.entry(g.id.clone()).or_default();
+            shards.push((label, s.clone()));
+        }
+        if !g.files.is_empty() {
+            let times = self.times.entry(g.id.clone()).or_default();
+            times.schema = 1;
+            times.files.extend(g.files.clone());
+        }
+    }
+
+    fn problems(&self) -> Vec<String> {
+        let mut problems = Vec::new();
+        for (id, shards) in &self.selected {
+            let short = |(label, s): &(String, Selected)| {
+                format!("{label} {}", s.digest.get(..8).unwrap_or(&s.digest))
+            };
+            let first = shards.first().map(|(_, s)| s);
+            if shards
+                .iter()
+                .any(|(_, s)| Some(&s.digest) != first.map(|f| &f.digest))
+            {
+                let each: Vec<String> = shards.iter().map(short).collect();
+                problems.push(format!(
+                    "{id}: its shards selected different lists ({}); rerun all jobs",
+                    each.join(", ")
+                ));
+                continue;
+            }
+            let ran: u32 = shards.iter().map(|(_, s)| s.slice).sum();
+            let every = self.reports.get(id) == Some(&shards.len());
+            if let (true, Some(f)) = (every, first.filter(|f| f.selected != ran)) {
+                problems.push(format!(
+                    "{id}: its shards ran {ran} of the {} selected test files; rerun all jobs",
+                    f.selected
+                ));
+            }
+        }
+        problems
+    }
+
+    fn save(&self, dir: &Path) -> Result<()> {
+        std::fs::create_dir_all(dir).map_err(|e| Error::at(dir, e))?;
+        for (id, times) in &self.times {
+            let path = dir.join(format!("{}.json", id.file_stem()));
+            let json = serde_json::to_string_pretty(times).map_err(|e| Error(e.to_string()))?;
+            std::fs::write(&path, json).map_err(|e| Error::at(&path, e))?;
+        }
+        Ok(())
+    }
+}
+
+fn row(table: &mut String, jr: &JobReport, g: &GateReport) -> Result<()> {
+    writeln!(
+        table,
+        "| {} | {} | {} | {} | {} | {} s | {} | {} | {} |",
+        job_label(&jr.leg, jr.shard),
+        jr.host.label(),
+        secs(jr.setup),
+        g.id,
+        secs(g.took),
+        g.budget.0,
+        g.outcome.word(),
+        g.note.as_deref().unwrap_or_default(),
+        proved(g)
+    )
+    .map_err(|e| Error(e.to_string()))
+}
+
 /// # Errors
-pub fn done(plan: &Plan, reports: &Path) -> Result<(String, Vec<String>)> {
+pub fn done(
+    plan: &Plan,
+    reports: &Path,
+    timings_out: Option<&Path>,
+) -> Result<(String, Vec<String>)> {
     let mut table = String::from(
         "| job | host | setup | gate | took | budget | | note | proved by |\n|---|---|---|---|---|---|---|---|---|\n",
     );
     let mut problems = Vec::new();
     let mut selected = String::new();
     let mut all = Vec::new();
+    let mut sliced = Sliced::default();
     for job in &plan.jobs {
         let path = reports
             .join(artifact(&job.leg, job.shard))
@@ -101,26 +196,18 @@ pub fn done(plan: &Plan, reports: &Path) -> Result<(String, Vec<String>)> {
                 writeln!(selected, "- selected by {} in {label}: {line}", g.id).ok();
             }
             for g in &jr.gates {
-                writeln!(
-                    table,
-                    "| {} | {} | {} | {} | {} | {} s | {} | {} | {} |",
-                    job_label(&jr.leg, jr.shard),
-                    jr.host.label(),
-                    secs(jr.setup),
-                    g.id,
-                    secs(g.took),
-                    g.budget.0,
-                    g.outcome.word(),
-                    g.note.as_deref().unwrap_or_default(),
-                    proved(g)
-                )
-                .map_err(|e| Error(e.to_string()))?;
+                sliced.add(job_label(&jr.leg, jr.shard), g);
+                row(&mut table, jr, g)?;
                 if g.outcome.fails() {
                     problems.push(format!("{}: {}", g.id, g.outcome.word()));
                 }
             }
         }
         all.extend(report.jobs.into_iter().flat_map(|j| j.gates));
+    }
+    problems.extend(sliced.problems());
+    if let Some(dir) = timings_out {
+        sliced.save(dir)?;
     }
     if let Some(line) = cache_line(&CacheTotals::of(&all)) {
         writeln!(table, "\ncache: {line}").ok();

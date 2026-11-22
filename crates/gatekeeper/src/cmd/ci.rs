@@ -1,6 +1,6 @@
 use crate::cli::{self, Args, say};
 use gatekeeper_engine::{Error, cache, ci, config, plan};
-use gatekeeper_model::{Config, Pin, Plan};
+use gatekeeper_model::{Config, Event, Pin, Plan};
 use serde_json::{Map, Value};
 use std::path::Path;
 use std::process::ExitCode;
@@ -21,15 +21,18 @@ fn planned(args: &Args) -> Result<(Plan, Map<String, Value>, Config), Error> {
 fn plan_matrix(args: &Args) -> Result<String, Error> {
     let (plan, runners, config) = planned(args)?;
     let full = args.has("--all");
+    let event = cli::event();
     let mode = cache::mode(
         config.cache.as_ref(),
-        &cli::event(),
+        &event,
         full,
         false,
         &config.integration,
     );
     let checkout = matches!(config.pin, Pin::Checkout(_));
-    ci::matrix(&plan, &runners, checkout, &mode)
+    let save = matches!(&event, Event::Push { branch } if *branch == config.integration);
+    let timings = args.value("--timings").unwrap_or_default();
+    ci::matrix(&plan, &runners, checkout, (&mode, timings, save))
 }
 
 fn done(args: &Args) -> Result<bool, Error> {
@@ -37,7 +40,8 @@ fn done(args: &Args) -> Result<bool, Error> {
     let reports = args
         .value("--reports")
         .ok_or_else(|| Error("ci done needs --reports DIR".into()))?;
-    let (table, problems) = ci::done(&plan, Path::new(reports))?;
+    let out = args.value("--timings-out").map(Path::new);
+    let (table, problems) = ci::done(&plan, Path::new(reports), out)?;
     say(&table);
     for p in &problems {
         say(&format!("FAIL {p}"));
@@ -45,12 +49,22 @@ fn done(args: &Args) -> Result<bool, Error> {
     Ok(!problems.is_empty())
 }
 
-/// `ci plan [--pack P] [--runners JSON] [--all]` prints the job matrices; `ci done --reports DIR [--runners JSON]` merges the reports.
+/// `ci plan [--pack P] [--runners JSON] [--timings ENTRY] [--all]` prints the job matrices; `ci done --reports DIR [--runners JSON] [--timings-out DIR]` merges the reports.
 pub fn run(args: &[String]) -> ExitCode {
     let Some((sub, rest)) = args.split_first() else {
         return cli::usage_error(&"ci: plan or done");
     };
-    let parsed = Args::parse(rest, &["--pack", "--runners", "--reports"], &["--all"]);
+    let parsed = Args::parse(
+        rest,
+        &[
+            "--pack",
+            "--runners",
+            "--reports",
+            "--timings",
+            "--timings-out",
+        ],
+        &["--all"],
+    );
     match sub.as_str() {
         "plan" => match parsed.and_then(|a| plan_matrix(&a)) {
             Ok(line) => {

@@ -226,7 +226,7 @@ fn ci_plan_emits_one_leg_per_pack_and_done_fails_a_missing_or_failed_report() {
     assert_eq!(code, 0);
     assert_eq!(
         plan.trim(),
-        "matrix={\"include\":[{\"after\":\"\",\"artifact\":\"gates-local\",\"leg\":\"local\",\"node\":false,\"results-integration\":\"\",\"results-own\":\"\",\"results-save\":\"\",\"results-tier\":\"\",\"runs-on\":\"ubuntu-latest\",\"rust\":true,\"shard\":\"\"}]}\nafter={\"include\":[]}"
+        "matrix={\"include\":[{\"after\":\"\",\"artifact\":\"gates-local\",\"leg\":\"local\",\"node\":false,\"results-integration\":\"\",\"results-own\":\"\",\"results-save\":\"\",\"results-tier\":\"\",\"runs-on\":\"ubuntu-latest\",\"rust\":true,\"shard\":\"\"}]}\nafter={\"include\":[]}\ntimings-save="
     );
     let ts = repo(
         "ci-ts",
@@ -237,7 +237,7 @@ fn ci_plan_emits_one_leg_per_pack_and_done_fails_a_missing_or_failed_report() {
     assert_eq!(code, 0, "{plan}");
     assert_eq!(
         plan.trim(),
-        "matrix={\"include\":[{\"after\":\"\",\"artifact\":\"gates-ts\",\"leg\":\"ts\",\"node\":true,\"results-integration\":\"\",\"results-own\":\"\",\"results-save\":\"\",\"results-tier\":\"\",\"runs-on\":\"ubuntu-latest\",\"rust\":true,\"shard\":\"\"}]}\nafter={\"include\":[]}"
+        "matrix={\"include\":[{\"after\":\"\",\"artifact\":\"gates-ts\",\"leg\":\"ts\",\"node\":true,\"results-integration\":\"\",\"results-own\":\"\",\"results-save\":\"\",\"results-tier\":\"\",\"runs-on\":\"ubuntu-latest\",\"rust\":true,\"shard\":\"\"}]}\nafter={\"include\":[]}\ntimings-save="
     );
     let reports = root.join("reports");
     let (code, out) = gk(&root, &["ci", "done", "--reports", "reports"], &[]);
