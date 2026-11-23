@@ -1,6 +1,7 @@
 mod cache;
 mod gate;
 mod glob;
+mod names;
 mod report;
 mod scope;
 mod select;
@@ -11,6 +12,7 @@ pub use cache::{
 };
 pub use gate::{Capability, Gate, GateFile, PackFile, Platform, Step, Toolchain, Upload};
 pub use glob::Glob;
+pub use names::PrivateNames;
 pub use report::{
     BudgetMode, CacheTotals, Failure, GateReport, Host, JobReport, Kept, Millis, Outcome, Report,
     judge,

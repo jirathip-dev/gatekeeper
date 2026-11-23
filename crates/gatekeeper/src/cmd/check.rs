@@ -116,6 +116,9 @@ fn prepare(args: &Args, root: &Path) -> Result<(Plan, RunCtx, Option<usize>, Cac
     let mut cx = RunCtx::lane(root, &cli::cache());
     cx.base = base;
     cx.pr_body = args.value("--pr-body").map(PathBuf::from);
+    cx.names = cli::private_names();
+    cx.head = cli::head();
+    cx.integration.clone_from(&config.integration);
     cx.host = host;
     cx.job_start = cli::job_start();
     cx.rust.clone_from(&config.rust);

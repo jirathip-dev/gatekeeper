@@ -1,7 +1,8 @@
 use gatekeeper_engine::Error;
 use gatekeeper_engine::cache::{self, Ident, Results};
 use gatekeeper_model::{
-    CacheMode, Config, Event, Filter, GateId, Host, Off, PackId, RepoRun, RunRef, Shard, Trigger,
+    CacheMode, Config, Event, Filter, GateId, Host, Off, PackId, PrivateNames, RepoRun, RunRef,
+    Shard, Trigger,
 };
 use std::env;
 use std::io::Write as _;
@@ -104,6 +105,16 @@ pub fn root() -> Result<PathBuf, Error> {
 
 fn var(name: &str) -> String {
     env::var(name).unwrap_or_default()
+}
+
+/// `DROVER_PRIVATE_NAMES`, one name a line; `None` when unset or empty.
+pub fn private_names() -> Option<PrivateNames> {
+    PrivateNames::parse(&var("DROVER_PRIVATE_NAMES"))
+}
+
+/// `GATEKEEPER_HEAD`: the PR's head sha; `None` when unset or empty.
+pub fn head() -> Option<String> {
+    Some(var("GATEKEEPER_HEAD").trim().to_owned()).filter(|h| !h.is_empty())
 }
 
 /// The host kind, from the runner's environment: a GitHub-hosted runner, a self-hosted one, or a lane's host.

@@ -65,6 +65,10 @@ fn step(
                 swift: cx.swift.as_ref(),
                 tools: &cx.tools,
                 base: cx.base.as_deref(),
+                names: cx.names.as_ref(),
+                head: cx.head.as_deref(),
+                pr_body: cx.pr_body.as_deref(),
+                integration: &cx.integration,
                 note,
             };
             let findings = listed.unlisted(baseline::findings(check, &cx));

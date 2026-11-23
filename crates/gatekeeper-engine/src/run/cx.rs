@@ -1,12 +1,12 @@
 use crate::cache::Results;
 use crate::{Error, Result, fetch, runner};
-use gatekeeper_model::{Host, Platform, RustPack, SwiftPack, TsPack};
+use gatekeeper_model::{Host, Platform, PrivateNames, RustPack, SwiftPack, TsPack};
 use std::cell::OnceCell;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
-/// What a built-in check reads: the repo, its scratch folder, the tool cache, the packs' tables, the base; where it notes a summary.
+/// What a built-in check reads: the repo, its scratch folder, the tool cache, the packs' tables, the base, the PR's values; where it notes a summary.
 pub struct CheckCx<'a> {
     pub root: &'a Path,
     pub scratch: &'a Path,
@@ -16,6 +16,10 @@ pub struct CheckCx<'a> {
     pub swift: Option<&'a SwiftPack>,
     pub tools: &'a BTreeMap<String, PathBuf>,
     pub base: Option<&'a str>,
+    pub names: Option<&'a PrivateNames>,
+    pub head: Option<&'a str>,
+    pub pr_body: Option<&'a Path>,
+    pub integration: &'a str,
     pub note: &'a OnceCell<String>,
 }
 
@@ -48,6 +52,11 @@ pub struct RunCtx {
     pub cache: PathBuf,
     pub base: Option<String>,
     pub pr_body: Option<PathBuf>,
+    /// `DROVER_PRIVATE_NAMES`, read once by the cli; a fixture case's from its `env`.
+    pub names: Option<PrivateNames>,
+    /// `GATEKEEPER_HEAD`, read once by the cli; a fixture case's commit.
+    pub head: Option<String>,
+    pub integration: String,
     pub host: Host,
     pub job_start: Option<SystemTime>,
     pub rust: RustPack,
@@ -77,6 +86,9 @@ impl RunCtx {
             cache: cache.to_path_buf(),
             base: None,
             pr_body: None,
+            names: None,
+            head: None,
+            integration: String::new(),
             host: Host::Lane,
             job_start: None,
             rust: RustPack::default(),
