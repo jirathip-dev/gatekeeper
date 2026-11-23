@@ -1,6 +1,6 @@
 use crate::run::{self, RunCtx};
 use crate::{Error, Result, config, packs, plan, runner};
-use gatekeeper_model::{Gate, GateId, Host, PackId, Platform, Shard, Skip};
+use gatekeeper_model::{Gate, GateId, Host, PackId, Platform, PrivateNames, Shard, Skip};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -82,7 +82,13 @@ fn lay_case(prefix: &str, dir: &Path) -> Result<()> {
     Ok(())
 }
 
-fn run_case(gate: &Gate, case: Option<&str>, out: &Path, bench: &Bench) -> Result<(bool, String)> {
+fn typed<'a>(env: &'a [(String, String)], key: &str) -> &'a str {
+    let last = env.iter().rev().find(|(k, _)| k == key);
+    last.map_or("", |(_, v)| v.as_str())
+}
+
+/// # Errors
+pub fn case_ctx(gate: &Gate, case: Option<&str>, out: &Path, bench: &Bench) -> Result<RunCtx> {
     let pack = gate.id.pack;
     let dir = out
         .join(pack.as_str())
@@ -94,12 +100,13 @@ fn run_case(gate: &Gate, case: Option<&str>, out: &Path, bench: &Bench) -> Resul
     packs::materialize(&format!("{pack}/fixtures/_base/"), &dir)?;
     runner::ok("git", &["init", "-q"], &dir)?;
     let base = commit(&dir, "base")?;
+    let mut head = base.clone();
     let mut prefixes = vec![format!("{pack}/fixtures/{}/", gate.id.name())];
     let mut pr_body = None;
     if let Some(case) = case {
         let prefix = format!("{pack}/fixtures/{}/{case}/", gate.id.name());
         lay_case(&prefix, &dir)?;
-        let head = commit(
+        head = commit(
             &dir,
             packs::text(&format!("{prefix}message")).unwrap_or(case),
         )?;
@@ -114,15 +121,28 @@ fn run_case(gate: &Gate, case: Option<&str>, out: &Path, bench: &Bench) -> Resul
     let mut cx = RunCtx::lane(&dir, &bench.cache);
     cx.base = Some(base);
     cx.pr_body = pr_body;
+    cx.env = env(&prefixes);
+    cx.names = PrivateNames::parse(typed(&cx.env, "DROVER_PRIVATE_NAMES"));
+    let given = typed(&cx.env, "GATEKEEPER_HEAD");
+    cx.head = Some(if given.is_empty() {
+        head
+    } else {
+        given.to_owned()
+    });
+    cx.integration = config.as_ref().map_or_default(|c| c.integration.clone());
     cx.rust = config.as_ref().map_or_default(|c| c.rust.clone());
     cx.ts = config.as_ref().and_then(|c| c.ts.clone());
     cx.swift = config.and_then(|c| c.swift);
     cx.tools = bench.tools.clone();
     cx.platform = bench.platform;
-    cx.env = env(&prefixes);
     fs::create_dir_all(&cx.out).map_err(|e| Error::at(&cx.out, e))?;
+    Ok(cx)
+}
+
+fn run_case(gate: &Gate, case: Option<&str>, out: &Path, bench: &Bench) -> Result<(bool, String)> {
+    let cx = case_ctx(gate, case, out, bench)?;
     let report = run::gate(gate, (Shard::ONE, None), &[], &cx)?;
-    let log = fs::read_to_string(dir.join(&report.log)).unwrap_or_default();
+    let log = fs::read_to_string(cx.root.join(&report.log)).unwrap_or_default();
     Ok((report.outcome.fails(), log))
 }
 

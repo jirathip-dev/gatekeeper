@@ -68,16 +68,17 @@ pub struct Written {
     pub unlisted: Vec<String>,
 }
 
+fn check_steps(gate: &Gate) -> Vec<&String> {
+    let checks = gate.steps.iter().filter_map(|s| match s {
+        Step::Check { check } => Some(check),
+        _ => None,
+    });
+    checks.collect()
+}
+
 /// # Errors
 pub fn write(gate: &Gate, root: &Path, cache: &Path, config: &Config) -> Result<Written> {
-    let checks: Vec<&String> = gate
-        .steps
-        .iter()
-        .filter_map(|s| match s {
-            Step::Check { check } => Some(check),
-            _ => None,
-        })
-        .collect();
+    let checks = check_steps(gate);
     if checks.is_empty() {
         return Err(Error(format!(
             "{}: no check step, so no findings to list",
@@ -99,6 +100,10 @@ pub fn write(gate: &Gate, root: &Path, cache: &Path, config: &Config) -> Result<
                 swift: config.swift.as_ref(),
                 tools: &config::tools(config, root),
                 base: None,
+                names: None,
+                head: None,
+                pr_body: None,
+                integration: &config.integration,
                 note: &OnceCell::new(),
             },
         ));

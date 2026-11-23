@@ -87,3 +87,40 @@ fn a_macos_gate_on_a_linux_host_fails_every_case_with_needs_macos_and_the_any_pl
     }
     assert_eq!(results.len(), 3);
 }
+
+fn head_of(cx: &gatekeeper_engine::run::RunCtx) -> String {
+    let out = std::process::Command::new("git")
+        .args(["rev-parse", "HEAD"])
+        .current_dir(&cx.root)
+        .output()
+        .expect("git");
+    String::from_utf8(out.stdout)
+        .expect("utf8")
+        .trim()
+        .to_owned()
+}
+
+#[test]
+fn a_case_env_file_fills_the_typed_names_and_head() {
+    let (out, bench) = out("selftest-typed");
+    let gate = always_passing("hygiene");
+    let cx = selftest::case_ctx(&gate, Some("name-in-tree"), &out, &bench).expect("case");
+    assert_eq!(
+        cx.names.as_ref().map(gatekeeper_model::PrivateNames::len),
+        Some(1)
+    );
+    assert_eq!(cx.head.as_deref(), Some(head_of(&cx).as_str()));
+    assert_eq!(cx.integration, "main");
+    let none = selftest::case_ctx(&gate, Some("list-missing"), &out, &bench).expect("case");
+    assert!(none.names.is_none());
+}
+
+#[test]
+fn an_empty_head_in_the_env_file_is_the_case_commit() {
+    let (out, bench) = out("selftest-head");
+    let gate = always_passing("pr-body");
+    let cx = selftest::case_ctx(&gate, Some("names-the-head"), &out, &bench).expect("case");
+    assert_eq!(cx.head.as_deref(), Some(head_of(&cx).as_str()));
+    assert!(cx.names.is_none());
+    assert!(cx.pr_body.is_some());
+}

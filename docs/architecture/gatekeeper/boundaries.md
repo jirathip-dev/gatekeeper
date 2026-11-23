@@ -45,8 +45,11 @@ Rules that follow, each with its enforcer:
   Enforcer: `selftest` fails a gate with no failing fixture, so an unlisted gate cannot exist quietly.
 - **The workflow holds no gate logic.** Enforcer: an arch-check ban on `cargo ` in `gates.yml`; the CI-only parts
   are provisioning (toolchain, cache, artifacts) and nothing else.
-- **A pack calls a drover concept through drover.** Line cap, arch-check, hygiene, PR body and the rules file are
-  `Tool { tool: drover }` steps. gatekeeper never re-implements one. Enforcer: review against this table.
+- **The core checks are gatekeeper's.** Line cap, arch-check, hygiene, PR body and the rules file are gatekeeper's
+  built-in checks (`docs/architecture/checks-to-gatekeeper/`), ported from drover one slice at a time; until a
+  slice lands its gate still calls the pinned drover. A check gets the private names, the PR's head, its body and
+  the integration branch as typed values the cli reads once; no check reads the fleet config, `DROVER_LANE` or the
+  GitHub API. Enforcer: the `env::var` ban in `.drover/arch.toml`, and review against this table.
 - **The release contract is farrier's.** gatekeeper runs the released `farrier` tool and links none of its
   crates. A check on a release is added in farrier, never in `release.yml`. Enforcer: review against this table.
 - **One pinned version of every tool.** drover, farrier, actionlint, cargo-deny, oxlint, knip and anti-slop-swift
