@@ -1,0 +1,4 @@
+[fleet.fixture]
+line_cap = 11
+count = ["web/src/**/*.ts"]
+exclude = ["**/*.test.ts", "web/src/gen/**"]

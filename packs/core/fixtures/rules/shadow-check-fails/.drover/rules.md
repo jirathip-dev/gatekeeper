@@ -1,0 +1,3 @@
+- don't add a line to list.txt (enforced by: CI arch-check)
+- don't leave a TODO file (enforced by: no-todo `test ! -e TODO`, shadow since 2026-11-20)
+- don't drop the list (enforced by: has-list `test -e list.txt`, active since 2026-11-21)
