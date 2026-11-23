@@ -1,0 +1,4 @@
+line_cap = 5
+count = ["crates/a/src/**"]
+skip_blank = true
+stop_at_cfg_test = true

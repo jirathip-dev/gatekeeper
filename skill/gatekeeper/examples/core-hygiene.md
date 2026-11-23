@@ -30,7 +30,7 @@ Fix: take the private name out at the place the hit names; in CI pass the privat
 
 ## name-in-pr-body
 
-With the PR body (`{head}` is the case's commit):
+With the PR body (`{head}` is the case's commit, `{base}` its parent):
 
 ```
 Closes #1

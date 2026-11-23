@@ -12,13 +12,17 @@ fn case_change(prefix: &str) -> String {
                 text.trim_end()
             ),
             ("body", Ok(text)) => format!(
-                "With the PR body (`{{head}}` is the case's commit):\n\n```\n{}\n```\n\n",
+                "With the PR body (`{{head}}` is the case's commit, `{{base}}` its parent):\n\n```\n{}\n```\n\n",
                 text.trim_end()
             ),
             ("env", Ok(text)) => {
                 format!("With the environment:\n\n```\n{}\n```\n\n", text.trim_end())
             }
             ("expect" | "passes", _) => String::new(),
+            ("checks.json", Ok(text)) => format!(
+                "The check writes `checks.json`:\n\n```json\n{}\n```\n\n",
+                text.trim_end()
+            ),
             ("remove", Ok(text)) => text
                 .lines()
                 .filter(|l| !l.is_empty())
