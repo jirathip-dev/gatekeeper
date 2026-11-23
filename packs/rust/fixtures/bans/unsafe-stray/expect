@@ -1,0 +1,1 @@
+.gatekeeper/config.toml: unsafe_crates: ghost is no workspace member

@@ -60,7 +60,7 @@ fn step(
                 root: &cx.root,
                 scratch: &cx.out.join("check").join(check),
                 cache: &cx.cache,
-                manifest: &cx.manifest,
+                rust: &cx.rust,
                 ts: cx.ts.as_ref(),
                 swift: cx.swift.as_ref(),
                 tools: &cx.tools,

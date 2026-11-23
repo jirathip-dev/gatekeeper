@@ -57,14 +57,6 @@ pub fn tools(config: &Config, root: &Path) -> BTreeMap<String, PathBuf> {
     paths.collect()
 }
 
-#[must_use]
-pub fn manifest(config: &Config) -> &str {
-    config
-        .rust
-        .as_ref()
-        .map_or("Cargo.toml", |r| r.manifest.as_str())
-}
-
 pub(crate) fn read_toml(path: &Path) -> Result<toml::Table> {
     let text = std::fs::read_to_string(path).map_err(|e| Error::at(path, e))?;
     toml::from_str(&text).map_err(|e| Error::at(path, e))

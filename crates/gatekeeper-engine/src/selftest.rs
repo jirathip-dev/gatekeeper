@@ -114,10 +114,7 @@ fn run_case(gate: &Gate, case: Option<&str>, out: &Path, bench: &Bench) -> Resul
     let mut cx = RunCtx::lane(&dir, &bench.cache);
     cx.base = Some(base);
     cx.pr_body = pr_body;
-    config
-        .as_ref()
-        .map_or("Cargo.toml", config::manifest)
-        .clone_into(&mut cx.manifest);
+    cx.rust = config.as_ref().map_or_default(|c| c.rust.clone());
     cx.ts = config.as_ref().and_then(|c| c.ts.clone());
     cx.swift = config.and_then(|c| c.swift);
     cx.tools = bench.tools.clone();

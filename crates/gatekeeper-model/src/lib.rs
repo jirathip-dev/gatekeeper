@@ -150,7 +150,7 @@ pub struct Config {
     #[serde(default)]
     pub off: BTreeMap<GateId, String>,
     #[serde(default)]
-    pub rust: Option<RustPack>,
+    pub rust: RustPack,
     #[serde(default)]
     pub scope: Option<ScopeConfig>,
     #[serde(default)]
@@ -184,10 +184,20 @@ pub struct ReleasePin {
     pub sha256: BTreeMap<String, String>,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Clone, Debug, Deserialize)]
+#[serde(default, deny_unknown_fields)]
 pub struct RustPack {
     pub manifest: String,
+    pub unsafe_crates: Vec<String>,
+}
+
+impl Default for RustPack {
+    fn default() -> Self {
+        RustPack {
+            manifest: "Cargo.toml".into(),
+            unsafe_crates: Vec::new(),
+        }
+    }
 }
 
 /// `[ts]`: the folders `tsc -p` checks and oxlint lints, and the command that installs their dependencies.

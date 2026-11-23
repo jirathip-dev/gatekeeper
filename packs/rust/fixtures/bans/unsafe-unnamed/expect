@@ -1,0 +1,1 @@
+crate gpu: gpu/Cargo.toml: [lints.rust] unsafe_code is "allow", under the floor "forbid"

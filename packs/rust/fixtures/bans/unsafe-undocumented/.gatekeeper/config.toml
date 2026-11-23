@@ -1,0 +1,6 @@
+packs = ["rust"]
+integration = "staging"
+pin = "checkout"
+
+[rust]
+unsafe_crates = ["gpu"]

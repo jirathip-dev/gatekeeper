@@ -1,6 +1,6 @@
 use crate::cache::Results;
 use crate::{Error, Result, fetch, runner};
-use gatekeeper_model::{Host, Platform, SwiftPack, TsPack};
+use gatekeeper_model::{Host, Platform, RustPack, SwiftPack, TsPack};
 use std::cell::OnceCell;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -11,7 +11,7 @@ pub struct CheckCx<'a> {
     pub root: &'a Path,
     pub scratch: &'a Path,
     pub cache: &'a Path,
-    pub manifest: &'a str,
+    pub rust: &'a RustPack,
     pub ts: Option<&'a TsPack>,
     pub swift: Option<&'a SwiftPack>,
     pub tools: &'a BTreeMap<String, PathBuf>,
@@ -50,7 +50,7 @@ pub struct RunCtx {
     pub pr_body: Option<PathBuf>,
     pub host: Host,
     pub job_start: Option<SystemTime>,
-    pub manifest: String,
+    pub rust: RustPack,
     /// The reports and kept files of the leg an `after` job waits for, downloaded in CI.
     pub after_reports: Option<PathBuf>,
     pub ts: Option<TsPack>,
@@ -79,7 +79,7 @@ impl RunCtx {
             pr_body: None,
             host: Host::Lane,
             job_start: None,
-            manifest: "Cargo.toml".into(),
+            rust: RustPack::default(),
             after_reports: None,
             ts: None,
             results: None,
