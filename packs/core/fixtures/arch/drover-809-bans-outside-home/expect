@@ -1,0 +1,6 @@
+crates/server/src/f0.rs:2: `Command::new` is banned here: #809: processes start only in core's runner (crate::runner)
+crates/server/src/f1.rs:2: `std::process` is banned here: #809: processes start only in core's runner (crate::runner, runner::pid, runner::exit)
+crates/server/src/f2.rs:2: `thread::sleep` is banned here: #809: time is read and waited on only in core's clock (crate::clock::sleep)
+crates/server/src/f3.rs:2: `env::var` is banned here: #809: the environment is read only in core's config (crate::config::env)
+crates/server/src/f4.rs:2: `SystemTime::now` is banned here: #809: time is read and waited on only in core's clock (crate::clock)
+crates/server/src/f5.rs:2: `Instant::now` is banned here: #809: time is read and waited on only in core's clock (crate::clock::instant)

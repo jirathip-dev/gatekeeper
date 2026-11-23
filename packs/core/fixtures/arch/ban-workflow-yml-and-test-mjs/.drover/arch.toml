@@ -1,0 +1,11 @@
+[[ban]]
+pattern = "run: exit 1"
+paths = [".github/workflows/*.yml"]
+except = [".github/workflows/allowed.yml"]
+reason = "no bare exit 1 step"
+
+[[ban]]
+pattern = "readFileSync("
+paths = ["**/*.test.mjs"]
+except = ["scripts/ok.test.mjs"]
+reason = "read fixtures through the helper"

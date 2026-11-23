@@ -1,4 +1,5 @@
 pub mod anti_slop;
+pub mod arch;
 pub mod banned_apis;
 pub mod deny_floor;
 pub mod deps;
@@ -15,6 +16,7 @@ use crate::{Error, Result};
 
 pub const NAMES: &[&str] = &[
     "anti-slop",
+    "arch",
     "banned-apis",
     "deny-floor",
     "deps",
@@ -30,6 +32,7 @@ pub const NAMES: &[&str] = &[
 pub fn run(name: &str, cx: &CheckCx) -> Result<Vec<String>> {
     match name {
         "anti-slop" => anti_slop::run(cx),
+        "arch" => arch::run(cx),
         "banned-apis" => banned_apis::run(cx),
         "deny-floor" => deny_floor::run(cx),
         "deps" => deps::run(cx),

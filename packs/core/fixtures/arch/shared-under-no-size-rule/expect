@@ -1,0 +1,1 @@
+shared `crates/*/tests/**` falls under no `[[size]]` rule

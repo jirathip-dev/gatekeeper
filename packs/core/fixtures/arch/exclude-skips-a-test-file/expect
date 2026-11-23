@@ -1,0 +1,2 @@
+apps/web/src/c.ts:1: layer `ui` uses `db` (db/q); its may_use is []
+apps/web/src/c.ts:1: `apps/web/src/c.ts` is 3 lines, over 2 (baseline None)

@@ -1,0 +1,13 @@
+[[layer]]
+name = "ui"
+paths = ["apps/*/src/**"]
+exclude = ["**/*.test.*", "**/__tests__/**"]
+
+[[layer]]
+name = "db"
+paths = ["db/**"]
+
+[[size]]
+paths = ["apps/*/src/**"]
+exclude = ["**/*.test.*", "**/__tests__/**"]
+max_file_lines = 2

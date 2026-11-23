@@ -1,0 +1,3 @@
+func small() {
+    a()
+}

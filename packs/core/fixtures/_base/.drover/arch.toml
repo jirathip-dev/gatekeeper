@@ -1,4 +1,4 @@
-frozen = ["list.txt"]
+frozen = ["list.txt", "new-list.txt"]
 generated = ["gen.txt"]
 generate = "sh gen.sh"
 
@@ -26,3 +26,4 @@ max_fn_lines = 10
 
 [comments]
 policy = "strict"
+except = ["lib/**"]

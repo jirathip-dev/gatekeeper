@@ -1,0 +1,5 @@
+[[ban]]
+pattern = "next pass"
+paths = ["crates/*/src/**"]
+except = ["crates/core/src/promise.rs"]
+reason = "#854: a waiting/next-step line is a typed promise: build it with crate::promise::Say"

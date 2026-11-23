@@ -1,0 +1,8 @@
+[[size]]
+paths = ["**/*.swift"]
+max_file_lines = 100
+max_fn_lines = 3
+
+[[size]]
+paths = ["justfile", ".drover/arch.toml"]
+max_file_lines = 6

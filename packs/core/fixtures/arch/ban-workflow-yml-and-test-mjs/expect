@@ -1,0 +1,2 @@
+.github/workflows/ci.yml:4: `run: exit 1` is banned here: no bare exit 1 step
+scripts/a.test.mjs:2: `readFileSync(` is banned here: read fixtures through the helper

@@ -1,0 +1,3 @@
+src/bad.rs:1: a comment (only `// SAFETY:` over unsafe, `// TODO(#N)` and one `///` on a pub item): put the why in `drover why`
+src/bad.rs:3: a comment (only `// SAFETY:` over unsafe, `// TODO(#N)` and one `///` on a pub item): put the why in `drover why`
+src/bad.rs:5: a comment (only `// SAFETY:` over unsafe, `// TODO(#N)` and one `///` on a pub item): put the why in `drover why`

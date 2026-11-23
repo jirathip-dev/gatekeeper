@@ -1,0 +1,2 @@
+crates/core/src/lib.rs -> server
+web/src/api/client.ts -> web-ui

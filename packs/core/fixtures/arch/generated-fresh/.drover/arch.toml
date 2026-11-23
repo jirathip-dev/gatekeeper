@@ -1,0 +1,2 @@
+generated = ["gen/types.ts"]
+generate = "mkdir -p gen && printf 'export type A = 1;\\n' > gen/types.ts"

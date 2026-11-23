@@ -1,0 +1,4 @@
+[[ban]]
+pattern = "@ts-expect-error"
+paths = ["src/**"]
+reason = "type it"

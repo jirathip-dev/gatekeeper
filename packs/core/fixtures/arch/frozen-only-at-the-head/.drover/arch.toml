@@ -1,0 +1,1 @@
+frozen = ["src/registry.rs", "src/root.rs"]

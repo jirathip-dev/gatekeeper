@@ -1,0 +1,31 @@
+shared = ["crates/*/tests/**"]
+[[layer]]
+name = "core"
+paths = ["crates/core/src/**"]
+mods = ["drover_core"]
+
+[[layer]]
+name = "server"
+paths = ["crates/server/src/**"]
+mods = ["drover_server"]
+may_use = ["core"]
+
+[[layer]]
+name = "web-api"
+paths = ["web/src/api/**"]
+
+[[layer]]
+name = "web-ui"
+paths = ["web/src/ui/**"]
+may_use = ["web-api"]
+
+[[ban]]
+pattern = "Command::new"
+paths = ["crates/*/src/**"]
+except = ["crates/core/src/runner.rs"]
+reason = "#713: spawn processes through the Runner"
+
+[[size]]
+paths = ["crates/*/src/**/*.rs"]
+max_file_lines = 8
+max_fn_lines = 4

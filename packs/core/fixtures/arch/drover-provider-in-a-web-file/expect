@@ -1,0 +1,1 @@
+web/src/accounts.ts:2: `claude` is banned here: #806: core never names a provider; its code goes in crates/core/src/providers/ (docs/providers.md); #830: nor does web/src

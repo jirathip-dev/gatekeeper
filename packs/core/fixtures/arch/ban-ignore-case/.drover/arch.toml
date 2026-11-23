@@ -1,0 +1,7 @@
+[[ban]]
+pattern = "codex"
+paths = ["crates/*/src/**"]
+except = ["crates/core/src/providers/**"]
+reason = "core never names a provider"
+comments = true
+ignore_case = true
