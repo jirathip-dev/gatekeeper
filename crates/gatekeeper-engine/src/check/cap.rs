@@ -185,6 +185,6 @@ pub fn run(cx: &Cx) -> Result<Vec<String>> {
     if (0..warn).contains(&left) {
         note.push(format!("WARN: {left} lines of headroom (< {warn})"));
     }
-    cx.note.set(note.join("\n")).ok();
+    cx.note.set(note.join("; ")).ok();
     Ok(out)
 }
