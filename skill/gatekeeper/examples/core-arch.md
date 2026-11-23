@@ -455,7 +455,7 @@ paths = ["docs/**/*.md", "README.md"]
 watch = ["lib/cli.rs"]
 ```
 
-With the PR body (`{head}` is the case's commit):
+With the PR body (`{head}` is the case's commit, `{base}` its parent):
 
 ```
 Closes #1
@@ -487,7 +487,7 @@ paths = ["docs/**/*.md", "README.md"]
 watch = ["lib/cli.rs"]
 ```
 
-With the PR body (`{head}` is the case's commit):
+With the PR body (`{head}` is the case's commit, `{base}` its parent):
 
 ```
 no doc: internal only
@@ -513,7 +513,7 @@ paths = ["docs/**/*.md", "README.md"]
 watch = ["lib/cli.rs"]
 ```
 
-With the PR body (`{head}` is the case's commit):
+With the PR body (`{head}` is the case's commit, `{base}` its parent):
 
 ```
 Closes #1
