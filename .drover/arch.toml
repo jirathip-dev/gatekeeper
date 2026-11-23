@@ -12,6 +12,10 @@ dir = "crates/gatekeeper-engine/src/check"
 glob = "*.rs"
 
 [[collect]]
+dir = "crates/gatekeeper-engine/src/arch"
+glob = "*.rs"
+
+[[collect]]
 dir = "packs"
 glob = "*/gates/*.toml"
 

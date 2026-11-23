@@ -1,0 +1,2 @@
+generated = ["gen/*.ts"]
+generate = "mkdir -p gen && for f in a b c; do echo \"export const $f = 1;\" > gen/$f.ts; done"

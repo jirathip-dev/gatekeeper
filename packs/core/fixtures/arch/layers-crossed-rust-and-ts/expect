@@ -1,0 +1,2 @@
+crates/core/src/lib.rs:3: layer `core` uses `server` (drover_server::api); its may_use is []
+web/src/api/client.ts:4: layer `web-api` uses `web-ui` (web/src/ui/board); its may_use is []

@@ -79,6 +79,9 @@ fn check_steps(gate: &Gate) -> Vec<&String> {
 /// # Errors
 pub fn write(gate: &Gate, root: &Path, cache: &Path, config: &Config) -> Result<Written> {
     let checks = check_steps(gate);
+    if checks == ["arch"] {
+        return crate::arch::baseline::write(root);
+    }
     if checks.is_empty() {
         return Err(Error(format!(
             "{}: no check step, so no findings to list",

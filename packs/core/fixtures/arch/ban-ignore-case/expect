@@ -1,0 +1,1 @@
+crates/core/src/setup.rs:2: `codex` is banned here: core never names a provider

@@ -1,0 +1,7 @@
+[[ban]]
+pattern = "claude"
+paths = ["crates/*/src/**", "web/src/**"]
+except = ["crates/core/src/providers/**"]
+reason = "#806: core never names a provider; its code goes in crates/core/src/providers/ (docs/providers.md); #830: nor does web/src"
+comments = true
+ignore_case = true

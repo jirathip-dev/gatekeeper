@@ -14,11 +14,11 @@ pinned actionlint on .github/workflows/
 
 ## core/arch
 
-drover arch-check: the layers, bans, sizes, frozen and generated files and comments in .drover/arch.toml
+the layers, bans, sizes, frozen and generated files and comments in .drover/arch.toml
 
 - fix: follow the rule the finding names; rerun the generator, never hand-edit a generated file
 - budget: 45s
-- cached: no, reads the base
+- cached: yes
 - rerun: `./.gatekeeper/run check --gate core/arch`
 - what a failure looks like: [core-arch](../examples/core-arch.md)
 

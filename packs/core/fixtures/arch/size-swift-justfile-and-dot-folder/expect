@@ -1,0 +1,4 @@
+.drover/arch.toml:1: `.drover/arch.toml` is 8 lines, over 6 (baseline None)
+apple/Fn.swift:2: `apple/Fn.swift:big` is 5 lines, over 3 (baseline None)
+apple/Long.swift:1: `apple/Long.swift` is 300 lines, over 100 (baseline None)
+justfile:1: `justfile` is 20 lines, over 6 (baseline None)

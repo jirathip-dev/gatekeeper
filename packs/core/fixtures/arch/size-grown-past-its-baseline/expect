@@ -1,0 +1,3 @@
+crates/core/src/big.rs:1: `crates/core/src/big.rs` is 11 lines, over 8 (baseline Some(10))
+crates/core/src/big.rs:1: `crates/core/src/big.rs:big` is 6 lines, over 4 (baseline Some(5))
+crates/core/src/new.rs:1: `crates/core/src/new.rs:big` is 5 lines, over 4 (baseline None)

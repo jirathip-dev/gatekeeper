@@ -1,3 +1,4 @@
+pub(crate) mod arch;
 pub mod baseline;
 pub mod cache;
 pub(crate) mod check;

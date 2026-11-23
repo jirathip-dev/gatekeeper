@@ -1,0 +1,2 @@
+gen/b.ts: differs from what `mkdir -p gen && for f in a b c; do echo "export const $f = 1;" > gen/$f.ts; done` writes: run it and commit the output, never hand-merge a generated file
+gen/old.ts: differs from what `mkdir -p gen && for f in a b c; do echo "export const $f = 1;" > gen/$f.ts; done` writes: run it and commit the output, never hand-merge a generated file
