@@ -11,7 +11,7 @@ const HEAD: &str = "[package]\nname = \"gatekeeper-bans\"\nversion = \"0.0.0\"\n
                     publish = false\n\n[lints]\nworkspace = true\n\n";
 
 fn manifest(cx: &Cx) -> Result<String> {
-    let repo = read_toml(&cx.root.join(cx.manifest))?;
+    let repo = read_toml(&cx.root.join(&cx.rust.manifest))?;
     let lints = repo
         .get("workspace")
         .and_then(|w| w.get("lints"))

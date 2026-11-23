@@ -1,4 +1,4 @@
-mod cargo;
+pub(crate) mod cargo;
 mod pnpm;
 mod swiftpm;
 
@@ -10,9 +10,9 @@ use std::path::Path;
 
 const SKIPPED: [&str; 2] = ["node_modules", "target"];
 
-struct Named {
-    name: String,
-    root: String,
+pub(crate) struct Named {
+    pub(crate) name: String,
+    pub(crate) root: String,
     needs: BTreeSet<String>,
 }
 

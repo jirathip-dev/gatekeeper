@@ -94,7 +94,7 @@ pub fn write(gate: &Gate, root: &Path, cache: &Path, config: &Config) -> Result<
                 root,
                 scratch: &scratch,
                 cache,
-                manifest: config::manifest(config),
+                rust: &config.rust,
                 ts: config.ts.as_ref(),
                 swift: config.swift.as_ref(),
                 tools: &config::tools(config, root),

@@ -187,7 +187,7 @@ signature `SHA256SUMS.minisig`, checked against `release.pub`. `[pin]` holds the
 the wrapper refuses a binary that differs. To bump:
 
 ```
-$ ./.gatekeeper/run pin 1.2.0
+$ ./.gatekeeper/run pin 1.3.0
 ```
 
 It checks the signature, rewrites `[pin]`, the `uses: …gates.yml@<sha> # v<version>` lines and the wrapper. Then
@@ -208,6 +208,11 @@ $ rm "gatekeeper-$t" SHA256SUMS
 ```
 
 After that `./.gatekeeper/run pin` works as usual.
+
+Upgrading to v1.3.0: `rust/bans` now also reads each crate's own `[lints]` table (one that is not
+`workspace = true`) against the floor, so a crate that set its own weaker lints turns the bump PR red. Restore the
+floor there, or, for a crate that needs `unsafe`, name it in `[rust] unsafe_crates` (see the rust pack's
+`rust/bans` rules).
 
 ## Workflows
 

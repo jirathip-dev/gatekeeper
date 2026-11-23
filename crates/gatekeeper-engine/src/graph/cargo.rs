@@ -36,7 +36,7 @@ fn package(root: &Path, dir: &str) -> Result<Named> {
     })
 }
 
-pub(super) fn read(root: &Path) -> Result<Vec<Named>> {
+pub(crate) fn read(root: &Path) -> Result<Vec<Named>> {
     let top = read_toml(&root.join("Cargo.toml"))?;
     let (include, except) = (globs(&top, "members")?, globs(&top, "exclude")?);
     let mut dirs = members(root, &include, &except, "Cargo.toml")?;

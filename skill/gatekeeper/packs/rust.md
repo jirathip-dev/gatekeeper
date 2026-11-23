@@ -4,9 +4,14 @@ fmt, clippy with the shared lints, cargo-deny, the banned-API fixtures
 
 ## rust/bans
 
-the 12 clippy denies, unsafe_code forbid and pedantic warn are in [workspace.lints]; clippy refuses each banned-API file under them
+the 12 clippy denies, unsafe_code forbid and pedantic warn are in [workspace.lints] and in any crate's own [lints]; clippy refuses each banned-API file under them
 
-- fix: put the lint back in [workspace.lints] at the floor's level; a floor that is wrong is changed in gatekeeper
+1. A crate named in `[rust] unsafe_crates` of `.gatekeeper/config.toml` (e.g. `unsafe_crates = ["gpu"]`) may set `unsafe_code` to allow, warn or deny; every other crate stays at forbid.
+2. A named crate states its lints in its own `[lints]` table, not `workspace = true`: the 12 clippy denies, pedantic warn and `clippy::undocumented_unsafe_blocks = "deny"`.
+3. Each `unsafe {` in a named crate has a `// SAFETY:` comment on its line or in the comment lines right above it.
+4. A name that is no workspace member is a finding.
+
+- fix: put the lint back at the floor's level; a crate that needs unsafe is named in [rust] unsafe_crates with its own [lints] denying clippy::undocumented_unsafe_blocks and a // SAFETY: line over each unsafe block; a floor that is wrong is changed in gatekeeper
 - budget: 30s
 - cached: yes
 - rerun: `./.gatekeeper/run check --gate rust/bans`

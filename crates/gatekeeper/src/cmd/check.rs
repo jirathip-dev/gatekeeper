@@ -118,7 +118,7 @@ fn prepare(args: &Args, root: &Path) -> Result<(Plan, RunCtx, Option<usize>, Cac
     cx.pr_body = args.value("--pr-body").map(PathBuf::from);
     cx.host = host;
     cx.job_start = cli::job_start();
-    config::manifest(&config).clone_into(&mut cx.manifest);
+    cx.rust.clone_from(&config.rust);
     cx.after_reports = args.value("--after-reports").map(PathBuf::from);
     cx.ts.clone_from(&config.ts);
     cx.swift.clone_from(&config.swift);

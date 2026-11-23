@@ -33,13 +33,27 @@ list fails (`list-missing`); a fork's PR has no secrets, so there the gate is sk
 |---|---|---|---|
 | `rust/fmt` | `cargo fmt --check` | `unformatted` | 10 |
 | `rust/clippy` | clippy pedantic, `-D warnings`, with the pack's `clippy.toml` by reference; lib and bins strict, tests with the test allow-list | `pedantic-warning`, `rustc-warning` | 180 |
-| `rust/bans` | the 12 clippy denies and `unsafe_code = "forbid"` are in `[workspace.lints]`, none weakened; then each banned-API file is refused by clippy under the repo's own lints and toolchain | `floor-missing`, `floor-allowed`, `pedantic-off` | 30 |
+| `rust/bans` | the 12 clippy denies and `unsafe_code = "forbid"` are in `[workspace.lints]` and in any crate's own `[lints]`, none weakened (a crate named in `[rust] unsafe_crates` may lift `unsafe_code` only); then each banned-API file is refused by clippy under the repo's own lints and toolchain | `floor-missing`, `floor-allowed`, `pedantic-off`, `unsafe-undocumented`, `unsafe-no-deny`, `unsafe-unnamed`, `unsafe-weakened`, `unsafe-stray` | 30 |
 | `rust/deny` | `deny.toml` holds the floor (yanked, multiple versions, wildcards, unknown registries and git sources all `deny`; licences from the shared allow-list), then pinned `cargo deny --locked check` | `yanked-allowed`, `licence-outside-list`, `wildcard-dependency`, `unknown-git-source` | 20 |
 
 `rust/bans` carries the 13 banned-API files that blocks, drover, swag and shed each keep today
 (`unwrap_used`, `expect_used`, `panic`, `todo`, `unimplemented`, `dbg_macro`, `indexing_slicing`, `as_conversions`,
 `print_stdout`, `print_stderr`, `allow_attributes_without_reason`, `let_underscore_must_use`, `unsafe_code`). They
 run in one scratch crate in one clippy call.
+
+A crate that needs `unsafe` (FFI, GPU bindings) is named in `.gatekeeper/config.toml`; every other crate stays at
+`forbid`:
+
+```toml
+[rust]
+unsafe_crates = ["gpu"]
+```
+
+A named crate states its lints in its own `[lints]` table (cargo cannot override one lint under `workspace = true`):
+`unsafe_code` at `allow`, `warn` or `deny`, the 12 clippy denies and `pedantic` warn as the floor, plus
+`clippy::undocumented_unsafe_blocks = "deny"`. `rust/bans` also refuses an `unsafe {` in it with no `// SAFETY:`
+comment on its line or in the comment lines right above, an unnamed crate whose own `[lints]` lifts the floor, and a
+name that is no workspace member. A named crate's findings name it (`crate gpu: …`).
 
 Stays the repo's: `rust-toolchain.toml`, `rustfmt.toml`, the crates `deny.toml` bans or skips, any pedantic lint
 it allows, its tests (a local gate).
