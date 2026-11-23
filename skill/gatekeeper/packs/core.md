@@ -24,11 +24,11 @@ the layers, bans, sizes, frozen and generated files and comments in .drover/arch
 
 ## core/cap
 
-drover cap-check: the counted lines under the cap in ci/cap.toml
+the counted lines under the cap in ci/cap.toml or a raise in ci/cap.d; a commit that edits the cap carries its Cap: trailer
 
-- fix: delete code; a raise of the cap is its own issue
+- fix: delete code; a raise of the cap is its own issue, its commit carries `Cap: <old> → <new> (#issue, q<N>)`
 - budget: 5s
-- cached: yes
+- cached: no, cache = false
 - rerun: `./.gatekeeper/run check --gate core/cap`
 - what a failure looks like: [core-cap](../examples/core-cap.md)
 
@@ -70,17 +70,17 @@ every gatekeeper workflow call names the commit and version of the pinned releas
 
 ## core/pr-body
 
-drover pr-body: the PR body names the head, has `## For humans`, has no "Generated with" line
+the PR body names the head, has `## For humans`, has no "Generated with" line
 
 - fix: edit the PR body: name the pushed head sha, add a `## For humans` section, drop the "Generated with" line
 - budget: 2s
-- cached: no, a `run` step with no setup or versions
+- cached: no, cache = false
 - rerun: `./.gatekeeper/run check --gate core/pr-body`
 - what a failure looks like: [core-pr-body](../examples/core-pr-body.md)
 
 ## core/rules
 
-drover lesson-check: every active check in .drover/rules.md passes, and the file is at most 30 lines
+every active check in .drover/rules.md passes, each rule names its enforcer, and the file is at most 30 lines; writes checks.json for drover's lesson lane
 
 - fix: fix what the named check reports, delete the rules a check now enforces, or retire the check in a lesson PR
 - budget: 5s

@@ -40,7 +40,15 @@ fn commit(dir: &Path, message: &str) -> Result<String> {
         .to_owned())
 }
 
-pub(crate) const CASE_META: [&str; 6] = ["body", "env", "expect", "message", "passes", "remove"];
+pub(crate) const CASE_META: [&str; 7] = [
+    "body",
+    "checks.json",
+    "env",
+    "expect",
+    "message",
+    "passes",
+    "remove",
+];
 
 fn env(prefixes: &[String]) -> Vec<(String, String)> {
     let texts = prefixes
@@ -53,11 +61,12 @@ fn env(prefixes: &[String]) -> Vec<(String, String)> {
     pairs.map(|(k, v)| (k.to_owned(), v.to_owned())).collect()
 }
 
-fn write_body(prefix: &str, head: &str, path: &Path) -> Result<Option<PathBuf>> {
+fn write_body(prefix: &str, (base, head): (&str, &str), path: &Path) -> Result<Option<PathBuf>> {
     let Some(body) = packs::text(&format!("{prefix}body")) else {
         return Ok(None);
     };
-    fs::write(path, body.replace("{head}", head)).map_err(|e| Error::at(path, e))?;
+    fs::write(path, body.replace("{head}", head).replace("{base}", base))
+        .map_err(|e| Error::at(path, e))?;
     Ok(Some(path.to_owned()))
 }
 
@@ -110,7 +119,7 @@ pub fn case_ctx(gate: &Gate, case: Option<&str>, out: &Path, bench: &Bench) -> R
             &dir,
             packs::text(&format!("{prefix}message")).unwrap_or(case),
         )?;
-        pr_body = write_body(&prefix, &head, &dir.with_extension("body"))?;
+        pr_body = write_body(&prefix, (&base, &head), &dir.with_extension("body"))?;
         prefixes.push(prefix);
     }
     let config = dir
@@ -163,6 +172,21 @@ pub(crate) fn expect(gate: &Gate, case: &str) -> String {
     packs::text(&path).unwrap_or_default().trim().to_owned()
 }
 
+fn report_differs(gate: &Gate, case: &str, out: &Path) -> Option<String> {
+    let (pack, name) = (gate.id.pack, gate.id.name());
+    let want = packs::text(&format!("{pack}/fixtures/{name}/{case}/checks.json"))?;
+    let dir = out.join(pack.as_str()).join(name).join(case);
+    let checks = fs::read_dir(run::out_dir(&dir).join("check"));
+    let got = (checks.into_iter().flatten().flatten())
+        .find_map(|e| fs::read_to_string(e.path().join("checks.json")).ok());
+    (got.as_deref() != Some(want)).then(|| {
+        format!(
+            "{case}: the check wrote another checks.json\n{}",
+            got.unwrap_or_default().trim_end()
+        )
+    })
+}
+
 /// # Errors
 pub fn gate(gate: &Gate, out: &Path, bench: &Bench) -> Result<GateResult> {
     let cases = cases(gate);
@@ -177,6 +201,7 @@ pub fn gate(gate: &Gate, out: &Path, bench: &Bench) -> Result<GateResult> {
     for case in &cases {
         let want = expect(gate, case);
         let run = run_case(gate, Some(case), out, bench)?;
+        problems.extend(report_differs(gate, case, out));
         if passes(gate, case) {
             if run.0 {
                 problems.push(format!(

@@ -1,7 +1,7 @@
-about = "drover cap-check: the counted lines under the cap in ci/cap.toml"
-fix = "delete code; a raise of the cap is its own issue"
+about = "the counted lines under the cap in ci/cap.toml or a raise in ci/cap.d; a commit that edits the cap carries its Cap: trailer"
+fix = "delete code; a raise of the cap is its own issue, its commit carries `Cap: <old> → <new> (#issue, q<N>)`"
 budget_secs = 5
+cache = false
 
 [[step]]
-tool = "drover"
-args = ["cap-check", "--config", "ci/cap.toml"]
+check = "cap"

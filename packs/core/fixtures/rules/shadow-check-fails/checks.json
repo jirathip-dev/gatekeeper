@@ -1,0 +1,21 @@
+{
+  "file": ".drover/rules.md",
+  "checks": [
+    {
+      "line": 2,
+      "name": "no-todo",
+      "cmd": "test ! -e TODO",
+      "state": "shadow",
+      "since": "2026-11-20",
+      "passed": false
+    },
+    {
+      "line": 3,
+      "name": "has-list",
+      "cmd": "test -e list.txt",
+      "state": "active",
+      "since": "2026-11-21",
+      "passed": true
+    }
+  ]
+}
