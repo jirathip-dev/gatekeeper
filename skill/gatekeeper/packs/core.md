@@ -60,11 +60,11 @@ docs name real paths and links, and a watched key changes with a doc line
 
 ## core/hygiene
 
-drover hygiene check: the tree, the PR's commit messages and its body against the private-names list
+the tree, the PR's commit messages and its body against the private-names list
 
-- fix: take the private name out at the place the hit names; in CI pass the private-names secret, which drover hygiene push writes
+- fix: take the name out where the hit points; CI passes the private-names secret, a private repo turns this gate off with a reason
 - budget: 5s
-- cached: no, reads the base
+- cached: no, cache = false
 - rerun: `./.gatekeeper/run check --gate core/hygiene`
 - what a failure looks like: [core-hygiene](../examples/core-hygiene.md)
 

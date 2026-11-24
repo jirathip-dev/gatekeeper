@@ -12,7 +12,7 @@ DROVER_PRIVATE_NAMES=
 
 The gate fails and its log prints `list-missing`.
 
-Fix: take the private name out at the place the hit names; in CI pass the private-names secret, which drover hygiene push writes. Rerun: `./.gatekeeper/run check --gate core/hygiene`
+Fix: take the name out where the hit points; CI passes the private-names secret, a private repo turns this gate off with a reason. Rerun: `./.gatekeeper/run check --gate core/hygiene`
 
 ## name-in-commit
 
@@ -26,7 +26,7 @@ Asked by quillmoor.
 
 The gate fails and its log prints `private-name #1 at commit`.
 
-Fix: take the private name out at the place the hit names; in CI pass the private-names secret, which drover hygiene push writes. Rerun: `./.gatekeeper/run check --gate core/hygiene`
+Fix: take the name out where the hit points; CI passes the private-names secret, a private repo turns this gate off with a reason. Rerun: `./.gatekeeper/run check --gate core/hygiene`
 
 ## name-in-pr-body
 
@@ -40,7 +40,7 @@ For the quillmoor rollout.
 
 The gate fails and its log prints `private-name #1 at PR body:3`.
 
-Fix: take the private name out at the place the hit names; in CI pass the private-names secret, which drover hygiene push writes. Rerun: `./.gatekeeper/run check --gate core/hygiene`
+Fix: take the name out where the hit points; CI passes the private-names secret, a private repo turns this gate off with a reason. Rerun: `./.gatekeeper/run check --gate core/hygiene`
 
 ## name-in-tree
 
@@ -52,4 +52,38 @@ Ship it to the Quillmoor team.
 
 The gate fails and its log prints `private-name #1 at notes.md:1`.
 
-Fix: take the private name out at the place the hit names; in CI pass the private-names secret, which drover hygiene push writes. Rerun: `./.gatekeeper/run check --gate core/hygiene`
+Fix: take the name out where the hit points; CI passes the private-names secret, a private repo turns this gate off with a reason. Rerun: `./.gatekeeper/run check --gate core/hygiene`
+
+## shared-names
+
+Writes `lines.md`:
+
+```
+Ship it to the Quillmoor team.
+quillmoors and requillmoor2 are other words.
+See quillmoor_notes and v2-quillmoor/x.
+The north-pier build.
+Meet at Pier Nine.
+A quill, then quillmoor.
+A quill alone.
+équillmoor is another word.
+Nothing here.
+```
+
+Writes `names`:
+
+```
+quillmoor
+north-pier
+pier nine
+quill
+```
+
+The gate fails and its log prints `private-name #1 at lines.md:1
+private-name #1 at lines.md:3
+private-name #2 at lines.md:4
+private-name #3 at lines.md:5
+private-name #1 at lines.md:6
+private-name #4 at lines.md:7`.
+
+Fix: take the name out where the hit points; CI passes the private-names secret, a private repo turns this gate off with a reason. Rerun: `./.gatekeeper/run check --gate core/hygiene`

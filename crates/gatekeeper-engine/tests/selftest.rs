@@ -113,6 +113,12 @@ fn a_case_env_file_fills_the_typed_names_and_head() {
     assert_eq!(cx.integration, "main");
     let none = selftest::case_ctx(&gate, Some("list-missing"), &out, &bench).expect("case");
     assert!(none.names.is_none());
+    let file = selftest::case_ctx(&gate, Some("shared-names"), &out, &bench).expect("case");
+    assert_eq!(
+        file.names.as_ref().map(gatekeeper_model::PrivateNames::len),
+        Some(4)
+    );
+    assert!(!file.root.join("names").exists());
 }
 
 #[test]
