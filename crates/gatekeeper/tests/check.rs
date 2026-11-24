@@ -524,7 +524,11 @@ fn a_run_line_gets_a_pinned_tool_by_name_from_the_cache_in_under_2_s_and_an_unpi
         .join("cache/gatekeeper/tools")
         .join(pinned_sha256("actionlint", target));
     fs::create_dir_all(&cached).expect("cache dir");
-    fs::write(cached.join("actionlint"), "#!/bin/sh\necho cached actionlint\n").expect("stub");
+    fs::write(
+        cached.join("actionlint"),
+        "#!/bin/sh\necho cached actionlint\n",
+    )
+    .expect("stub");
     let mode = std::os::unix::fs::PermissionsExt::from_mode(0o755);
     fs::set_permissions(cached.join("actionlint"), mode).expect("executable");
     let started = std::time::Instant::now();
