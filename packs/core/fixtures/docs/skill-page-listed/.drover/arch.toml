@@ -1,0 +1,2 @@
+generated = ["skill/**"]
+generate = "true"

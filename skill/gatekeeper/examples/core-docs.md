@@ -82,6 +82,31 @@ The gate fails and its log prints `[docs.records] `docs/old/**` matches no file`
 
 Fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
 
+## generated-adds-a-folder
+
+Writes `.gatekeeper/config.toml`:
+
+```
+packs = ["core"]
+integration = "main"
+pin = "checkout"
+
+[docs]
+generated = ["docs/commands/**/*.md"]
+```
+
+Writes `docs/commands/spawn.md`:
+
+```
+# spawn
+
+Reads `lib/cli.rs`.
+```
+
+The gate fails and its log prints `docs/commands/spawn.md: agent text is not listed as generated`.
+
+Fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
+
 ## ignored-path
 
 Writes `.gitignore`:
@@ -234,6 +259,40 @@ printf 'verb\tspawn\nverb\tqueue\n'
 ```
 
 The gate fails and its log prints `docs/b.md: `tool spwan`: no verb `spwan``.
+
+Fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
+
+## name-without-description
+
+Writes `.drover/arch.toml`:
+
+```
+generated = ["names.tsv"]
+generate = "true"
+```
+
+Writes `.gatekeeper/config.toml`:
+
+```
+packs = ["core"]
+integration = "main"
+pin = "checkout"
+
+[docs.names]
+file = "names.tsv"
+
+[docs.names.sets]
+kind = []
+```
+
+Writes `names.tsv`:
+
+```
+kind	modal	A box over a screen.
+kind	sheet
+```
+
+The gate fails and its log prints `names: kind `sheet` has no description`.
 
 Fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
 
@@ -483,6 +542,38 @@ We deleted `lib/gone.rs` on this date.
 
 The gate passes.
 
+## set-not-described
+
+Writes `.drover/arch.toml`:
+
+```
+generated = ["names.tsv"]
+generate = "true"
+```
+
+Writes `.gatekeeper/config.toml`:
+
+```
+packs = ["core"]
+integration = "main"
+pin = "checkout"
+
+[docs.names]
+file = "names.tsv"
+
+[docs.names.sets]
+kind = []
+```
+
+Writes `names.tsv`:
+
+```
+kind	modal
+kind	sheet
+```
+
+The gate passes.
+
 ## set-prints-nothing
 
 Writes `.gatekeeper/config.toml`:
@@ -516,6 +607,78 @@ The gate fails and its log prints `docs: 3 files, 1 findings
 names: set `verb` has no name`.
 
 Fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
+
+## skill-page-listed
+
+Writes `.drover/arch.toml`:
+
+```
+generated = ["skill/**"]
+generate = "true"
+```
+
+Writes `skill/tool/SKILL.md`:
+
+```
+# tool
+
+Read `lib/cli.rs` first.
+```
+
+The gate passes.
+
+## skill-page-no-arch-file
+
+Removes `.drover/arch.toml`.
+
+Writes `skill/tool/SKILL.md`:
+
+```
+# tool
+
+Read `lib/cli.rs` first.
+```
+
+The gate fails and its log prints `skill/tool/SKILL.md: agent text is not listed as generated`.
+
+Fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
+
+## skill-page-unlisted
+
+Writes `skill/tool/SKILL.md`:
+
+```
+# tool
+
+Read `lib/cli.rs` first.
+```
+
+The gate fails and its log prints `skill/tool/SKILL.md: agent text is not listed as generated`.
+
+Fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
+
+## skill-page-written
+
+Writes `.gatekeeper/config.toml`:
+
+```
+packs = ["core"]
+integration = "main"
+pin = "checkout"
+
+[docs.written]
+"skill/tool/SKILL.md" = "the front page is prose; the pages under it are generated"
+```
+
+Writes `skill/tool/SKILL.md`:
+
+```
+# tool
+
+Read `lib/cli.rs` first.
+```
+
+The gate passes.
 
 ## skip-a-claim
 
@@ -604,6 +767,40 @@ fn b() {}
 The gate fails and its log prints `docs/b.md: `src/gone.rs`: no such path
 docs/b.md: `src/lib.rs:3`: src/lib.rs has fewer than 3 lines
 docs/b.md: link `docs/none.md` does not exist`.
+
+Fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
+
+## two-names-one-description
+
+Writes `.drover/arch.toml`:
+
+```
+generated = ["names.tsv"]
+generate = "true"
+```
+
+Writes `.gatekeeper/config.toml`:
+
+```
+packs = ["core"]
+integration = "main"
+pin = "checkout"
+
+[docs.names]
+file = "names.tsv"
+
+[docs.names.sets]
+kind = []
+```
+
+Writes `names.tsv`:
+
+```
+kind	modal	A box over a screen: a dialog, a fixed confirm or alert, or a tool window.
+kind	sheet	A box over a screen: a dialog, a fixed confirm or alert, or a tool window.
+```
+
+The gate fails and its log prints `names: kind `sheet` has the description of `modal``.
 
 Fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
 

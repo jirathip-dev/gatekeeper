@@ -30,6 +30,11 @@ fn a_docs_table_with_a_wrong_key_or_value_is_a_load_error_that_names_it() {
             "`docs/old/**` needs a reason",
         ),
         (
+            "written-empty-reason",
+            "[docs.written]\n\"skill/a.md\" = \"\"",
+            "`skill/a.md` needs a reason",
+        ),
+        (
             "bad-glob",
             "[docs.records]\n\"../x/**\" = \"why\"",
             "`../x/**` is not a repo-relative glob",

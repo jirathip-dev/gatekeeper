@@ -21,7 +21,9 @@ pub struct DocsConfig {
     pub also: Vec<Glob>,
     pub skip: Vec<Glob>,
     pub watch: Vec<Glob>,
+    pub generated: Vec<Glob>,
     pub records: Excuses,
+    pub written: Excuses,
     pub names: Option<Names>,
 }
 
