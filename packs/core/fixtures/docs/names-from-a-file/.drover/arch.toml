@@ -1,0 +1,2 @@
+generated = ["names.tsv"]
+generate = "printf 'verb\tspawn\n' > names.tsv"

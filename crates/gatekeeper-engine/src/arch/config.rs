@@ -50,6 +50,12 @@ pub(crate) struct Frozen {
 }
 
 #[derive(Deserialize)]
+struct Generated {
+    #[serde(default)]
+    generated: Vec<Glob>,
+}
+
+#[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct Collect {
     dir: String,
@@ -146,6 +152,15 @@ pub(crate) fn load(root: &Path) -> Result<Option<Arch>> {
     match std::fs::read_to_string(&path) {
         Ok(text) => parse(&text, PATH).map(Some),
         Err(e) if e.kind() == ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(Error::at(&path, e)),
+    }
+}
+
+pub(crate) fn generated(root: &Path) -> Result<Vec<Glob>> {
+    let path = root.join(PATH);
+    match std::fs::read_to_string(&path) {
+        Ok(text) => Ok(toml::from_str::<Generated>(&text).map_or_else(|_| vec![], |g| g.generated)),
+        Err(e) if e.kind() == ErrorKind::NotFound => Ok(vec![]),
         Err(e) => Err(Error::at(&path, e)),
     }
 }

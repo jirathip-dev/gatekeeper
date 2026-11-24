@@ -36,6 +36,41 @@ fn a_docs_table_with_a_wrong_key_or_value_is_a_load_error_that_names_it() {
         ),
         ("valid", "[docs.records]\n\"docs/old/**\" = \"why\"", "ok 1"),
         ("no-table", "", "ok 0"),
+        (
+            "names-both",
+            "[docs.names]\nrun = \"sh n.sh\"\nfile = \"n.tsv\"",
+            "needs exactly one of `run` and `file`",
+        ),
+        (
+            "names-neither",
+            "[docs.names.sets]\nverb = [\"tool {name}\"]",
+            "needs exactly one of `run` and `file`",
+        ),
+        (
+            "names-unknown-key",
+            "[docs.names]\nrun = \"sh n.sh\"\nprogram = \"x\"",
+            "unknown field `program`",
+        ),
+        (
+            "prefix-without-name",
+            "[docs.names]\nrun = \"sh n.sh\"\n[docs.names.sets]\nverb = [\"tool \"]",
+            "prefix `tool `",
+        ),
+        (
+            "prefix-with-nothing-before",
+            "[docs.names]\nrun = \"sh n.sh\"\n[docs.names.sets]\nverb = [\"{name}\"]",
+            "prefix `{name}`",
+        ),
+        (
+            "set-with-a-capital",
+            "[docs.names]\nrun = \"sh n.sh\"\n[docs.names.sets]\nVerb = [\"tool {name}\"]",
+            "set `Verb`",
+        ),
+        (
+            "names-valid",
+            "[docs.names]\nrun = \"sh n.sh\"\n[docs.names.sets]\nverb = [\"tool {name}\"]",
+            "ok 0",
+        ),
     ];
     for (name, docs, want) in cases {
         let got = load(name, docs);
