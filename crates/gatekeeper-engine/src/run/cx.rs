@@ -1,6 +1,6 @@
 use crate::cache::Results;
 use crate::{Error, Result, fetch, runner};
-use gatekeeper_model::{Host, Platform, PrivateNames, RustPack, SwiftPack, TsPack};
+use gatekeeper_model::{DocsConfig, Host, Platform, PrivateNames, RustPack, SwiftPack, TsPack};
 use std::cell::OnceCell;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -14,6 +14,7 @@ pub struct CheckCx<'a> {
     pub rust: &'a RustPack,
     pub ts: Option<&'a TsPack>,
     pub swift: Option<&'a SwiftPack>,
+    pub docs: &'a DocsConfig,
     pub tools: &'a BTreeMap<String, PathBuf>,
     pub base: Option<&'a str>,
     pub names: Option<&'a PrivateNames>,
@@ -66,6 +67,7 @@ pub struct RunCtx {
     /// `None` when this run neither reads nor writes the result cache.
     pub results: Option<Results>,
     pub swift: Option<SwiftPack>,
+    pub docs: DocsConfig,
     /// `[tools]`: the tools this repo builds itself, by absolute path.
     pub tools: BTreeMap<String, PathBuf>,
     /// The platform this host is: a gate of another fails `needs <platform>`.
@@ -96,6 +98,7 @@ impl RunCtx {
             ts: None,
             results: None,
             swift: None,
+            docs: DocsConfig::default(),
             tools: BTreeMap::new(),
             platform: platform(),
             env: Vec::new(),

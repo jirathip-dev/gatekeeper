@@ -1,0 +1,6 @@
+packs = ["core"]
+integration = "main"
+pin = "checkout"
+
+[docs.records]
+"docs/decisions/**" = "dated decisions: they name files as they were"

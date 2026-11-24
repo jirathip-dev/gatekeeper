@@ -1,9 +1,8 @@
 use crate::Result;
-use crate::arch::{baseline, comments, config, docs, frozen, generated, scan};
+use crate::arch::{baseline, comments, config, frozen, generated, scan};
 use crate::run::CheckCx as Cx;
-use std::fs;
 
-/// `.drover/arch.toml`'s layers, bans, sizes, frozen, generated and shared files, comments and docs; sizes and crossings in its baseline pass.
+/// `.drover/arch.toml`'s layers, bans, sizes, frozen, generated and shared files and comments; sizes and crossings in its baseline pass.
 pub fn run(cx: &Cx) -> Result<Vec<String>> {
     let Some(a) = config::load(cx.root)? else {
         cx.note
@@ -22,14 +21,6 @@ pub fn run(cx: &Cx) -> Result<Vec<String>> {
     bad.extend(generated::unsized_shared(&a));
     bad.extend(generated::stale(cx.root, &a)?);
     bad.extend(comments::found(cx.root, &a, &diff, &scan.files));
-    if let Some(d) = &a.docs {
-        bad.extend(docs::stale(cx.root, d, &scan.files));
-        let body = cx.pr_body.map(fs::read_to_string).transpose();
-        let body = body.map_err(|e| crate::Error(format!("the PR body: {e}")))?;
-        if body.is_some_and(|b| !b.contains("no doc:")) {
-            bad.extend(docs::undocumented(d, &diff));
-        }
-    }
     let files = scan.files.len();
     cx.note
         .set(format!("arch: {files} files, {} findings", bad.len()))

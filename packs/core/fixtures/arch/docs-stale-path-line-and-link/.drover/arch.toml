@@ -1,3 +1,0 @@
-[docs]
-paths = ["docs/**/*.md", "README.md"]
-watch = ["lib/cli.rs"]

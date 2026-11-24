@@ -16,6 +16,10 @@ dir = "crates/gatekeeper-engine/src/arch"
 glob = "*.rs"
 
 [[collect]]
+dir = "crates/gatekeeper-engine/src/docs"
+glob = "*.rs"
+
+[[collect]]
 dir = "packs"
 glob = "*/gates/*.toml"
 
@@ -97,6 +101,11 @@ pattern = ".bin/vitest"
 paths = ["crates/*/src/**"]
 except = ["crates/gatekeeper-engine/src/select/vitest.rs"]
 reason = "one module finds and runs the repo's vitest"
+
+[[ban]]
+pattern = "docs::"
+paths = ["crates/gatekeeper-engine/src/arch/**"]
+reason = "the docs gate reads arch's config and diff; arch never calls the docs gate"
 
 [[size]]
 paths = ["crates/*/src/**/*.rs"]

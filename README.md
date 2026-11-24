@@ -87,7 +87,7 @@ frozen = [".github/workflows/ci.yml"]
 ```
 
 Findings that predate adoption go in a baseline that only shrinks: `./.gatekeeper/run baseline ts/oxlint` writes
-`.gatekeeper/baseline/ts-oxlint.txt`. A listed finding passes, a new one fails, and a fixed one must leave the list.
+`.gatekeeper/baseline/<pack>-<gate>.txt`, here `ts-oxlint.txt`. A listed finding passes, a new one fails, and a fixed one must leave the list.
 
 ## Commands
 
