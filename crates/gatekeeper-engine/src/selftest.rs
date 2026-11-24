@@ -159,8 +159,6 @@ fn run_case(gate: &Gate, case: Option<&str>, out: &Path, bench: &Bench) -> Resul
     Ok((report.outcome.fails(), log))
 }
 
-/// `fixture <pack>/<gate>/<case> --to DIR`: the case's files as the pack holds them, and nothing else in `DIR`.
-///
 /// # Errors
 pub fn write_case(id: &str, to: &Path) -> Result<Vec<&'static str>> {
     let parts: Vec<&str> = id.split('/').collect();
