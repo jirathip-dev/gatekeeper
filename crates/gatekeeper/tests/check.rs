@@ -155,8 +155,8 @@ fn usage_and_config_errors_exit_2() {
         ),
         (
             "check-tools-unpinned",
-            format!("{CONFIG}[tools]\nnope = \"bin/nope\"\n"),
-            "[tools] nope is no pinned tool",
+            format!("{CONFIG}[tools]\ndrover = \"bin/drover\"\n"),
+            "[tools] drover is no pinned tool",
         ),
     ] {
         let (code, out) = gk(&repo(name, &config, &[]), &["list"], &[]);
@@ -518,15 +518,15 @@ fn a_run_line_gets_a_pinned_tool_by_name_from_the_cache_in_under_2_s_and_an_unpi
     let Some(target) = gatekeeper_engine::fetch::host_target() else {
         return;
     };
-    let gate = "about = \"uses a tool\"\nfix = \"none\"\nbudget_secs = 5\nrun = \"{tool:drover} > used\"\n";
+    let gate = "about = \"uses a tool\"\nfix = \"none\"\nbudget_secs = 5\nrun = \"{tool:actionlint} > used\"\n";
     let root = repo("check-tool", CONFIG, &[("tool", gate)]);
     let cached = root
         .join("cache/gatekeeper/tools")
-        .join(pinned_sha256("drover", target));
+        .join(pinned_sha256("actionlint", target));
     fs::create_dir_all(&cached).expect("cache dir");
-    fs::write(cached.join("tool"), "#!/bin/sh\necho cached drover\n").expect("stub");
+    fs::write(cached.join("actionlint"), "#!/bin/sh\necho cached actionlint\n").expect("stub");
     let mode = std::os::unix::fs::PermissionsExt::from_mode(0o755);
-    fs::set_permissions(cached.join("tool"), mode).expect("executable");
+    fs::set_permissions(cached.join("actionlint"), mode).expect("executable");
     let started = std::time::Instant::now();
     let (code, out) = gk(&root, &["check"], &[]);
     ci::assert_under(
@@ -537,18 +537,18 @@ fn a_run_line_gets_a_pinned_tool_by_name_from_the_cache_in_under_2_s_and_an_unpi
     assert_eq!(code, 0, "{out}");
     assert_eq!(
         fs::read_to_string(root.join("used")).expect("ran"),
-        "cached drover\n"
+        "cached actionlint\n"
     );
 
     let gate =
-        "about = \"uses a tool\"\nfix = \"none\"\nbudget_secs = 5\nrun = \"{tool:nope} x\"\n";
+        "about = \"uses a tool\"\nfix = \"none\"\nbudget_secs = 5\nrun = \"{tool:drover} x\"\n";
     let (code, out) = gk(
-        &repo("check-tool-nope", CONFIG, &[("tool", gate)]),
+        &repo("check-tool-drover", CONFIG, &[("tool", gate)]),
         &["check"],
         &[],
     );
     assert_eq!(code, 2, "{out}");
-    assert!(out.contains("{tool:nope} is no pinned tool"), "{out}");
+    assert!(out.contains("{tool:drover} is no pinned tool"), "{out}");
 }
 
 #[test]
