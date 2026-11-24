@@ -1,9 +1,9 @@
 ---
 name: gatekeeper
-description: Read, fix and rerun a failing gatekeeper gate (gatekeeper 1.3.0).
+description: Read, fix and rerun a failing gatekeeper gate (gatekeeper 1.4.0).
 ---
 
-# gatekeeper 1.3.0
+# gatekeeper 1.4.0
 
 `./.gatekeeper/run check` is what CI runs and what a lane runs. A failing gate prints `FAIL  <pack>/<gate>`, its log's tail, its `fix:` line, its log path and the command that reruns it alone.
 
@@ -42,7 +42,6 @@ A sharded `[select]` gate writes vitest's JSON report to `{report}`; each CI sha
 A gate's `run` line names one as `{tool:<name>}`: gatekeeper fetches it by version, checks its sha256 and puts the cached path there, on a lane's host and on a runner alike. A tool with no upstream binary is built once per version by gatekeeper's `tools` workflow; never build it from source in a repo's CI.
 
 - `actionlint` 1.7.12
-- `drover` build-staging-04ae328
 - `farrier` git-04d7a80, built by gatekeeper for x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu, aarch64-apple-darwin (`bin/farrier`)
 - `libde265` 1.0.16, built by gatekeeper for x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu, aarch64-apple-darwin (`lib/pkgconfig/libde265.pc`)
 - `sqlx-cli` 0.8.6, built by gatekeeper for x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu, aarch64-apple-darwin (`bin/sqlx`)

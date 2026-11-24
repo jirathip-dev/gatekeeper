@@ -107,6 +107,16 @@ pattern = "docs::"
 paths = ["crates/gatekeeper-engine/src/arch/**"]
 reason = "the docs gate reads arch's config and diff; arch never calls the docs gate"
 
+[[ban]]
+pattern = "tool = \"drover\""
+paths = ["packs/**"]
+reason = "the core pack's checks are built in; no gate calls drover"
+
+[[ban]]
+pattern = "{tool:drover}"
+paths = ["packs/**"]
+reason = "the core pack's checks are built in; no gate calls drover"
+
 [[size]]
 paths = ["crates/*/src/**/*.rs"]
 max_file_lines = 400

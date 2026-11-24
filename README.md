@@ -187,7 +187,7 @@ signature `SHA256SUMS.minisig`, checked against `release.pub`. `[pin]` holds the
 the wrapper refuses a binary that differs. To bump:
 
 ```
-$ ./.gatekeeper/run pin 1.3.0
+$ ./.gatekeeper/run pin 1.4.0
 ```
 
 It checks the signature, rewrites `[pin]`, the `uses: …gates.yml@<sha> # v<version>` lines and the wrapper. Then
@@ -213,6 +213,11 @@ Upgrading to v1.3.0: `rust/bans` now also reads each crate's own `[lints]` table
 `workspace = true`) against the floor, so a crate that set its own weaker lints turns the bump PR red. Restore the
 floor there, or, for a crate that needs `unsafe`, name it in `[rust] unsafe_crates` (see the rust pack's
 `rust/bans` rules).
+
+Upgrading to v1.4.0: `core/pr-body`, `core/cap`, `core/rules`, `core/hygiene` and `core/arch` run inside
+gatekeeper, and the core pack no longer pins the drover tool. A config whose `[tools]` names `drover`, or a local
+gate whose `run` line uses `{tool:drover}`, is refused: drop the line. A private repo adds an `[off]` line for
+`core/hygiene`.
 
 ## Workflows
 
