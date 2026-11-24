@@ -244,7 +244,7 @@ gate whose `run` line uses `{tool:drover}`, is refused: drop the line. A private
 `core/hygiene`.
 
 Upgrading to v1.5.0: `core/docs` is on with no config. Run `./.gatekeeper/run baseline core/docs` and commit
-`.gatekeeper/baseline/core-docs.txt` (no file when there is no hit). A `[docs]` table in `.drover/arch.toml` is
+the list of old hits it writes (no file when there is no hit). A `[docs]` table in `.drover/arch.toml` is
 refused: move `watch` and `skip` to `[docs]` in `.gatekeeper/config.toml` and drop `paths` (an entry outside the
 defaults goes to `also`). A skill page that is not generated is listed in `generated` or named in `[docs.written]`.
 
