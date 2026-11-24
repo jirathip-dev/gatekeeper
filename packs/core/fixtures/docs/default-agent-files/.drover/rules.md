@@ -1,0 +1,1 @@
+- don't add a line to list.txt, as `lib/gone-rules.rs` says (enforced by: CI arch-check)

@@ -1,0 +1,1 @@
+lib/cli.rs: `new_flag` added, but no changed doc line names it (or `no doc: <why>` in the PR body)

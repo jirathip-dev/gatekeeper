@@ -141,6 +141,7 @@ pub fn case_ctx(gate: &Gate, case: Option<&str>, out: &Path, bench: &Bench) -> R
     cx.integration = config.as_ref().map_or_default(|c| c.integration.clone());
     cx.rust = config.as_ref().map_or_default(|c| c.rust.clone());
     cx.ts = config.as_ref().and_then(|c| c.ts.clone());
+    cx.docs = config.as_ref().map_or_default(|c| c.docs.clone());
     cx.swift = config.and_then(|c| c.swift);
     cx.tools = bench.tools.clone();
     cx.platform = bench.platform;

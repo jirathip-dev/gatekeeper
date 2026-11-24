@@ -48,6 +48,16 @@ every direct dependency of Cargo.toml, package.json and Package.swift (with thei
 - rerun: `./.gatekeeper/run check --gate core/deps`
 - what a failure looks like: [core-deps](../examples/core-deps.md)
 
+## core/docs
+
+docs name real paths and links, and a watched key changes with a doc line
+
+- fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs
+- budget: 10s
+- cached: no, cache = false
+- rerun: `./.gatekeeper/run check --gate core/docs`
+- what a failure looks like: [core-docs](../examples/core-docs.md)
+
 ## core/hygiene
 
 drover hygiene check: the tree, the PR's commit messages and its body against the private-names list

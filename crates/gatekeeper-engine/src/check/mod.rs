@@ -4,6 +4,7 @@ pub mod banned_apis;
 pub mod cap;
 pub mod deny_floor;
 pub mod deps;
+pub mod docs;
 pub mod knip;
 pub mod lint_floor;
 pub mod oxlint;
@@ -24,6 +25,7 @@ pub const NAMES: &[&str] = &[
     "cap",
     "deny-floor",
     "deps",
+    "docs",
     "knip",
     "lint-floor",
     "oxlint",
@@ -43,6 +45,7 @@ pub fn run(name: &str, cx: &CheckCx) -> Result<Vec<String>> {
         "cap" => cap::run(cx),
         "deny-floor" => deny_floor::run(cx),
         "deps" => deps::run(cx),
+        "docs" => docs::run(cx),
         "knip" => knip::run(cx),
         "lint-floor" => lint_floor::run(cx),
         "oxlint" => oxlint::run(cx),

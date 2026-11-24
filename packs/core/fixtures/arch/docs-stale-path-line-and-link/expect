@@ -1,3 +1,0 @@
-docs/b.md:1: `src/gone.rs`: no such path
-docs/b.md:1: `src/lib.rs:3`: src/lib.rs has fewer than 3 lines
-docs/b.md:1: link `docs/none.md` does not exist

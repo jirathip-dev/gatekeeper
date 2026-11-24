@@ -1,0 +1,1 @@
+docs/b.md: `lib/gone.rs`: no such path
