@@ -40,12 +40,13 @@ fn commit(dir: &Path, message: &str) -> Result<String> {
         .to_owned())
 }
 
-pub(crate) const CASE_META: [&str; 7] = [
+pub(crate) const CASE_META: [&str; 8] = [
     "body",
     "checks.json",
     "env",
     "expect",
     "message",
+    "names",
     "passes",
     "remove",
 ];
@@ -112,6 +113,7 @@ pub fn case_ctx(gate: &Gate, case: Option<&str>, out: &Path, bench: &Bench) -> R
     let mut head = base.clone();
     let mut prefixes = vec![format!("{pack}/fixtures/{}/", gate.id.name())];
     let mut pr_body = None;
+    let mut names = None;
     if let Some(case) = case {
         let prefix = format!("{pack}/fixtures/{}/{case}/", gate.id.name());
         lay_case(&prefix, &dir)?;
@@ -120,6 +122,7 @@ pub fn case_ctx(gate: &Gate, case: Option<&str>, out: &Path, bench: &Bench) -> R
             packs::text(&format!("{prefix}message")).unwrap_or(case),
         )?;
         pr_body = write_body(&prefix, (&base, &head), &dir.with_extension("body"))?;
+        names = packs::text(&format!("{prefix}names"));
         prefixes.push(prefix);
     }
     let config = dir
@@ -131,7 +134,7 @@ pub fn case_ctx(gate: &Gate, case: Option<&str>, out: &Path, bench: &Bench) -> R
     cx.base = Some(base);
     cx.pr_body = pr_body;
     cx.env = env(&prefixes);
-    cx.names = PrivateNames::parse(typed(&cx.env, "DROVER_PRIVATE_NAMES"));
+    cx.names = PrivateNames::parse(names.unwrap_or(typed(&cx.env, "DROVER_PRIVATE_NAMES")));
     let given = typed(&cx.env, "GATEKEEPER_HEAD");
     cx.head = Some(if given.is_empty() {
         head
@@ -141,6 +144,7 @@ pub fn case_ctx(gate: &Gate, case: Option<&str>, out: &Path, bench: &Bench) -> R
     cx.integration = config.as_ref().map_or_default(|c| c.integration.clone());
     cx.rust = config.as_ref().map_or_default(|c| c.rust.clone());
     cx.ts = config.as_ref().and_then(|c| c.ts.clone());
+    cx.docs = config.as_ref().map_or_default(|c| c.docs.clone());
     cx.swift = config.and_then(|c| c.swift);
     cx.tools = bench.tools.clone();
     cx.platform = bench.platform;
@@ -153,6 +157,26 @@ fn run_case(gate: &Gate, case: Option<&str>, out: &Path, bench: &Bench) -> Resul
     let report = run::gate(gate, (Shard::ONE, None), &[], &cx)?;
     let log = fs::read_to_string(cx.root.join(&report.log)).unwrap_or_default();
     Ok((report.outcome.fails(), log))
+}
+
+/// # Errors
+pub fn write_case(id: &str, to: &Path) -> Result<Vec<&'static str>> {
+    let parts: Vec<&str> = id.split('/').collect();
+    let [pack, gate, case] = parts[..] else {
+        return Err(Error(format!(
+            "fixture `{id}`: name it <pack>/<gate>/<case>"
+        )));
+    };
+    let prefix = format!("{pack}/fixtures/{gate}/{case}/");
+    let files: Vec<_> = packs::under(&prefix).collect();
+    if case.is_empty() || case == "_base" || files.is_empty() {
+        return Err(Error(format!("fixture `{id}`: no such case")));
+    }
+    if to.exists() {
+        fs::remove_dir_all(to).map_err(|e| Error::at(to, e))?;
+    }
+    packs::materialize(&prefix, to)?;
+    Ok(files.into_iter().map(|(rel, _)| rel).collect())
 }
 
 pub(crate) fn cases(gate: &Gate) -> BTreeSet<&'static str> {

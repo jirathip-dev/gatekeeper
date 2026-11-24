@@ -125,6 +125,7 @@ fn prepare(args: &Args, root: &Path) -> Result<(Plan, RunCtx, Option<usize>, Cac
     cx.after_reports = args.value("--after-reports").map(PathBuf::from);
     cx.ts.clone_from(&config.ts);
     cx.swift.clone_from(&config.swift);
+    cx.docs.clone_from(&config.docs);
     cx.tools = config::tools(&config, root);
     cx.results = results;
     cx.timings = args.value("--timings").map(PathBuf::from);

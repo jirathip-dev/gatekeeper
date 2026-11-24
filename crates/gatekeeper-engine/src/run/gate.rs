@@ -63,6 +63,7 @@ fn step(
                 rust: &cx.rust,
                 ts: cx.ts.as_ref(),
                 swift: cx.swift.as_ref(),
+                docs: &cx.docs,
                 tools: &cx.tools,
                 base: cx.base.as_deref(),
                 names: cx.names.as_ref(),

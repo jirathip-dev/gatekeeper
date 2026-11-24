@@ -101,6 +101,7 @@ pub fn write(gate: &Gate, root: &Path, cache: &Path, config: &Config) -> Result<
                 rust: &config.rust,
                 ts: config.ts.as_ref(),
                 swift: config.swift.as_ref(),
+                docs: &config.docs,
                 tools: &config::tools(config, root),
                 base: None,
                 names: None,

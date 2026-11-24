@@ -1,0 +1,6 @@
+packs = ["core"]
+integration = "main"
+pin = "checkout"
+
+[docs.written]
+"skill/tool/SKILL.md" = "the front page is prose; the pages under it are generated"

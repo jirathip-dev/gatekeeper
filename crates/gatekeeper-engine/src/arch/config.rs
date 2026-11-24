@@ -17,7 +17,7 @@ pub(crate) struct Arch {
     pub size: Vec<Size>,
     pub baseline: Option<String>,
     pub comments: Option<Comments>,
-    pub docs: Option<Docs>,
+    docs: Option<toml::Table>,
     #[serde(default, rename = "frozen")]
     _frozen: Vec<Glob>,
     #[serde(default)]
@@ -50,6 +50,12 @@ pub(crate) struct Frozen {
 }
 
 #[derive(Deserialize)]
+struct Generated {
+    #[serde(default)]
+    generated: Vec<Glob>,
+}
+
+#[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct Collect {
     dir: String,
@@ -77,14 +83,6 @@ pub(crate) enum Policy {
     On,
     Off,
     Strict,
-}
-
-#[derive(Deserialize, Default)]
-#[serde(deny_unknown_fields, default)]
-pub(crate) struct Docs {
-    pub paths: Vec<Glob>,
-    pub watch: Vec<Glob>,
-    pub skip: Vec<Glob>,
 }
 
 #[derive(Deserialize)]
@@ -136,6 +134,11 @@ pub(crate) struct Size {
 
 pub(crate) fn parse(text: &str, at: &str) -> Result<Arch> {
     let a: Arch = toml::from_str(text).map_err(|e| Error(format!("parsing {at}: {e}")))?;
+    if a.docs.is_some() {
+        return Err(Error(format!(
+            "{at}: [docs] moved to .gatekeeper/config.toml: move `watch` and `skip`, drop `paths`"
+        )));
+    }
     if !a.generated.is_empty() && a.generate.is_none() {
         return Err(Error(format!(
             "{at}: `generated` needs `generate`, the command that writes them"
@@ -149,6 +152,15 @@ pub(crate) fn load(root: &Path) -> Result<Option<Arch>> {
     match std::fs::read_to_string(&path) {
         Ok(text) => parse(&text, PATH).map(Some),
         Err(e) if e.kind() == ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(Error::at(&path, e)),
+    }
+}
+
+pub(crate) fn generated(root: &Path) -> Result<Vec<Glob>> {
+    let path = root.join(PATH);
+    match std::fs::read_to_string(&path) {
+        Ok(text) => Ok(toml::from_str::<Generated>(&text).map_or_else(|_| vec![], |g| g.generated)),
+        Err(e) if e.kind() == ErrorKind::NotFound => Ok(vec![]),
         Err(e) => Err(Error::at(&path, e)),
     }
 }

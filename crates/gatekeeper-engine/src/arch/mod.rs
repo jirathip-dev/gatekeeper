@@ -1,7 +1,6 @@
 pub(crate) mod baseline;
 pub(crate) mod comments;
 pub(crate) mod config;
-pub(crate) mod docs;
 pub(crate) mod frozen;
 pub(crate) mod generated;
 pub(crate) mod scan;

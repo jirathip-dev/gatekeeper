@@ -4,6 +4,7 @@ pub mod cache;
 pub(crate) mod check;
 pub mod ci;
 pub mod config;
+pub(crate) mod docs;
 pub mod fetch;
 pub mod graph;
 pub(crate) mod kept;

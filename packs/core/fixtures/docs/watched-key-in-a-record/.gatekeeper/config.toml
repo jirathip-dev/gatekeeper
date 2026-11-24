@@ -1,0 +1,6 @@
+packs = ["core"]
+integration = "main"
+pin = "checkout"
+
+[docs]
+watch = ["lib/cli.rs"]

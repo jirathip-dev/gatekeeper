@@ -1,0 +1,2 @@
+line_cap = 10500
+why = "owner decision approving #83's ADR (q3398): one raise to 10500 covers #75 and the docs gate slices S1 to S4 with margin"

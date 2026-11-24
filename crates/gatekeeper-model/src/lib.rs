@@ -1,4 +1,5 @@
 mod cache;
+mod docs;
 mod gate;
 mod glob;
 mod names;
@@ -10,6 +11,7 @@ pub use cache::{
     CacheConfig, CacheMode, CacheNote, Event, Hit, Key, KeyParts, Off, ProjectCache, Proof,
     PullRequests, Record, Refusal, RunRef, Tier, Unkeyed,
 };
+pub use docs::{AGENT_TEXT, DOCS, DocsConfig, Excuses, Names, Prefix, RECORDS, SetName, Source};
 pub use gate::{Capability, Gate, GateFile, PackFile, Platform, Step, Toolchain, Upload};
 pub use glob::Glob;
 pub use names::PrivateNames;
@@ -163,6 +165,8 @@ pub struct Config {
     pub swift: Option<SwiftPack>,
     #[serde(default)]
     pub tools: BTreeMap<String, String>,
+    #[serde(default)]
+    pub docs: DocsConfig,
 }
 
 /// Which gatekeeper runs: this checkout's build, or a release by version and per-target sha256.

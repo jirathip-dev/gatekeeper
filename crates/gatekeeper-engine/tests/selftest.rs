@@ -55,8 +55,8 @@ fn a_gate_with_no_failing_case_fails_selftest() {
 fn a_gate_that_passes_a_case_meant_to_fail_fails_selftest() {
     let (out, bench) = out("selftest-lenient");
     let result = selftest::gate(&always_passing("arch"), &out, &bench).expect("selftest");
-    assert_eq!(result.cases, 48);
-    assert_eq!(result.problems.len(), 30, "{:?}", result.problems);
+    assert_eq!(result.cases, 44);
+    assert_eq!(result.problems.len(), 29, "{:?}", result.problems);
     assert!(
         result
             .problems
@@ -113,6 +113,12 @@ fn a_case_env_file_fills_the_typed_names_and_head() {
     assert_eq!(cx.integration, "main");
     let none = selftest::case_ctx(&gate, Some("list-missing"), &out, &bench).expect("case");
     assert!(none.names.is_none());
+    let file = selftest::case_ctx(&gate, Some("shared-names"), &out, &bench).expect("case");
+    assert_eq!(
+        file.names.as_ref().map(gatekeeper_model::PrivateNames::len),
+        Some(4)
+    );
+    assert!(!file.root.join("names").exists());
 }
 
 #[test]
