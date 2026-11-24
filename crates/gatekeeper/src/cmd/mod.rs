@@ -1,6 +1,7 @@
 pub mod baseline;
 pub mod check;
 pub mod ci;
+pub mod fixture;
 pub mod list;
 pub mod pin;
 pub mod replay;
@@ -11,7 +12,7 @@ pub mod supabase;
 use std::process::ExitCode;
 
 pub const VERBS: &[&str] = &[
-    "baseline", "check", "ci", "list", "pin", "replay", "selftest", "skill", "supabase",
+    "baseline", "check", "ci", "fixture", "list", "pin", "replay", "selftest", "skill", "supabase",
 ];
 
 pub fn run(name: &str, args: &[String]) -> Option<ExitCode> {
@@ -19,6 +20,7 @@ pub fn run(name: &str, args: &[String]) -> Option<ExitCode> {
         "baseline" => Some(baseline::run(args)),
         "check" => Some(check::run(args)),
         "ci" => Some(ci::run(args)),
+        "fixture" => Some(fixture::run(args)),
         "list" => Some(list::run(args)),
         "pin" => Some(pin::run(args)),
         "replay" => Some(replay::run(args)),

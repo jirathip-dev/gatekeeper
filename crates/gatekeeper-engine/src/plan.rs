@@ -142,7 +142,12 @@ fn leg_jobs(config: &Config, leg: &str, gates: Vec<Gate>, cx: &Scoped) -> Result
         .collect())
 }
 
-fn check_off(config: &Config, gates: &[Gate]) -> Result<()> {
+fn check_off(
+    config: &Config,
+    gates: &[Gate],
+    hosts: &dyn Fn(Platform) -> Host,
+    repo: RepoRun,
+) -> Result<()> {
     for (id, why) in &config.off {
         if why.trim().is_empty() {
             return Err(Error(format!("[off] `{id}` needs a reason")));
@@ -150,9 +155,15 @@ fn check_off(config: &Config, gates: &[Gate]) -> Result<()> {
         if id.pack == PackId::Core && id.name() == "pin" {
             return Err(Error(format!("[off] `{id}` guards the pin and stays on")));
         }
-        if !gates.iter().any(|g| g.id == *id) {
+        let Some(gate) = gates.iter().find(|g| g.id == *id) else {
             return Err(Error(format!(
                 "[off] names `{id}`, which no configured pack has"
+            )));
+        };
+        let public_ci = repo != RepoRun::Private && hosts(gate.platform) != Host::Lane;
+        if public_ci && gate.needs.contains(&Capability::PrivateNames) {
+            return Err(Error(format!(
+                "[off] `{id}`: a public repo's CI run checks it; only a private repo turns it off"
             )));
         }
     }
@@ -199,7 +210,7 @@ pub fn plan(
         })?;
         gate.budget = *secs;
     }
-    check_off(config, &gates)?;
+    check_off(config, &gates, hosts, filter.repo)?;
     check_legs(config, &gates)?;
     check_filter(filter, &gates)?;
     let chosen = |g: &Gate| {
