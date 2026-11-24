@@ -97,12 +97,6 @@ Writes `docs/b.md`:
 The run writes `out/b.log`.
 ```
 
-Writes `out/a.log`:
-
-```
-a log
-```
-
 The gate passes.
 
 ## in-a-code-block
