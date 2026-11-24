@@ -1,3 +1,4 @@
+pub(crate) mod generated;
 pub(crate) mod names;
 pub(crate) mod paths;
 pub(crate) mod scope;

@@ -1,16 +1,17 @@
 use crate::arch::{config, frozen};
 use crate::docs::scope::{self, Class};
-use crate::docs::{names, paths, text, watch};
+use crate::docs::{generated, names, paths, text, watch};
 use crate::run::CheckCx as Cx;
 use crate::{Error, Result};
 use std::fs;
 
-/// Docs name real paths, links and names, and a watched key changes with a doc line; records get the link check only.
+/// Docs name real paths, links and names, agent text is listed as generated, and a watched key changes with a doc line.
 pub fn run(cx: &Cx) -> Result<Vec<String>> {
     let listed = config::generated(cx.root)?;
     let docs = scope::docs(cx.root, cx.docs);
     let (sets, mut bad) = names::read(cx.root, cx.docs.names.as_ref(), &listed)?;
     bad.extend(scope::unmatched(cx.docs, &docs));
+    bad.extend(generated::unlisted(&docs, &listed));
     for doc in &docs {
         let text = text::read(cx.root, doc)?;
         if doc.class != Class::Record {

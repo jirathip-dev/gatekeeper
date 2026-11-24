@@ -1,0 +1,9 @@
+packs = ["core"]
+integration = "main"
+pin = "checkout"
+
+[docs.names]
+file = "names.tsv"
+
+[docs.names.sets]
+kind = []

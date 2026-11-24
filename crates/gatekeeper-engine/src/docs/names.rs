@@ -48,13 +48,14 @@ pub(crate) fn read<'a>(
         (Some(t), bad) => (t, bad),
         (None, bad) => return Ok((Sets(vec![]), bad)),
     };
-    let mut found = BTreeMap::<SetName, BTreeSet<String>>::new();
+    let mut found = BTreeMap::<SetName, BTreeMap<String, Option<String>>>::new();
     for (n, l) in text.lines().enumerate().filter(|(_, l)| !l.is_empty()) {
         let mut f = l.splitn(3, '\t');
         let set = f.next().map(|s| SetName::try_from(s.to_owned()));
         match (set, f.next()) {
             (Some(Ok(set)), Some(name)) if !name.is_empty() && !name.contains('`') => {
-                found.entry(set).or_default().insert(name.to_owned());
+                let about = f.next().map(str::to_owned);
+                found.entry(set).or_default().insert(name.to_owned(), about);
             }
             _ => bad.push(format!(
                 "names: line {} is not <set> TAB <name> [TAB <description>]",
@@ -62,15 +63,40 @@ pub(crate) fn read<'a>(
             )),
         }
     }
+    for (set, held) in &found {
+        bad.extend(undescribed(set, held));
+    }
     let mut sets = vec![];
     for (set, prefixes) in &names.sets {
-        let held = found.remove(set).unwrap_or_default();
+        let held: BTreeSet<String> = found.remove(set).unwrap_or_default().into_keys().collect();
         if held.is_empty() {
             bad.push(format!("names: set `{set}` has no name"));
         }
         sets.push((set, prefixes.as_slice(), held));
     }
     Ok((Sets(sets), bad))
+}
+
+fn undescribed(set: &SetName, held: &BTreeMap<String, Option<String>>) -> Vec<String> {
+    if held.values().all(Option::is_none) {
+        return vec![];
+    }
+    let mut first = BTreeMap::<&str, &str>::new();
+    let mut bad = vec![];
+    for (name, about) in held {
+        match about.as_deref() {
+            None => bad.push(format!("names: {set} `{name}` has no description")),
+            Some(a) => match first.get(a) {
+                Some(twin) => bad.push(format!(
+                    "names: {set} `{name}` has the description of `{twin}`"
+                )),
+                None => {
+                    first.insert(a, name);
+                }
+            },
+        }
+    }
+    bad
 }
 
 pub(crate) fn unknown(sets: &Sets, skip: &[Glob], doc: &Doc, text: &Text) -> Vec<String> {
