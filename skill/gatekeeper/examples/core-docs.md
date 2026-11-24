@@ -145,6 +145,269 @@ The gate fails and its log prints `stale: shrink the baseline (./.gatekeeper/run
 
 Fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
 
+## name-in-a-record
+
+Writes `.gatekeeper/config.toml`:
+
+```
+packs = ["core"]
+integration = "main"
+pin = "checkout"
+
+[docs.names]
+run = "sh names.sh"
+
+[docs.names.sets]
+verb = ["tool {name}"]
+```
+
+Writes `docs/architecture/x.md`:
+
+```
+A later slice adds `tool spwan`.
+```
+
+Writes `names.sh`:
+
+```
+printf 'verb\tspawn\nverb\tqueue\n'
+```
+
+The gate passes.
+
+## name-in-its-set
+
+Writes `.gatekeeper/config.toml`:
+
+```
+packs = ["core"]
+integration = "main"
+pin = "checkout"
+
+[docs.names]
+run = "sh names.sh"
+
+[docs.names.sets]
+verb = ["tool {name}"]
+```
+
+Writes `docs/b.md`:
+
+```
+Run `tool spawn --dry-run <f>` or `tool queue`.
+```
+
+Writes `names.sh`:
+
+```
+printf 'verb\tspawn\nverb\tqueue\n'
+```
+
+The gate passes.
+
+## name-outside-its-set
+
+Writes `.gatekeeper/config.toml`:
+
+```
+packs = ["core"]
+integration = "main"
+pin = "checkout"
+
+[docs.names]
+run = "sh names.sh"
+
+[docs.names.sets]
+verb = ["tool {name}"]
+```
+
+Writes `docs/b.md`:
+
+```
+Run `tool spwan`.
+```
+
+Writes `names.sh`:
+
+```
+printf 'verb\tspawn\nverb\tqueue\n'
+```
+
+The gate fails and its log prints `docs/b.md: `tool spwan`: no verb `spwan``.
+
+Fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
+
+## names-bad-line
+
+Writes `.gatekeeper/config.toml`:
+
+```
+packs = ["core"]
+integration = "main"
+pin = "checkout"
+
+[docs.names]
+run = "sh names.sh"
+
+[docs.names.sets]
+verb = ["tool {name}"]
+```
+
+Writes `docs/b.md`:
+
+```
+Run `tool spawn`.
+```
+
+Writes `names.sh`:
+
+```
+printf 'verb\tspawn\nspawn\n'
+```
+
+The gate fails and its log prints `docs: 3 files, 1 findings
+names: line 2 is not <set> TAB <name> [TAB <description>]`.
+
+Fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
+
+## names-command-fails
+
+Writes `.gatekeeper/config.toml`:
+
+```
+packs = ["core"]
+integration = "main"
+pin = "checkout"
+
+[docs.names]
+run = "sh names.sh"
+
+[docs.names.sets]
+verb = ["tool {name}"]
+```
+
+Writes `docs/b.md`:
+
+```
+Run `tool spawn`.
+```
+
+Writes `names.sh`:
+
+```
+echo "no such registry" >&2
+exit 1
+```
+
+The gate fails and its log prints `docs: 3 files, 1 findings
+names: `sh names.sh` exited 1: no such registry`.
+
+Fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
+
+## names-file-not-generated
+
+Writes `.gatekeeper/config.toml`:
+
+```
+packs = ["core"]
+integration = "main"
+pin = "checkout"
+
+[docs.names]
+file = "names.tsv"
+
+[docs.names.sets]
+verb = ["tool {name}"]
+```
+
+Writes `docs/b.md`:
+
+```
+Run `tool spawn`.
+```
+
+Writes `names.tsv`:
+
+```
+verb	spawn
+```
+
+The gate fails and its log prints `docs: 3 files, 1 findings
+names: `names.tsv` is not listed as generated`.
+
+Fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
+
+## names-from-a-file
+
+Writes `.drover/arch.toml`:
+
+```
+generated = ["names.tsv"]
+generate = "printf 'verb\tspawn\n' > names.tsv"
+```
+
+Writes `.gatekeeper/config.toml`:
+
+```
+packs = ["core"]
+integration = "main"
+pin = "checkout"
+
+[docs.names]
+file = "names.tsv"
+
+[docs.names.sets]
+verb = ["tool {name}"]
+```
+
+Writes `docs/b.md`:
+
+```
+Run `tool spawn`.
+```
+
+Writes `names.tsv`:
+
+```
+verb	spawn
+```
+
+The gate passes.
+
+## no-claim
+
+Writes `.gatekeeper/config.toml`:
+
+```
+packs = ["core"]
+integration = "main"
+pin = "checkout"
+
+[docs.names]
+run = "sh names.sh"
+
+[docs.names.sets]
+verb = ["tool {name}"]
+```
+
+Writes `docs/b.md`:
+
+```
+Run `tool <verb>`, `tool --dry-run` or `cargo build --locked`.
+
+```
+`tool spwan`
+```
+```
+
+Writes `names.sh`:
+
+```
+printf 'verb\tspawn\nverb\tqueue\n'
+```
+
+The gate passes.
+
 ## real-paths
 
 Writes `README.md`:
@@ -220,6 +483,73 @@ We deleted `lib/gone.rs` on this date.
 
 The gate passes.
 
+## set-prints-nothing
+
+Writes `.gatekeeper/config.toml`:
+
+```
+packs = ["core"]
+integration = "main"
+pin = "checkout"
+
+[docs.names]
+run = "sh names.sh"
+
+[docs.names.sets]
+verb = ["tool {name}"]
+flag = ["--{name}"]
+```
+
+Writes `docs/b.md`:
+
+```
+Run `--dry-run`.
+```
+
+Writes `names.sh`:
+
+```
+printf 'flag\told-flag\nflag\tdry-run\n'
+```
+
+The gate fails and its log prints `docs: 3 files, 1 findings
+names: set `verb` has no name`.
+
+Fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
+
+## skip-a-claim
+
+Writes `.gatekeeper/config.toml`:
+
+```
+packs = ["core"]
+integration = "main"
+pin = "checkout"
+
+[docs]
+skip = ["tool spwan"]
+
+[docs.names]
+run = "sh names.sh"
+
+[docs.names.sets]
+verb = ["tool {name}"]
+```
+
+Writes `docs/b.md`:
+
+```
+Old docs say `tool spwan`.
+```
+
+Writes `names.sh`:
+
+```
+printf 'verb\tspawn\nverb\tqueue\n'
+```
+
+The gate passes.
+
 ## skip-a-span
 
 Writes `.gatekeeper/config.toml`:
@@ -274,6 +604,38 @@ fn b() {}
 The gate fails and its log prints `docs/b.md: `src/gone.rs`: no such path
 docs/b.md: `src/lib.rs:3`: src/lib.rs has fewer than 3 lines
 docs/b.md: link `docs/none.md` does not exist`.
+
+Fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
+
+## two-prefixes
+
+Writes `.gatekeeper/config.toml`:
+
+```
+packs = ["core"]
+integration = "main"
+pin = "checkout"
+
+[docs.names]
+run = "sh names.sh"
+
+[docs.names.sets]
+verb = ["tool {name}", "./tool {name}"]
+```
+
+Writes `docs/b.md`:
+
+```
+Run `tool spawn`, then `./tool spwan`.
+```
+
+Writes `names.sh`:
+
+```
+printf 'verb\tspawn\nverb\tqueue\n'
+```
+
+The gate fails and its log prints `docs/b.md: `./tool spwan`: no verb `spwan``.
 
 Fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
 
