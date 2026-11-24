@@ -113,13 +113,37 @@ Budgets are seconds of a gate's own wall time.
 
 | Pack | Platform | Gates (budget) | Total |
 |---|---|---|---|
-| core | linux | `pin` (1), `cap` (5), `rules` (5), `arch` (45), `hygiene` (5), `pr-body` (2), `actionlint` (5), `deps` (5) | 73 |
+| core | linux | `pin` (1), `cap` (5), `rules` (5), `arch` (45), `hygiene` (5), `pr-body` (2), `actionlint` (5), `deps` (5), `docs` (10) | 83 |
 | rust | linux | `fmt` (10), `clippy` (180), `bans` (30), `deny` (20) | 240 |
 | swift | macOS | `anti-slop` (30), `warnings` (360), `tokens` (10, any platform) | 400 |
 | ts | linux | `tsc` (90), `oxlint` (30), `knip` (60) | 180 |
 | supabase | linux | `migrations` (10), `pgtap` (300, needs containers: CI only on a lane's host) | 310 |
 
 What each gate runs and the fixture cases that prove it fails: `docs/architecture/gatekeeper/packs.md`.
+
+## The docs gate
+
+`core/docs` is on in every repo with the core pack, with no config. It reads `README.md`, `docs/**/*.md`,
+`skill/**/*.md`, `CLAUDE.md`, `AGENTS.md` and `.drover/*.md`. A backticked path must exist (a missing one under a
+folder git ignores passes), a markdown link must resolve, and a name a set claims must be in that set. A design
+record (`docs/architecture/**`, `docs/design/**`) gets the link check only. Agent text (`skill/**/*.md`) must match a
+`generated` glob of `.drover/arch.toml`. A finding has no line number, so `baseline core/docs` lists old hits and an
+edit above one changes nothing. No key removes a default path; the way out is `[off]` with a reason. Every key of
+`[docs]` in `.gatekeeper/config.toml` is optional:
+
+| Key | Meaning |
+|---|---|
+| `also` | more docs, beside the defaults |
+| `skip` | backticked spans that are not read |
+| `watch` | source files whose added or removed keys need a changed doc line (or `no doc: <why>` in the PR body) |
+| `generated` | more agent text that must be listed as generated |
+| `[docs.records]` | `glob = "reason"`: more records, links only |
+| `[docs.written]` | `glob = "reason"`: agent text written by hand |
+| `[docs.names]` | `run` (a command) or `file` (a generated file) printing `<set> TAB <name> [TAB <description>]` lines, and `[docs.names.sets]`: each set's prefixes, as `"core/{name}"` |
+
+An excuse that matches no file is a finding. In a set whose lines carry descriptions, a name with none and two names
+with one description are findings. This repo's own sets come from `scripts/names.sh`: its verbs and each pack's
+gates.
 
 ## Speed
 
@@ -187,7 +211,7 @@ signature `SHA256SUMS.minisig`, checked against `release.pub`. `[pin]` holds the
 the wrapper refuses a binary that differs. To bump:
 
 ```
-$ ./.gatekeeper/run pin 1.4.0
+$ ./.gatekeeper/run pin 1.5.0
 ```
 
 It checks the signature, rewrites `[pin]`, the `uses: …gates.yml@<sha> # v<version>` lines and the wrapper. Then
@@ -218,6 +242,11 @@ Upgrading to v1.4.0: `core/pr-body`, `core/cap`, `core/rules`, `core/hygiene` an
 gatekeeper, and the core pack no longer pins the drover tool. A config whose `[tools]` names `drover`, or a local
 gate whose `run` line uses `{tool:drover}`, is refused: drop the line. A private repo adds an `[off]` line for
 `core/hygiene`.
+
+Upgrading to v1.5.0: `core/docs` is on with no config. Run `./.gatekeeper/run baseline core/docs` and commit
+the list of old hits it writes (no file when there is no hit). A `[docs]` table in `.drover/arch.toml` is
+refused: move `watch` and `skip` to `[docs]` in `.gatekeeper/config.toml` and drop `paths` (an entry outside the
+defaults goes to `also`). A skill page that is not generated is listed in `generated` or named in `[docs.written]`.
 
 ## Workflows
 

@@ -18,3 +18,14 @@ recheck = 1
 
 [docs.records]
 "skill/gatekeeper/examples/**" = "each page quotes fixture cases: the paths it names are the fixture repo's, not this repo's"
+
+[docs.names]
+run = "sh scripts/names.sh"
+
+[docs.names.sets]
+verb = ["./.gatekeeper/run {name}", "gatekeeper {name}"]
+core = ["core/{name}"]
+rust = ["rust/{name}"]
+swift = ["swift/{name}"]
+ts = ["ts/{name}"]
+supabase = ["supabase/{name}"]
