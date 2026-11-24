@@ -50,9 +50,9 @@ every direct dependency of Cargo.toml, package.json and Package.swift (with thei
 
 ## core/docs
 
-docs name real paths and links, and a watched key changes with a doc line
+docs and agent text name real paths, links and names; agent text is generated
 
-- fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs
+- fix: make the doc true: correct the path, link or name, or rerun the generator; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs
 - budget: 10s
 - cached: no, cache = false
 - rerun: `./.gatekeeper/run check --gate core/docs`

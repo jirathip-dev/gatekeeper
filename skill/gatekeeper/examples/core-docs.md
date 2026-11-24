@@ -23,7 +23,7 @@ See `lib/gone.rs`.
 
 The gate fails and its log prints `roles/impl.md: `lib/gone.rs`: no such path`.
 
-Fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
+Fix: make the doc true: correct the path, link or name, or rerun the generator; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
 
 ## default-agent-files
 
@@ -49,7 +49,7 @@ The gate fails and its log prints `.drover/rules.md: `lib/gone-rules.rs`: no suc
 AGENTS.md: `lib/gone-agents.rs`: no such path
 CLAUDE.md: `lib/gone-claude.rs`: no such path`.
 
-Fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
+Fix: make the doc true: correct the path, link or name, or rerun the generator; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
 
 ## default-skill-page
 
@@ -63,7 +63,7 @@ Run `lib/gone.rs` first.
 
 The gate fails and its log prints `skill/tool/SKILL.md: `lib/gone.rs`: no such path`.
 
-Fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
+Fix: make the doc true: correct the path, link or name, or rerun the generator; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
 
 ## excuse-matches-nothing
 
@@ -80,7 +80,7 @@ pin = "checkout"
 
 The gate fails and its log prints `[docs.records] `docs/old/**` matches no file`.
 
-Fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
+Fix: make the doc true: correct the path, link or name, or rerun the generator; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
 
 ## generated-adds-a-folder
 
@@ -105,7 +105,7 @@ Reads `lib/cli.rs`.
 
 The gate fails and its log prints `docs/commands/spawn.md: agent text is not listed as generated`.
 
-Fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
+Fix: make the doc true: correct the path, link or name, or rerun the generator; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
 
 ## ignored-path
 
@@ -168,7 +168,7 @@ docs/b.md: `lib/gone.rs`: no such path
 
 The gate fails and its log prints `stale: shrink the baseline (./.gatekeeper/run baseline core/docs): docs/b.md: `lib/gone.rs`: no such path`.
 
-Fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
+Fix: make the doc true: correct the path, link or name, or rerun the generator; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
 
 ## name-in-a-record
 
@@ -260,7 +260,7 @@ printf 'verb\tspawn\nverb\tqueue\n'
 
 The gate fails and its log prints `docs/b.md: `tool spwan`: no verb `spwan``.
 
-Fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
+Fix: make the doc true: correct the path, link or name, or rerun the generator; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
 
 ## name-without-description
 
@@ -294,7 +294,7 @@ kind	sheet
 
 The gate fails and its log prints `names: kind `sheet` has no description`.
 
-Fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
+Fix: make the doc true: correct the path, link or name, or rerun the generator; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
 
 ## names-bad-line
 
@@ -327,7 +327,7 @@ printf 'verb\tspawn\nspawn\n'
 The gate fails and its log prints `docs: 3 files, 1 findings
 names: line 2 is not <set> TAB <name> [TAB <description>]`.
 
-Fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
+Fix: make the doc true: correct the path, link or name, or rerun the generator; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
 
 ## names-command-fails
 
@@ -361,7 +361,7 @@ exit 1
 The gate fails and its log prints `docs: 3 files, 1 findings
 names: `sh names.sh` exited 1: no such registry`.
 
-Fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
+Fix: make the doc true: correct the path, link or name, or rerun the generator; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
 
 ## names-file-not-generated
 
@@ -394,7 +394,7 @@ verb	spawn
 The gate fails and its log prints `docs: 3 files, 1 findings
 names: `names.tsv` is not listed as generated`.
 
-Fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
+Fix: make the doc true: correct the path, link or name, or rerun the generator; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
 
 ## names-from-a-file
 
@@ -503,7 +503,7 @@ This slice adds `lib/planned.rs`; see [shapes](shapes.md).
 
 The gate fails and its log prints `docs/architecture/x/adr.md: link `shapes.md` does not exist`.
 
-Fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
+Fix: make the doc true: correct the path, link or name, or rerun the generator; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
 
 ## record-planned-path
 
@@ -606,7 +606,7 @@ printf 'flag\told-flag\nflag\tdry-run\n'
 The gate fails and its log prints `docs: 3 files, 1 findings
 names: set `verb` has no name`.
 
-Fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
+Fix: make the doc true: correct the path, link or name, or rerun the generator; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
 
 ## skill-page-listed
 
@@ -641,7 +641,7 @@ Read `lib/cli.rs` first.
 
 The gate fails and its log prints `skill/tool/SKILL.md: agent text is not listed as generated`.
 
-Fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
+Fix: make the doc true: correct the path, link or name, or rerun the generator; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
 
 ## skill-page-unlisted
 
@@ -655,7 +655,7 @@ Read `lib/cli.rs` first.
 
 The gate fails and its log prints `skill/tool/SKILL.md: agent text is not listed as generated`.
 
-Fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
+Fix: make the doc true: correct the path, link or name, or rerun the generator; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
 
 ## skill-page-written
 
@@ -768,7 +768,7 @@ The gate fails and its log prints `docs/b.md: `src/gone.rs`: no such path
 docs/b.md: `src/lib.rs:3`: src/lib.rs has fewer than 3 lines
 docs/b.md: link `docs/none.md` does not exist`.
 
-Fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
+Fix: make the doc true: correct the path, link or name, or rerun the generator; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
 
 ## two-names-one-description
 
@@ -802,7 +802,7 @@ kind	sheet	A box over a screen: a dialog, a fixed confirm or alert, or a tool wi
 
 The gate fails and its log prints `names: kind `sheet` has the description of `modal``.
 
-Fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
+Fix: make the doc true: correct the path, link or name, or rerun the generator; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
 
 ## two-prefixes
 
@@ -834,7 +834,7 @@ printf 'verb\tspawn\nverb\tqueue\n'
 
 The gate fails and its log prints `docs/b.md: `./tool spwan`: no verb `spwan``.
 
-Fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
+Fix: make the doc true: correct the path, link or name, or rerun the generator; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
 
 ## watched-key-documented
 
@@ -906,7 +906,7 @@ struct Args {
 
 The gate fails and its log prints `lib/cli.rs: `new_flag` added, but no changed doc line names it (or `no doc: <why>` in the PR body)`.
 
-Fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
+Fix: make the doc true: correct the path, link or name, or rerun the generator; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
 
 ## watched-key-no-doc
 
@@ -967,4 +967,4 @@ struct Args {
 The gate fails and its log prints `lib/cli.rs: `old_flag` removed, but no changed doc line names it (or `no doc: <why>` in the PR body)
 lib/cli.rs: `new_flag` added, but no changed doc line names it (or `no doc: <why>` in the PR body)`.
 
-Fix: make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`
+Fix: make the doc true: correct the path, link or name, or rerun the generator; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs. Rerun: `./.gatekeeper/run check --gate core/docs`

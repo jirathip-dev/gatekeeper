@@ -1,5 +1,5 @@
-about = "docs name real paths and links, and a watched key changes with a doc line"
-fix = "make the doc true: correct the path or link; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs"
+about = "docs and agent text name real paths, links and names; agent text is generated"
+fix = "make the doc true: correct the path, link or name, or rerun the generator; a listed hit you fixed leaves with ./.gatekeeper/run baseline core/docs"
 budget_secs = 10
 cache = false
 
