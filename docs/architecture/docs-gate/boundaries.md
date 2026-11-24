@@ -95,4 +95,4 @@ stateDiagram-v2
 ```
 
 A repo with a table keeps it until the PR that moves it, and the same PR turns the wider defaults on. One thing
-is checked less after it: drover's records lose their path check (`adr.md`, open question 1).
+is checked less after it: drover's records lose their path check (`adr.md`, open question 1, answered: links only).

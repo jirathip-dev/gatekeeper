@@ -4,9 +4,9 @@
 
 Decision: the docs check becomes its own core gate, on in every repo with no setup, over the readme, the docs folder, skill pages, the agent instruction files and the rules folder. Its settings move to gatekeeper's config file; the rest of the arch file stays where it is. A repo leaves only by turning the gate off with a reason, and old hits sit in the gate's list, which only shrinks. A repo may name a command or a generated file that lists its real names; a doc that uses a name outside the list fails. Skill pages must be listed as generated unless the repo says why one is written by hand, and two names may not share one description, which is the fault of blocks 393.
 Slices: gatekeeper: a cap raise, the gate with its defaults, name sets, generated agent text, then gatekeeper's own docs and release 1.5.0. After that one pin bump per repo, which also writes the list of old hits; blocks, drover and farrier move their table in that bump.
-Open questions: (1) Design records name files that are planned or were deleted later. Check only their links, as proposed, or check them in full, as the issue's default paths say? (2) About 400 lines arrive and 308 are free: approve one cap raise, 9,500 to 10,000?
+Answered: (1) design records get the link check only; (2) the cap raise is 10,500, not 10,000, filed as #84, because #75 landed first.
 
-Status: proposed 2026-11-24 (architect lane). Read `README.md` first.
+Status: approved by the owner 2026-11-24 (q3393), with the amendment below. Read `README.md` first.
 
 ## Question
 
@@ -68,7 +68,7 @@ does its config live, and in which order do gatekeeper and its consumers change?
 | Option | Verdict |
 |---|---|
 | A. Checked in full, like any doc | No. A record names files a later slice adds, files a later PR deletes and files of other repos. Each rename would rewrite history, and a baseline that only shrinks cannot take a new record's planned paths. |
-| B. Links only | **Yes** (open question 1). A record stays what was decided on its date; its links between its own files must work. |
+| B. Links only | **Yes** (open question 1, answered: links only). A record stays what was decided on its date; its links between its own files must work. |
 | C. Not checked | No. A broken link in a record the impl brief points at is drift of the plain kind. |
 
 ### 5. The list of old hits
@@ -170,7 +170,7 @@ Gatekeeper (five issues to file). They run in order: each adds a field to the sa
 
 | # | Issue | Blocked on | AC |
 |---|---|---|---|
-| S0 | cap: raise gatekeeper to 10,000 (filed by the orchestrator) | the owner's answer | the raise file with its reason; nothing else |
+| S0 | cap: raise gatekeeper to 10,500 (#84, filed by the orchestrator) | the owner's answer | the raise file with its reason; nothing else |
 | S1 | `core/docs`, the gate: defaults, classes, `also`, `skip`, `watch`, `[docs.records]`, the baseline | S0 | a repo with no `[docs]` fails on a stale path in a skill page; `arch/docs.rs` is gone and `core/arch` refuses a `[docs]` table, naming the new home; findings have no line number; a listed hit survives an edit above it; a record's planned path passes and its broken link fails; a missing path under an ignored folder passes; the S1 cases of `cases.md` are in and selftest passes |
 | S2 | name sets: `[docs.names]`, `run` or `file`, the prefixes | S1 | a span with a name outside its set fails and names the set; a placeholder and a fenced block pass; a failing command, a bad line, an empty set and a `file` not listed as generated are each one finding; the S2 cases are in |
 | S3 | generated agent text: the listing rule, `generated`, `[docs.written]`, descriptions | S2 | a skill page outside `generated` fails; one named in `[docs.written]` passes; two names with one description fail, and the case is blocks#393's two lines; the S3 cases are in |
@@ -205,15 +205,11 @@ has no `[docs]`; `check` is green at the head; the PR body gives the number of l
 - **Before the release** (S4): a run of the gate on every consumer's integration head, with the hit count and the
   time in the PR body, so the owner sees each repo's debt and the 10 s budget is checked on real docs.
 
-## Open questions
+## Open questions, answered
 
-1. **Records.** The issue's default paths include `docs/**/*.md` and name blocks' skipped design records as a
-   gap. Checked in full, a record that plans a file, or names one a later PR deletes, fails; the fix would be to
-   edit the record. Proposed: records are in the default paths, and only their links are checked. The other
-   choice: check them in full, and keep planned paths in code blocks, which are not read.
-2. **The cap.** Staging counts 9,192 of 9,500 (`drover cap gatekeeper`), and #75 and #77 are still to land. This
-   work adds about 400 lines: about 490 new, less the 87 that move. Approve one raise to 10,000, as its own issue
-   (S0)?
+1. **Records.** The owner chose links only: a record under `docs/architecture/**` or `docs/design/**` gets the
+   link check and nothing else, as decision 4 says.
+2. **The cap.** One raise to 10,500, not 10,000, filed as #84, because #75 lands first.
 
 ## `.drover/arch.toml` lines
 

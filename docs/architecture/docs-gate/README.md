@@ -4,14 +4,14 @@
 
 Decision: the docs check becomes its own core gate, on in every repo with no setup, over the readme, the docs folder, skill pages, the agent instruction files and the rules folder. Its settings move to gatekeeper's config file; the rest of the arch file stays where it is. A repo leaves only by turning the gate off with a reason, and old hits sit in the gate's list, which only shrinks. A repo may name a command or a generated file that lists its real names; a doc that uses a name outside the list fails. Skill pages must be listed as generated unless the repo says why one is written by hand, and two names may not share one description, which is the fault of blocks 393.
 Slices: gatekeeper: a cap raise, the gate with its defaults, name sets, generated agent text, then gatekeeper's own docs and release 1.5.0. After that one pin bump per repo, which also writes the list of old hits; blocks, drover and farrier move their table in that bump.
-Open questions: (1) Design records name files that are planned or were deleted later. Check only their links, as proposed, or check them in full, as the issue's default paths say? (2) About 400 lines arrive and 308 are free: approve one cap raise, 9,500 to 10,000?
+Answered: (1) design records get the link check only; (2) the cap raise is 10,500, not 10,000, filed as #84, because #75 landed first.
 
 ## Read in this order
 
 | File | What |
 |---|---|
 | `usage.md` | how it reads afterwards: a bump, a failing run, every config key, a names list, blocks#393 as a finding, an old table moved, the check's entry |
-| `adr.md` | the question, where it stands, the eight options, the twelve decisions, consequences, the slices and the per-repo bumps, how it is tested, the two open questions, the `arch.toml` lines |
+| `adr.md` | the question, where it stands, the eight options, the twelve decisions, consequences, the slices and the per-repo bumps, how it is tested, the two answered questions, the `arch.toml` lines |
 | `shapes.md` | the config keys and their types, a doc's class, the names list's format, every finding line, the baseline file |
 | `boundaries.md` | where `arch/docs.rs` goes, which module may call which, and the charts of a hit and of a repo |
 | `cases.md` | each decision with the fixture case that proves it, by slice |
@@ -52,9 +52,9 @@ Read on gatekeeper staging 9b6517b (1.3.0), blocks, drover, cooee, shed and send
 | agent text | skill pages, what a repo adds | the same, and it must be listed as generated |
 | record | design records, what a repo adds with a reason | links only |
 
-## What the owner decides
+## What the owner decided
 
-Approve, revise or reject the ADR, and answer its two open questions: how much of a design record is checked, and
-the size of gatekeeper's one cap raise. Three choices change what a lane sees and are listed under "Consequences"
-in `adr.md`: a rename must fix the docs that name the file in the same PR; a docs finding shows no line number;
-drover's records lose the path check they have today if records are checked for links only.
+Approved 2026-11-24 (q3393). Design records get the link check only, and the cap raise is 10,500, filed as #84.
+The three choices that change what a lane sees are listed under "Consequences" in `adr.md`: a rename must fix the
+docs that name the file in the same PR; a docs finding shows no line number; drover's records lose the path check
+they have today.
