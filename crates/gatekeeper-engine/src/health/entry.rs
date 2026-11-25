@@ -1,5 +1,5 @@
 use crate::{Error, Result};
-use gatekeeper_model::{Health, JobReport, Millis};
+use gatekeeper_model::{Covered, Health, JobReport, Millis};
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
 use std::path::Path;
@@ -37,12 +37,36 @@ pub(crate) fn done(jobs: &[JobReport], entry: Option<&Path>, out: Option<&Path>)
         .iter()
         .map(|(n, t)| leg(n, *t, was.legs.get(n)))
         .collect();
+    let mut coverage = was.coverage;
+    let mut said = Vec::new();
+    for g in jobs.iter().flat_map(|j| &j.gates) {
+        let Some(lines) = g.coverage else { continue };
+        let before = coverage.iter().position(|c| c.gate == g.id);
+        let old = before.map(|i| coverage.remove(i).lines);
+        let vs = old.map_or_else(
+            || "no integration number".into(),
+            |o| format!("integration {o} %"),
+        );
+        said.push(format!("{} {lines} % ({vs})", g.id));
+        coverage.push(Covered {
+            gate: g.id.clone(),
+            lines,
+        });
+    }
     if let Some(dir) = out {
         let path = dir.join(FILE);
-        let json = serde_json::to_string_pretty(&Health { schema: 1, legs })
-            .map_err(|e| Error(e.to_string()))?;
+        let health = Health {
+            schema: 1,
+            coverage,
+            legs,
+        };
+        let json = serde_json::to_string_pretty(&health).map_err(|e| Error(e.to_string()))?;
         std::fs::create_dir_all(dir).map_err(|e| Error::at(dir, e))?;
         std::fs::write(&path, json).map_err(|e| Error::at(&path, e))?;
     }
-    Ok(format!("legs: {}", each.join(" · ")))
+    let legs = format!("legs: {}", each.join(" · "));
+    if said.is_empty() {
+        return Ok(legs);
+    }
+    Ok(format!("{legs}\ncoverage: {}", said.join(" · ")))
 }

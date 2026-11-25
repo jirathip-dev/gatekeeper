@@ -3,7 +3,7 @@ use super::line::{Vars, expand, filled};
 use crate::baseline::{self, Baseline};
 use crate::runner::{self, Ended};
 use crate::select::Picked;
-use crate::{Error, Result, fetch, kept};
+use crate::{Error, Result, fetch, health, kept};
 use gatekeeper_model::{Failure, Gate, GateReport, Platform, Shard, Step, judge};
 use std::cell::OnceCell;
 use std::fs::File;
@@ -102,6 +102,7 @@ pub(crate) fn gate(
     ]);
     let at = (gate, &vars, picked.map_or(&[][..], |p| &p.files[..]));
     let summary = picked.map_or_else(OnceCell::new, |p| OnceCell::from(p.note.clone()));
+    let mut covered = None;
     let result = here(gate, cx, &mut log)
         .and_then(|()| {
             let mut steps = gate.steps.iter();
@@ -119,7 +120,8 @@ pub(crate) fn gate(
                 .ok();
             }
             if none { Ok(()) } else { Err(Failure::Exit(1)) }
-        });
+        })
+        .and_then(|()| health::after(gate, cx, &mut log, (&summary, &mut covered)));
     let took = start.elapsed().into();
     let mut report = GateReport::unrun(gate, judge(result, took, gate.budget, cx.host));
     report.took = took;
@@ -131,5 +133,6 @@ pub(crate) fn gate(
     report.kept = kept::collect(gate, &cx.root, &cx.out)?;
     report.projects = projects.to_vec();
     report.note = summary.into_inner();
+    report.coverage = covered;
     Ok(report)
 }
