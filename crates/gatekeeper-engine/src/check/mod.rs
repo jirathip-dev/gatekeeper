@@ -2,6 +2,7 @@ pub mod anti_slop;
 pub mod arch;
 pub mod banned_apis;
 pub mod cap;
+pub mod clippy_complexity;
 pub mod deny_floor;
 pub mod deps;
 pub mod docs;
@@ -10,6 +11,7 @@ pub mod knip;
 pub mod lint_floor;
 pub mod machete;
 pub mod oxlint;
+pub mod oxlint_complexity;
 pub mod pin;
 pub mod pr_body;
 pub mod ratchet;
@@ -29,6 +31,7 @@ pub const NAMES: &[&str] = &[
     "arch",
     "banned-apis",
     "cap",
+    "clippy-complexity",
     "deny-floor",
     "deps",
     "docs",
@@ -37,6 +40,7 @@ pub const NAMES: &[&str] = &[
     "lint-floor",
     "machete",
     "oxlint",
+    "oxlint-complexity",
     "pin",
     "pr-body",
     "ratchet",
@@ -55,6 +59,7 @@ pub fn run(name: &str, cx: &CheckCx) -> Result<Vec<String>> {
         "arch" => arch::run(cx),
         "banned-apis" => banned_apis::run(cx),
         "cap" => cap::run(cx),
+        "clippy-complexity" => clippy_complexity::run(cx),
         "deny-floor" => deny_floor::run(cx),
         "deps" => deps::run(cx),
         "docs" => docs::run(cx),
@@ -63,6 +68,7 @@ pub fn run(name: &str, cx: &CheckCx) -> Result<Vec<String>> {
         "lint-floor" => lint_floor::run(cx),
         "machete" => machete::run(cx),
         "oxlint" => oxlint::run(cx),
+        "oxlint-complexity" => oxlint_complexity::run(cx),
         "pin" => pin::run(cx),
         "pr-body" => pr_body::run(cx),
         "ratchet" => ratchet::run(cx),

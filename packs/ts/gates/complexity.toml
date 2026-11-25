@@ -1,0 +1,6 @@
+about = "pinned oxlint with the pack's complexity config alone: no function over complexity 20 or 60 lines beyond the baseline"
+fix = "split the function the line names; once one is fixed, shrink the list: ./.gatekeeper/run baseline ts/complexity"
+budget_secs = 30
+
+[[step]]
+check = "oxlint-complexity"
