@@ -213,7 +213,7 @@ fn a_timed_gate_runs_through_a_stand_in_runner_as_its_folder_expects() {
         seen += 1;
         let plan = plan::repo(&config, &root, &|_| Host::Lane, &Filter::default());
         if let Some(want) = &case.refused {
-            let got = plan.err().map(|e| e.0).unwrap_or_default();
+            let got = plan.err().map_or_default(|e| e.0);
             assert!(got.contains(want.as_str()), "{name}: refused with {got}");
             continue;
         }
