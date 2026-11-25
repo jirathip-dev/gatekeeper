@@ -1,0 +1,11 @@
+[[lang]]
+ext = ["rs"]
+hits = ["thread::sleep(", "time::sleep(", "Instant::now(", "SystemTime::now("]
+
+[[lang]]
+ext = ["ts", "tsx", "mts", "cts"]
+hits = ["setTimeout(", "setInterval(", "Date.now(", "new Date()", "performance.now("]
+
+[[lang]]
+ext = ["swift"]
+hits = ["Thread.sleep(", "Task.sleep(", "usleep(", "Date()", "CFAbsoluteTimeGetCurrent(", "DispatchTime.now("]

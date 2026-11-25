@@ -117,3 +117,13 @@ the test-to-src line ratio under the lowest ceiling in ci/tests/ratio.d, a ceili
 - cached: no, cache = false
 - rerun: `./.gatekeeper/run check --gate core/test-health`
 - what a failure looks like: [core-test-health](../examples/core-test-health.md)
+
+## core/test-sleeps
+
+no sleep or wall-clock read in a test line, by the patterns in the core pack's test-sleeps.toml; soak files are exempt
+
+- fix: wait on the event, a channel or a fake clock instead; a perf or timing test moves into a [tests] soak file. Existing hits: ./.gatekeeper/run baseline core/test-sleeps, a list that only shrinks
+- budget: 5s
+- cached: no, cache = false
+- rerun: `./.gatekeeper/run check --gate core/test-sleeps`
+- what a failure looks like: [core-test-sleeps](../examples/core-test-sleeps.md)

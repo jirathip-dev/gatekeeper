@@ -38,14 +38,20 @@ pub(crate) fn side(path: &str, config: &TestsConfig) -> Option<Side> {
     })
 }
 
+pub(crate) fn tagged(side: Side, text: &str) -> impl Iterator<Item = (bool, &str)> {
+    let mut tail = matches!(side, Side::Test);
+    text.lines().map(move |line| {
+        tail = tail || matches!(side, Side::SrcThenTestTail) && starts_tail(line);
+        (tail, line)
+    })
+}
+
 pub(crate) fn lines(side: Side, text: &str) -> Lines {
     let mut out = Lines::default();
-    let mut tail = matches!(side, Side::Test);
-    for line in text.lines() {
-        tail = tail || matches!(side, Side::SrcThenTestTail) && starts_tail(line);
+    for (test, line) in tagged(side, text) {
         match () {
             () if line.trim().is_empty() => {}
-            () if tail => out.test += 1,
+            () if test => out.test += 1,
             () => out.src += 1,
         }
     }
