@@ -1,6 +1,7 @@
 pub(crate) mod count;
 pub(crate) mod coverage;
 pub(crate) mod entry;
+pub mod flaky;
 pub mod judge;
 pub mod junit;
 pub(crate) mod ratchet;
@@ -10,7 +11,7 @@ pub(crate) mod timed;
 
 use crate::baseline::Baseline;
 use crate::run::RunCtx;
-use gatekeeper_model::{Failure, Gate, Lines, Tenths, TestsConfig};
+use gatekeeper_model::{Failure, Gate, Lines, Sighting, Tenths, TestsConfig};
 use std::cell::OnceCell;
 use std::fs::File;
 use std::io::Write as _;
@@ -55,11 +56,14 @@ pub(crate) fn totals<'a>(
     each.fold(Lines::default(), |sum, l| sum + l)
 }
 
-pub(crate) fn after(
-    steps: Result<(), Failure>,
-    at: &timed::Run,
-    out: (&mut File, &mut Baseline, &OnceCell<String>),
-) -> Result<(), Failure> {
+pub(crate) type Out<'a> = (
+    &'a mut File,
+    &'a mut Baseline,
+    &'a OnceCell<String>,
+    &'a OnceCell<Vec<Sighting>>,
+);
+
+pub(crate) fn after(steps: Result<(), Failure>, at: &timed::Run, out: Out) -> Result<(), Failure> {
     match (&at.gate.timed, steps) {
         (Some(t), steps @ (Ok(()) | Err(Failure::Exit(_)))) => timed::run(t, steps, at, out),
         (_, steps) => steps,

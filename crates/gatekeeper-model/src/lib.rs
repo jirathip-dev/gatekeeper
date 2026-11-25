@@ -16,8 +16,8 @@ pub use docs::{AGENT_TEXT, DOCS, DocsConfig, Excuses, Names, Prefix, RECORDS, Se
 pub use gate::{Capability, Gate, GateFile, PackFile, Platform, Step, Toolchain, Upload};
 pub use glob::Glob;
 pub use health::{
-    Case, Ceiling, Changed, Coverage, CoverageTool, Covered, Date, Ended, Health, Lines, RunKind,
-    Runner, Tenths, TestId, TestsConfig, Timed,
+    Case, Ceiling, Changed, Coverage, CoverageTool, Covered, Date, Ended, Flaky, Health, Lines,
+    RunKind, Runner, Sighting, Tenths, TestId, TestsConfig, Timed,
 };
 pub use names::PrivateNames;
 pub use report::{

@@ -44,6 +44,33 @@ The gate fails and its log prints `ci/tests/ratio.d/2026-11-26-125.toml: ceiling
 
 Fix: delete tests or test code; a ratio a whole step under its ceiling turns the ratchet: ./.gatekeeper/run baseline core/test-health adds a lower file. A ceiling file is never edited or deleted. Rerun: `./.gatekeeper/run check --gate core/test-health`
 
+## entry-without-issue
+
+Writes `ci/tests/flaky.d/demo-app-tests-adds.toml`:
+
+```
+test = "demo-app tests::adds"
+since = "2026-11-26"
+sha = "b2e8033"
+```
+
+The gate fails and its log prints `demo-app tests::adds has no issue`.
+
+Fix: delete tests or test code; a ratio a whole step under its ceiling turns the ratchet: ./.gatekeeper/run baseline core/test-health adds a lower file. A ceiling file is never edited or deleted. Rerun: `./.gatekeeper/run check --gate core/test-health`
+
+## in-quarantine
+
+Writes `ci/tests/flaky.d/demo-app-tests-adds.toml`:
+
+```
+test = "demo-app tests::adds"
+since = "2026-11-20"
+sha = "b2e8033"
+issue = 42
+```
+
+The gate passes.
+
 ## inline-tail-counts-as-test
 
 Writes `crates/high/src/extra.rs`:
@@ -79,6 +106,38 @@ fn seven() {}
 ```
 
 The gate fails and its log prints `ratio 1.29 is over the ceiling 1.20 (ci/tests/ratio.d/2026-11-25-120.toml)`.
+
+Fix: delete tests or test code; a ratio a whole step under its ceiling turns the ratchet: ./.gatekeeper/run baseline core/test-health adds a lower file. A ceiling file is never edited or deleted. Rerun: `./.gatekeeper/run check --gate core/test-health`
+
+## quarantine-ended
+
+Writes `ci/tests/flaky.d/demo-app-tests-adds.toml`:
+
+```
+test = "demo-app tests::adds"
+since = "2026-11-19"
+sha = "b2e8033"
+issue = 42
+```
+
+The gate fails and its log prints `quarantine ended 2026-11-26 (#42): fix or delete demo-app tests::adds`.
+
+Fix: delete tests or test code; a ratio a whole step under its ceiling turns the ratchet: ./.gatekeeper/run baseline core/test-health adds a lower file. A ceiling file is never edited or deleted. Rerun: `./.gatekeeper/run check --gate core/test-health`
+
+## quarantine-renewed
+
+Writes `ci/tests/flaky.d/demo-app-tests-reconnects-again.toml`:
+
+```
+test = "demo-app tests::reconnects"
+since = "2026-11-26"
+sha = "b2e8033"
+issue = 8
+```
+
+Removes `ci/tests/flaky.d/demo-app-tests-reconnects.toml`.
+
+The gate fails and its log prints `demo-app tests::reconnects replaces its deleted entry: a quarantine is never renewed`.
 
 Fix: delete tests or test code; a ratio a whole step under its ceiling turns the ratchet: ./.gatekeeper/run baseline core/test-health adds a lower file. A ceiling file is never edited or deleted. Rerun: `./.gatekeeper/run check --gate core/test-health`
 

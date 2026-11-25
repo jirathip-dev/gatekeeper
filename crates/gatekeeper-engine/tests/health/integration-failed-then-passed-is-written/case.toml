@@ -1,0 +1,20 @@
+about = "on a push to the integration branch a failed test runs twice more through {only}; failed, then passed, passes the gate and ci done writes its entry and flaky.json"
+gate = """
+about = "the tests, timed"
+fix = "fix the test the log names"
+budget_secs = 30
+run = "sh runner.sh {only}"
+
+[timed]
+runner = "nextest"
+junit = "target/nextest/ci/junit.xml"
+"""
+trigger = "integration"
+runs = ["stand-in-adds-fail.xml", "nextest-rerun-adds.xml", "nextest-rerun-adds.xml"]
+calls = ["", "-E (binary_id(=demo-app) & test(=tests::adds))", "-E (binary_id(=demo-app) & test(=tests::adds))"]
+fails = false
+log = ["warn: flaky: demo-app tests::adds passed 2 of 3 runs: a sighting"]
+written = ["demo-app-tests-adds"]
+
+[base]
+"Cargo.toml" = "[package]\nname = \"demo-app\"\nversion = \"0.1.0\"\n"

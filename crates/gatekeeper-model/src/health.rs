@@ -103,7 +103,8 @@ impl fmt::Display for Ceiling {
 }
 
 /// A day in UTC, `2026-11-25`.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(try_from = "String", into = "String")]
 pub struct Date {
     days: i64,
 }
@@ -141,6 +142,29 @@ impl Date {
         Date {
             days: era * 146_097 + doe - 719_468,
         }
+    }
+}
+
+impl Date {
+    #[must_use]
+    pub fn plus(self, days: i64) -> Date {
+        Date {
+            days: self.days + days,
+        }
+    }
+}
+
+impl TryFrom<String> for Date {
+    type Error = String;
+
+    fn try_from(s: String) -> Result<Date, String> {
+        s.parse()
+    }
+}
+
+impl From<Date> for String {
+    fn from(d: Date) -> String {
+        d.to_string()
     }
 }
 
@@ -231,6 +255,36 @@ pub struct Health {
     #[serde(default)]
     pub coverage: Vec<Covered>,
     pub legs: BTreeMap<String, Millis>,
+}
+
+/// `ci/tests/flaky.d/<slug>.toml`: a test seen flaky on the integration branch, quarantined from `since`.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Flaky {
+    pub test: TestId,
+    pub since: Date,
+    pub sha: String,
+    pub issue: Option<u32>,
+}
+
+impl Flaky {
+    pub const QUARANTINE_DAYS: i64 = 7;
+
+    /// The last day its failures are warnings.
+    #[must_use]
+    pub fn until(&self) -> Date {
+        self.since.plus(Self::QUARANTINE_DAYS - 1)
+    }
+}
+
+/// What an integration run saw: a test that failed, then passed on a rerun at one sha.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Sighting {
+    pub test: TestId,
+    pub sha: String,
+    pub on: Date,
+    pub gate: GateId,
+    pub passed_on_rerun: u8,
 }
 
 /// `[timed]`: the gate's line runs tests and leaves a `JUnit` file.

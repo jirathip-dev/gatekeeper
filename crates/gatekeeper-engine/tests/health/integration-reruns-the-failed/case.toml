@@ -1,0 +1,7 @@
+about = "a push to the integration branch reruns the failed tests; a sighting is a warning, any test over budget too"
+runner = "nextest"
+trigger = "integration"
+runs = ["nextest.xml", "nextest-rerun-fixed.xml", "nextest-rerun-fixed.xml"]
+rerun = ["demo-app tests::fails_on_purpose"]
+only = "-E '(binary_id(=demo-app) & test(=tests::fails_on_purpose))'"
+warnings = ["warn: flaky: demo-app tests::fails_on_purpose passed 2 of 3 runs: a sighting", "warn: over 2 s: demo-app board::tests::renders_slowly took 2.5 s at its fastest of 1"]

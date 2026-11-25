@@ -1,27 +1,31 @@
+use super::flaky::quarantined;
 use super::rerun::under;
-use gatekeeper_model::{Case, Changed, Ended, Millis, RunKind, Secs, TestId};
+use gatekeeper_model::{Case, Changed, Date, Ended, Flaky, Millis, RunKind, Secs, TestId};
 use std::collections::{BTreeMap, BTreeSet};
 
 /// A slow-list line: the gate's baseline file lists each test over budget this way.
 pub const SLOW: &str = "over budget: ";
 
-/// What a timed gate's verdict reads: its runs, the changed test code, its slow list, the budget.
+/// What a timed gate's verdict reads: its runs, the changed test code, its slow and flaky lists, the budget, the day.
 pub struct Evidence<'a> {
     pub runs: &'a [Vec<Case>],
     pub changed: &'a BTreeSet<Changed>,
     pub slow: &'a BTreeSet<TestId>,
+    pub flaky: &'a [Flaky],
     pub budget: Secs,
     pub kind: RunKind,
     pub root: &'a str,
+    pub today: Date,
 }
 
-/// A timed gate's verdict: findings fail it; `kept` are the listed tests still slow, the rest are stale.
+/// A timed gate's verdict: findings fail it; `kept` are the listed tests still slow, the rest are stale; `sighted` failed, then passed this many reruns on the integration branch.
 #[derive(Debug, Default)]
 pub struct Verdict {
     pub summary: String,
     pub findings: Vec<String>,
     pub warnings: Vec<String>,
     pub kept: BTreeSet<TestId>,
+    pub sighted: Vec<(TestId, u8)>,
 }
 
 fn matches(changed: &Changed, case: &Case, root: &str) -> bool {
@@ -54,11 +58,11 @@ fn secs(t: Millis) -> String {
     format!("{}.{} s", t.0 / 1000, t.0 % 1000 / 100)
 }
 
-/// The tests to run twice more: changed ones, and those over budget that are not on the slow list.
+/// The tests to run twice more: on the integration branch the failed ones; else changed ones, and those over budget that are not on the slow list.
 #[must_use]
 pub fn rerun_set<'a>(first: &'a [Case], e: &Evidence) -> Vec<&'a Case> {
     if e.kind == RunKind::Integration {
-        return Vec::new();
+        return first.iter().filter(|c| c.ended == Ended::Failed).collect();
     }
     let ran = first.iter().filter(|c| c.ended != Ended::Skipped);
     let again =
@@ -70,13 +74,27 @@ fn judged(case: &Case, runs: &[&Case], e: &Evidence, out: &mut Verdict) {
     let id = case.id();
     let n = runs.len();
     let passed = runs.iter().filter(|c| c.ended == Ended::Passed).count();
-    match passed {
-        0 if n > 1 => out.findings.push(format!("failed: {id} in all {n} runs")),
-        0 => out.findings.push(format!("failed: {id}")),
-        p if p < n => out
-            .findings
-            .push(format!("flaky: {id} passed {p} of {n} runs")),
-        _ => {}
+    let line = match passed {
+        0 if n > 1 => Some(format!("failed: {id} in all {n} runs")),
+        0 => Some(format!("failed: {id}")),
+        p if p < n => Some(format!("flaky: {id} passed {p} of {n} runs")),
+        _ => None,
+    };
+    let held = quarantined(e.flaky, &id, e.today);
+    match (line, held) {
+        (None, _) => {}
+        (Some(line), Some(f)) => out.warnings.push(format!(
+            "warn: quarantined until {} ({}): {line}",
+            f.until(),
+            f.issue
+                .map_or_else(|| "no issue".to_owned(), |i| format!("#{i}"))
+        )),
+        (Some(line), None) if passed > 0 && e.kind == RunKind::Integration => {
+            out.warnings.push(format!("warn: {line}: a sighting"));
+            out.sighted
+                .push((id.clone(), u8::try_from(passed).unwrap_or(u8::MAX)));
+        }
+        (Some(line), None) => out.findings.push(line),
     }
     let fastest = runs.iter().map(|c| c.took).min().unwrap_or_default();
     let (listed, changed) = (e.slow.contains(&id), is_changed(case, e));
