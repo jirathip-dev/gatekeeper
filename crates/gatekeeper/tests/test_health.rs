@@ -112,3 +112,48 @@ fn a_zero_budget_or_a_soak_glob_outside_tests_is_a_config_error() {
         assert!(out.contains(want), "{out}");
     }
 }
+
+#[test]
+fn baseline_lists_the_sleeps_then_only_shrinks() {
+    const HIT: &str = concat!("thread::", "sleep(");
+    let root = repo("test-sleeps-baseline", CONFIG);
+    let sleep = format!("    std::{HIT}std::time::Duration::ZERO);\n");
+    let wait = |n: usize| format!("#[test]\nfn w() {{\n{}}}\n", sleep.repeat(n));
+    let check = ["check", "--gate", "core/test-sleeps"];
+    let baseline = ["baseline", "core/test-sleeps"];
+    let listed =
+        |root: &Path| fs::read_to_string(root.join(".gatekeeper/baseline/core-test-sleeps.txt"));
+    write(&root, "tests/w.rs", &wait(2));
+    run(&root, "git", &["add", "-A"]);
+    let (code, out) = gk(&root, &check);
+    assert_eq!(code, 1, "{out}");
+    assert!(out.contains(&format!("tests/w.rs: {HIT} #2")), "{out}");
+    let (code, out) = gk(&root, &baseline);
+    assert_eq!(code, 0, "{out}");
+    let two = format!("tests/w.rs: {HIT} #1\ntests/w.rs: {HIT} #2\n");
+    assert_eq!(listed(&root).expect("list"), two);
+    run(&root, "git", &["add", "-A"]);
+    let (code, out) = gk(&root, &check);
+    assert_eq!(code, 0, "{out}");
+    write(&root, "tests/w.rs", &wait(3));
+    let (code, out) = gk(&root, &baseline);
+    assert_eq!(code, 1, "{out}");
+    assert!(
+        out.contains(&format!("new   tests/w.rs: {HIT} #3")),
+        "{out}"
+    );
+    assert_eq!(listed(&root).expect("list"), two);
+    write(&root, "tests/w.rs", &wait(1));
+    let (code, out) = gk(&root, &check);
+    assert_eq!(code, 1, "{out}");
+    assert!(out.contains("stale: shrink the baseline"), "{out}");
+    let (code, out) = gk(&root, &baseline);
+    assert_eq!(code, 0, "{out}");
+    assert_eq!(
+        listed(&root).expect("list"),
+        format!("tests/w.rs: {HIT} #1\n")
+    );
+    run(&root, "git", &["add", "-A"]);
+    let (code, out) = gk(&root, &check);
+    assert_eq!(code, 0, "{out}");
+}
