@@ -1,6 +1,7 @@
 use super::RunCtx;
 use super::line::{Vars, expand, filled};
 use crate::baseline::{self, Baseline};
+use crate::health::{self, timed};
 use crate::runner::{self, Ended};
 use crate::select::Picked;
 use crate::{Error, Result, fetch, kept};
@@ -99,27 +100,34 @@ pub(crate) fn gate(
     vars.extend([
         ("{shard}", shard.to_string()),
         ("{projects}", projects.join(" ")),
+        ("{only}", String::new()),
     ]);
     let at = (gate, &vars, picked.map_or(&[][..], |p| &p.files[..]));
     let summary = picked.map_or_else(OnceCell::new, |p| OnceCell::from(p.note.clone()));
-    let result = here(gate, cx, &mut log)
-        .and_then(|()| {
-            let mut steps = gate.steps.iter();
-            steps.try_for_each(|s| step(s, at, cx, &mut log, deadline, &mut listed, &summary))
-        })
-        .and_then(|()| {
-            let mut stale = listed.stale().peekable();
-            let none = stale.peek().is_none();
-            for line in stale {
-                writeln!(
-                    log,
-                    "stale: shrink the baseline (./.gatekeeper/run baseline {}): {line}",
-                    gate.id
-                )
-                .ok();
-            }
-            if none { Ok(()) } else { Err(Failure::Exit(1)) }
-        });
+    let steps = here(gate, cx, &mut log).and_then(|()| {
+        let mut steps = gate.steps.iter();
+        steps.try_for_each(|s| step(s, at, cx, &mut log, deadline, &mut listed, &summary))
+    });
+    let run = timed::Run {
+        gate,
+        cx,
+        vars: &vars,
+        start,
+        deadline,
+    };
+    let result = health::after(steps, &run, (&mut log, &mut listed, &summary)).and_then(|()| {
+        let mut stale = listed.stale().peekable();
+        let none = stale.peek().is_none();
+        for line in stale {
+            writeln!(
+                log,
+                "stale: shrink the baseline (./.gatekeeper/run baseline {}): {line}",
+                gate.id
+            )
+            .ok();
+        }
+        if none { Ok(()) } else { Err(Failure::Exit(1)) }
+    });
     let took = start.elapsed().into();
     let mut report = GateReport::unrun(gate, judge(result, took, gate.budget, cx.host));
     report.took = took;

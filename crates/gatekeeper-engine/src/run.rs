@@ -12,8 +12,8 @@ mod line;
 
 pub use cx::{CheckCx, RunCtx, default_base, out_dir, platform};
 pub(crate) use gate::gate;
-pub(crate) use line::Vars;
 pub use line::script;
+pub(crate) use line::{Vars, filled};
 
 fn after_passed(job: &Job, done: &[JobReport], cx: &RunCtx) -> Result<bool> {
     let Some(after) = &job.after else {

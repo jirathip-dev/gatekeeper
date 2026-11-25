@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="nextest-run" tests="4" skipped="0" failures="1" errors="0" uuid="4e2c3ffe-540e-4f3a-a17a-b44ad8ce3eaa" timestamp="2026-11-25T20:07:16.728+07:00" time="2.564">
+    <testsuite name="demo-app" tests="3" skipped="0" errors="0" failures="1">
+        <testcase name="tests::adds" classname="demo-app" timestamp="2026-11-25T20:07:16.730+07:00" time="0.036"/>
+        <testcase name="tests::fails_on_purpose" classname="demo-app" timestamp="2026-11-25T20:07:16.730+07:00" time="0.038">
+            <failure message="thread &apos;tests::fails_on_purpose&apos; (1361084945) panicked at src/lib.rs:9:29" type="test failure with exit code 101">thread &apos;tests::fails_on_purpose&apos; (1361084945) panicked at src/lib.rs:9:29:
+assertion `left == right` failed: a &lt;wrong&gt; &amp; &quot;sum&quot;
+  left: 3
+ right: 4
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace</failure>
+            <system-out>
+running 1 test
+test tests::fails_on_purpose ... FAILED
+
+failures:
+
+failures:
+    tests::fails_on_purpose
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+</system-out>
+            <system-err>
+thread &apos;tests::fails_on_purpose&apos; (1361084945) panicked at src/lib.rs:9:29:
+assertion `left == right` failed: a &lt;wrong&gt; &amp; &quot;sum&quot;
+  left: 3
+ right: 4
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+</system-err>
+        </testcase>
+        <testcase name="board::tests::renders_slowly" classname="demo-app" timestamp="2026-11-25T20:07:16.730+07:00" time="2.563"/>
+    </testsuite>
+    <testsuite name="demo-app::link" tests="1" skipped="0" errors="0" failures="0">
+        <testcase name="reconnects_once" classname="demo-app::link" timestamp="2026-11-25T20:07:16.730+07:00" time="0.090"/>
+    </testsuite>
+</testsuites>

@@ -39,7 +39,7 @@ pub fn script(root: &Path, pack: PackId, script: &str, args: &[String]) -> Resul
     runner::attached("node", &all, root)
 }
 
-pub(super) fn filled(run: &str, gate: &Gate, vars: &Vars, cx: &RunCtx) -> Result<String> {
+pub(crate) fn filled(run: &str, gate: &Gate, vars: &Vars, cx: &RunCtx) -> Result<String> {
     let mut line = run.to_owned();
     for (var, value) in vars {
         line = line.replace(var, value);

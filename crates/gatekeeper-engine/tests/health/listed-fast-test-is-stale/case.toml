@@ -1,0 +1,10 @@
+about = "a listed test that ran in under half the budget is stale"
+runner = "nextest"
+trigger = "pull-request"
+runs = ["nextest.xml"]
+slow = ["demo-app tests::adds", "demo-app board::tests::renders_slowly"]
+rerun = []
+only = ""
+findings = ["failed: demo-app tests::fails_on_purpose"]
+warnings = ["warn: over 2 s, listed: demo-app board::tests::renders_slowly 2.5 s"]
+stale = ["demo-app tests::adds"]
