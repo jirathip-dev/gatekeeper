@@ -97,3 +97,13 @@ every active check in .drover/rules.md passes, each rule names its enforcer, and
 - cached: yes
 - rerun: `./.gatekeeper/run check --gate core/rules`
 - what a failure looks like: [core-rules](../examples/core-rules.md)
+
+## core/test-health
+
+the test-to-src line ratio under the lowest ceiling in ci/tests/ratio.d, a ceiling that only falls
+
+- fix: delete tests or test code; a ratio a whole step under its ceiling turns the ratchet: ./.gatekeeper/run baseline core/test-health adds a lower file. A ceiling file is never edited or deleted
+- budget: 5s
+- cached: no, cache = false
+- rerun: `./.gatekeeper/run check --gate core/test-health`
+- what a failure looks like: [core-test-health](../examples/core-test-health.md)

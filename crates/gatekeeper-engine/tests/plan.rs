@@ -69,7 +69,7 @@ fn run_case(case: &Path) {
         .collect();
     assert_eq!(jobs, expect.jobs, "{name}");
     if let Some(done) = &expect.done {
-        let (_, problems) = ci::done(&plan, &case.join("reports"), None).expect("done");
+        let (_, problems) = ci::done(&plan, &case.join("reports"), (None, None)).expect("done");
         assert_eq!(problems.len(), done.len(), "{name}: {problems:?}");
         for (got, want) in problems.iter().zip(done) {
             assert!(got.starts_with(want.as_str()), "{name}: {got}");

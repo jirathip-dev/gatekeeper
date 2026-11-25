@@ -1,0 +1,6 @@
+packs = ["core"]
+integration = "main"
+pin = "checkout"
+
+[tests]
+src = ["crates/low/tests/**"]

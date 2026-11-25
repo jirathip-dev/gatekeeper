@@ -1,8 +1,8 @@
 use gatekeeper_engine::Error;
 use gatekeeper_engine::cache::{self, Ident, Results};
 use gatekeeper_model::{
-    CacheMode, Config, Event, Filter, GateId, Host, Off, PackId, PrivateNames, RepoRun, RunRef,
-    Shard, Trigger,
+    CacheMode, Config, Date, Event, Filter, GateId, Host, Off, PackId, PrivateNames, RepoRun,
+    RunRef, Shard, Trigger,
 };
 use std::env;
 use std::io::Write as _;
@@ -115,6 +115,16 @@ pub fn private_names() -> Option<PrivateNames> {
 /// `GATEKEEPER_HEAD`: the PR's head sha; `None` when unset or empty.
 pub fn head() -> Option<String> {
     Some(var("GATEKEEPER_HEAD").trim().to_owned()).filter(|h| !h.is_empty())
+}
+
+/// `GATEKEEPER_TODAY` when set, else the clock: the day in UTC.
+pub fn today() -> Result<Date, Error> {
+    match var("GATEKEEPER_TODAY").trim() {
+        "" => Ok(Date::utc(SystemTime::now())),
+        given => given
+            .parse()
+            .map_err(|e| Error(format!("GATEKEEPER_TODAY: {e}"))),
+    }
 }
 
 /// The host kind, from the runner's environment: a GitHub-hosted runner, a self-hosted one, or a lane's host.

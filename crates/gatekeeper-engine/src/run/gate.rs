@@ -1,5 +1,5 @@
+use super::RunCtx;
 use super::line::{Vars, expand, filled};
-use super::{CheckCx, RunCtx};
 use crate::baseline::{self, Baseline};
 use crate::runner::{self, Ended};
 use crate::select::Picked;
@@ -56,23 +56,8 @@ fn step(
         },
         Step::Check { check } => {
             writeln!(log, "$ check {check}").ok();
-            let cx = CheckCx {
-                root: &cx.root,
-                scratch: &cx.out.join("check").join(check),
-                cache: &cx.cache,
-                rust: &cx.rust,
-                ts: cx.ts.as_ref(),
-                swift: cx.swift.as_ref(),
-                docs: &cx.docs,
-                tools: &cx.tools,
-                base: cx.base.as_deref(),
-                names: cx.names.as_ref(),
-                head: cx.head.as_deref(),
-                pr_body: cx.pr_body.as_deref(),
-                integration: &cx.integration,
-                note,
-            };
-            let findings = listed.unlisted(baseline::findings(check, &cx));
+            let scratch = cx.out.join("check").join(check);
+            let findings = listed.unlisted(baseline::findings(check, &cx.check(&scratch, note)));
             for line in note.get().into_iter().chain(&findings) {
                 writeln!(log, "{line}").ok();
             }

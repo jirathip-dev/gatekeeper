@@ -1,6 +1,6 @@
 use crate::run::{self, CheckCx};
 use crate::{Error, Result, check, config};
-use gatekeeper_model::{Config, Gate, GateId, Step};
+use gatekeeper_model::{Config, Date, Gate, GateId, Step};
 use std::cell::OnceCell;
 use std::collections::BTreeSet;
 use std::fs;
@@ -66,6 +66,8 @@ pub struct Written {
     pub path: PathBuf,
     pub lines: usize,
     pub unlisted: Vec<String>,
+    /// What a writer says instead of the count of its lines.
+    pub note: Option<String>,
 }
 
 fn check_steps(gate: &Gate) -> Vec<&String> {
@@ -76,18 +78,12 @@ fn check_steps(gate: &Gate) -> Vec<&String> {
     checks.collect()
 }
 
-/// # Errors
-pub fn write(gate: &Gate, root: &Path, cache: &Path, config: &Config) -> Result<Written> {
-    let checks = check_steps(gate);
-    if checks == ["arch"] {
-        return crate::arch::baseline::write(root);
-    }
-    if checks.is_empty() {
-        return Err(Error(format!(
-            "{}: no check step, so no findings to list",
-            gate.id
-        )));
-    }
+fn now(
+    checks: Vec<&String>,
+    root: &Path,
+    cache: &Path,
+    (config, today): (&Config, Date),
+) -> BTreeSet<String> {
     let out = run::out_dir(root);
     let mut now = BTreeSet::new();
     for name in checks {
@@ -109,9 +105,36 @@ pub fn write(gate: &Gate, root: &Path, cache: &Path, config: &Config) -> Result<
                 pr_body: None,
                 integration: &config.integration,
                 note: &OnceCell::new(),
+                tests: &config.tests,
+                today,
             },
         ));
     }
+    now
+}
+
+/// # Errors
+pub fn write(
+    gate: &Gate,
+    root: &Path,
+    cache: &Path,
+    (config, today): (&Config, Date),
+) -> Result<Written> {
+    let checks = check_steps(gate);
+    if checks == ["arch"] {
+        return crate::arch::baseline::write(root);
+    }
+    if checks == ["test-health"] {
+        let lines = check::test_health::lines(root, &config.tests)?;
+        return crate::health::ratchet::write(root, today, lines);
+    }
+    if checks.is_empty() {
+        return Err(Error(format!(
+            "{}: no check step, so no findings to list",
+            gate.id
+        )));
+    }
+    let now = now(checks, root, cache, (config, today));
     let path = path(root, &gate.id);
     let (keep, unlisted): (BTreeSet<String>, Vec<String>) = match read(&path)? {
         None => (now, Vec::new()),
@@ -135,5 +158,6 @@ pub fn write(gate: &Gate, root: &Path, cache: &Path, config: &Config) -> Result<
         path,
         lines: keep.len(),
         unlisted,
+        note: None,
     })
 }

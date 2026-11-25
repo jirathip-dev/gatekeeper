@@ -1,0 +1,1 @@
+ci/tests/ratio.d/2026-11-26-125.toml: ceiling 1.25 is not under the base's ceiling 1.20

@@ -1,6 +1,8 @@
 use crate::cache::Results;
 use crate::{Error, Result, fetch, runner};
-use gatekeeper_model::{DocsConfig, Host, Platform, PrivateNames, RustPack, SwiftPack, TsPack};
+use gatekeeper_model::{
+    Date, DocsConfig, Host, Platform, PrivateNames, RustPack, SwiftPack, TestsConfig, TsPack,
+};
 use std::cell::OnceCell;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -22,6 +24,8 @@ pub struct CheckCx<'a> {
     pub pr_body: Option<&'a Path>,
     pub integration: &'a str,
     pub note: &'a OnceCell<String>,
+    pub tests: &'a TestsConfig,
+    pub today: Date,
 }
 
 impl CheckCx<'_> {
@@ -76,9 +80,35 @@ pub struct RunCtx {
     pub env: Vec<(String, String)>,
     /// `--timings`: the recorded times a sharded `[select]` gate splits by, one `<gate>.json` each.
     pub timings: Option<PathBuf>,
+    pub tests: TestsConfig,
+    /// `GATEKEEPER_TODAY` or the clock, in UTC, read once by the cli; a fixture case's from its `env`.
+    pub today: Date,
 }
 
 impl RunCtx {
+    /// What a built-in check of this run reads.
+    #[must_use]
+    pub fn check<'a>(&'a self, scratch: &'a Path, note: &'a OnceCell<String>) -> CheckCx<'a> {
+        CheckCx {
+            root: &self.root,
+            scratch,
+            cache: &self.cache,
+            rust: &self.rust,
+            ts: self.ts.as_ref(),
+            swift: self.swift.as_ref(),
+            docs: &self.docs,
+            tools: &self.tools,
+            base: self.base.as_deref(),
+            names: self.names.as_ref(),
+            head: self.head.as_deref(),
+            pr_body: self.pr_body.as_deref(),
+            integration: &self.integration,
+            note,
+            tests: &self.tests,
+            today: self.today,
+        }
+    }
+
     /// A lane's plain run of the repo at `root`: no base, no result cache, this host's platform.
     #[must_use]
     pub fn lane(root: &Path, cache: &Path) -> RunCtx {
@@ -103,6 +133,8 @@ impl RunCtx {
             platform: platform(),
             env: Vec::new(),
             timings: None,
+            tests: TestsConfig::default(),
+            today: Date::utc(SystemTime::now()),
         }
     }
 }
