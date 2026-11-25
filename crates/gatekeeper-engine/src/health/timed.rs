@@ -1,11 +1,12 @@
 use super::judge::{self, Evidence, SLOW};
-use super::{junit, rerun, spans};
+use super::{flaky, junit, rerun, spans};
 use crate::baseline::Baseline;
 use crate::run::{RunCtx, Vars, filled};
 use crate::runner::{self, Ended as Exit};
 use crate::{Error, Result, config};
-use gatekeeper_model::{Case, Changed, Ended, Failure, Gate, Host, RunKind, Step, TestId, Timed};
-use std::cell::OnceCell;
+use gatekeeper_model::{
+    Case, Changed, Ended, Failure, Gate, Host, RunKind, Sighting, Step, TestId, Timed,
+};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{self, File};
 use std::io::Write as _;
@@ -108,11 +109,25 @@ fn listed(listed: &Baseline) -> BTreeSet<TestId> {
     slow.map(|t| TestId(t.to_owned())).collect()
 }
 
+fn sightings(seen: Vec<(TestId, u8)>, at: &Run) -> Vec<Sighting> {
+    let head = at.cx.head.clone();
+    let sha = head.or_else(|| runner::ok("git", &["rev-parse", "HEAD"], &at.cx.root).ok());
+    let sha = sha.unwrap_or_default().trim().to_owned();
+    let each = seen.into_iter().map(|(test, passed_on_rerun)| Sighting {
+        test,
+        sha: sha.clone(),
+        on: at.cx.today,
+        gate: at.gate.id.clone(),
+        passed_on_rerun,
+    });
+    each.collect()
+}
+
 pub(crate) fn run(
     timed: &Timed,
     steps: std::result::Result<(), Failure>,
     at: &Run,
-    (log, slow, note): (&mut File, &mut Baseline, &OnceCell<String>),
+    (log, slow, note, sighted): super::Out,
 ) -> std::result::Result<(), Failure> {
     let since = SystemTime::now()
         .checked_sub(at.start.elapsed())
@@ -132,13 +147,16 @@ pub(crate) fn run(
         BTreeSet::new()
     });
     let listed = listed(slow);
+    let entries = flaky::entries(&at.cx.root);
     let e = Evidence {
         runs: &[],
         changed: &changed,
         slow: &listed,
+        flaky: &entries,
         budget: at.cx.tests.budget_secs,
         kind: kind(at.cx),
         root: &timed.root,
+        today: at.cx.today,
     };
     let tests = judge::rerun_set(&first, &e);
     let mut runs = vec![first.clone()];
@@ -155,6 +173,7 @@ pub(crate) fn run(
         writeln!(log, "{line}").ok();
     }
     note.set(verdict.summary).ok();
+    sighted.set(sightings(verdict.sighted, at)).ok();
     if verdict.findings.is_empty() {
         Ok(())
     } else {

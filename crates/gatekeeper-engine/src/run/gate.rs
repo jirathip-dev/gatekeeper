@@ -115,7 +115,9 @@ pub(crate) fn gate(
         start,
         deadline,
     };
-    let result = health::after(steps, &run, (&mut log, &mut listed, &summary)).and_then(|()| {
+    let sighted = OnceCell::new();
+    let out = (&mut log, &mut listed, &summary, &sighted);
+    let result = health::after(steps, &run, out).and_then(|()| {
         let mut stale = listed.stale().peekable();
         let none = stale.peek().is_none();
         for line in stale {
@@ -139,5 +141,6 @@ pub(crate) fn gate(
     report.kept = kept::collect(gate, &cx.root, &cx.out)?;
     report.projects = projects.to_vec();
     report.note = summary.into_inner();
+    report.flaky = sighted.into_inner().unwrap_or_default();
     Ok(report)
 }

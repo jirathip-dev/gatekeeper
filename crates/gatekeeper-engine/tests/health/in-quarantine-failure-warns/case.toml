@@ -1,0 +1,15 @@
+about = "on day 7 of its quarantine a test's failure is a warning; the pull request's other findings stand"
+runner = "nextest"
+trigger = "pull-request"
+runs = ["nextest.xml", "nextest-rerun-slow.xml", "nextest-rerun-slow.xml"]
+today = "2026-11-26"
+rerun = ["demo-app board::tests::renders_slowly"]
+only = "-E '(binary_id(=demo-app) & test(=board::tests::renders_slowly))'"
+findings = ["over 2 s: demo-app board::tests::renders_slowly took 2.5 s at its fastest of 3"]
+warnings = ["warn: quarantined until 2026-11-26 (#42): failed: demo-app tests::fails_on_purpose"]
+
+[[flaky]]
+test = "demo-app tests::fails_on_purpose"
+since = "2026-11-20"
+sha = "b2e8033"
+issue = 42
