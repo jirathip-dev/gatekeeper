@@ -430,8 +430,8 @@ fn cargo_lock(sourced: usize) -> String {
     })
 }
 
-fn grown_deps_repo() -> (PathBuf, String) {
-    let root = repo("deps", CONFIG, &[("deps", DEPS)]);
+fn grown_deps_repo(name: &str) -> (PathBuf, String) {
+    let root = repo(name, CONFIG, &[("deps", DEPS)]);
     fs::write(
         root.join("Cargo.toml"),
         "[package]\nname = \"app\"\nversion = \"0.1.0\"\n\n[dependencies]\np0 = \"1\"\n",
@@ -456,7 +456,7 @@ fn grown_deps_repo() -> (PathBuf, String) {
 #[test]
 fn deps_fails_lockfile_growth_alike_on_a_lane_and_in_ci_checks_only_the_list_on_a_push_and_notes_the_count()
  {
-    let (root, base) = grown_deps_repo();
+    let (root, base) = grown_deps_repo("deps");
     let ci = [("GITHUB_ACTIONS", "true")];
     let (lane_code, lane) = gk(&root, &["check"], &[]);
     let (ci_code, in_ci) = gk(&root, &["check", "--base", &base], &ci);
@@ -500,6 +500,26 @@ fn deps_fails_lockfile_growth_alike_on_a_lane_and_in_ci_checks_only_the_list_on_
     let (code, push) = gk(&root, &["check"], &ci);
     assert_eq!(code, 1, "{push}");
     assert!(push.contains("[cargo] p0: stale"), "{push}");
+}
+
+#[test]
+fn deps_passes_a_release_pr_of_growth_already_on_the_integration_branch_and_still_fails_a_feature_pr()
+ {
+    let (root, main) = grown_deps_repo("deps-release");
+    git(&root, &["update-ref", "refs/remotes/origin/main", &main]);
+    let staging = git(&root, &["rev-parse", "HEAD"]);
+    git(&root, &["update-ref", "refs/remotes/origin/staging", &staging]);
+    let ci = [("GITHUB_ACTIONS", "true")];
+    let (code, release) = gk(&root, &["check", "--base", "origin/main"], &ci);
+    assert_eq!(code, 0, "{release}");
+    fs::write(root.join("Cargo.lock"), cargo_lock(24)).expect("feature");
+    git(&root, &["commit", "-q", "-am", "add a dependency"]);
+    let (code, feature) = gk(&root, &["check", "--base", "origin/staging"], &ci);
+    assert_eq!(code, 1, "{feature}");
+    assert!(
+        feature.contains("lockfiles grew by 12 packages, over the limit of 10"),
+        "{feature}"
+    );
 }
 
 fn pinned_sha256(tool: &str, target: &str) -> String {
