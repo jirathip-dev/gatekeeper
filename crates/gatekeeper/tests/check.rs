@@ -366,6 +366,7 @@ fn a_baseline_passes_listed_findings_fails_new_and_stale_ones_and_only_shrinks()
     );
     let (code, out) = gk(&root, &["check"], &[]);
     assert_eq!(code, 0, "{out}");
+    assert!(out.contains("2 listed"), "{out}");
 
     let fixed = DENY.replace("wildcards = \"allow\"", "wildcards = \"deny\"");
     fs::write(&deny, format!("{fixed}[licenses]\nallow = [\"WTFPL\"]\n")).expect("deny");

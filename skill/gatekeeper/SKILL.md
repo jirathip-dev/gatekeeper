@@ -46,6 +46,7 @@ A gate's `run` line names one as `{tool:<name>}`: gatekeeper fetches it by versi
 - `libde265` 1.0.16, built by gatekeeper for x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu, aarch64-apple-darwin (`lib/pkgconfig/libde265.pc`)
 - `sqlx-cli` 0.8.6, built by gatekeeper for x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu, aarch64-apple-darwin (`bin/sqlx`)
 - `cargo-deny` 0.22.0
+- `cargo-machete` 0.10.1
 - `cargo-nextest` 0.9.152
 - `supabase` 3.2.0
 - `anti-slop-swift` 1.0.0, built by gatekeeper for aarch64-apple-darwin (`bin/anti-slop`)

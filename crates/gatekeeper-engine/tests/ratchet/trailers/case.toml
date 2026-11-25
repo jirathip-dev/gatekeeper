@@ -1,0 +1,12 @@
+about = "Cap: and Ratchet: trailers; a malformed line or another word is no trailer"
+word = "Ratchet"
+bodies = """
+dead code: list a finding
+
+Ratchet: rust/dead-code 3 → 4 (#5, q7)
+Ratchet: surface-flag 212 → 213 (#1790, q3511)
+Ratchet: two words 1 → 2 (#5, q7)
+Ratchet: rust/dead-code x → 4 (#5, q7)
+Cap: 100 → 200 (#5, q7)
+"""
+out = ["rust/dead-code 3 → 4 (#5, q7)", "surface-flag 212 → 213 (#1790, q3511)"]

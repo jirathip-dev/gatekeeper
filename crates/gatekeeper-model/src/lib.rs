@@ -201,6 +201,7 @@ pub struct ReleasePin {
 pub struct RustPack {
     pub manifest: String,
     pub unsafe_crates: Vec<String>,
+    pub exported: Excuses,
 }
 
 impl Default for RustPack {
@@ -208,6 +209,7 @@ impl Default for RustPack {
         RustPack {
             manifest: "Cargo.toml".into(),
             unsafe_crates: Vec::new(),
+            exported: Excuses::default(),
         }
     }
 }
