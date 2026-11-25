@@ -15,7 +15,7 @@ pub fn files(again: &[&Case], root: &str) -> Vec<String> {
     files.into_iter().collect()
 }
 
-/// A JUnit `classname` of vitest as a repo path: it is relative to `[timed] root`.
+/// A `JUnit` `classname` of vitest as a repo path: it is relative to `[timed] root`.
 #[must_use]
 pub fn under(root: &str, class: &str) -> String {
     match root.trim_end_matches('/') {

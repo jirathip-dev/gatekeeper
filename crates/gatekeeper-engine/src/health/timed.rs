@@ -66,7 +66,10 @@ fn changed(cx: &RunCtx) -> Result<BTreeSet<Changed>> {
         if let Ok(text) = fs::read_to_string(cx.root.join(path)) {
             texts.insert(path.clone(), text);
         }
-        krates.extend(package(&cx.root, path).filter(|_| path.ends_with(".rs")));
+        krates.extend(
+            package(&cx.root, path)
+                .filter(|_| path.rsplit_once('.').is_some_and(|(_, x)| x == "rs")),
+        );
     }
     Ok(spans::changed(&touched, &texts, &krates, &cx.tests))
 }

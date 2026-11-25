@@ -172,7 +172,7 @@ pub struct Health {
     pub legs: BTreeMap<String, Millis>,
 }
 
-/// `[timed]`: the gate's line runs tests and leaves a JUnit file.
+/// `[timed]`: the gate's line runs tests and leaves a `JUnit` file.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Timed {
@@ -193,7 +193,7 @@ pub enum Runner {
     Vitest,
 }
 
-/// `<classname> <name>` as the JUnit file gives them.
+/// `<classname> <name>` as the `JUnit` file gives them.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct TestId(pub String);
@@ -204,7 +204,7 @@ impl fmt::Display for TestId {
     }
 }
 
-/// One `testcase` of a JUnit file.
+/// One `testcase` of a `JUnit` file.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Case {
     pub class: String,

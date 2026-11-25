@@ -45,6 +45,7 @@ fn is_changed(case: &Case, e: &Evidence) -> bool {
     e.changed.iter().any(|c| matches(c, case, e.root))
 }
 
+#[must_use]
 pub fn over(took: Millis, budget: Secs) -> bool {
     took.0 > u64::from(budget.0) * 1000
 }

@@ -164,16 +164,17 @@ pub fn changed(
     touched: &BTreeMap<String, BTreeSet<u32>>,
     texts: &BTreeMap<String, String>,
     krates: &BTreeMap<String, String>,
-    tests: &TestsConfig,
+    config: &TestsConfig,
 ) -> BTreeSet<Changed> {
     let mut out = BTreeSet::new();
     for (path, lines) in touched {
-        let (Some(side), Some(text)) = (count::side(path, tests), texts.get(path)) else {
+        let (Some(side), Some(text)) = (count::side(path, config), texts.get(path)) else {
             continue;
         };
-        if path.ends_with(".rs") {
+        let ext = path.rsplit_once('.').map(|(_, x)| x);
+        if ext == Some("rs") {
             out.extend(rust(path, text, lines, side, krates));
-        } else if matches!(side, Side::Test) && !path.ends_with(".swift") {
+        } else if matches!(side, Side::Test) && ext != Some("swift") {
             out.insert(Changed::TsFile(path.clone()));
         }
     }
