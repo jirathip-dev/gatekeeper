@@ -5,6 +5,7 @@ pub mod cap;
 pub mod deny_floor;
 pub mod deps;
 pub mod docs;
+pub mod duplication;
 pub mod hygiene;
 pub mod knip;
 pub mod lint_floor;
@@ -32,6 +33,7 @@ pub const NAMES: &[&str] = &[
     "deny-floor",
     "deps",
     "docs",
+    "duplication",
     "hygiene",
     "knip",
     "lint-floor",
@@ -58,6 +60,7 @@ pub fn run(name: &str, cx: &CheckCx) -> Result<Vec<String>> {
         "deny-floor" => deny_floor::run(cx),
         "deps" => deps::run(cx),
         "docs" => docs::run(cx),
+        "duplication" => duplication::run(cx),
         "hygiene" => hygiene::run(cx),
         "knip" => knip::run(cx),
         "lint-floor" => lint_floor::run(cx),

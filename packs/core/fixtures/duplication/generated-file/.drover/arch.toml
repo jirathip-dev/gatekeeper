@@ -1,0 +1,29 @@
+frozen = ["list.txt", "new-list.txt"]
+generated = ["gen.txt", "crates/high/src/gen.rs"]
+generate = "sh gen.sh"
+
+[[layer]]
+name = "low"
+paths = ["crates/low/src/**"]
+mods = ["low"]
+may_use = []
+
+[[layer]]
+name = "high"
+paths = ["crates/high/src/**"]
+mods = ["high"]
+may_use = ["low"]
+
+[[ban]]
+pattern = "std::process::exit"
+paths = ["crates/*/src/**"]
+reason = "return an exit code"
+
+[[size]]
+paths = ["crates/*/src/**/*.rs"]
+max_file_lines = 20
+max_fn_lines = 10
+
+[comments]
+policy = "strict"
+except = ["lib/**"]

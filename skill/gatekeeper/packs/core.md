@@ -58,6 +58,16 @@ docs and agent text name real paths, links and names; agent text is generated
 - rerun: `./.gatekeeper/run check --gate core/docs`
 - what a failure looks like: [core-docs](../examples/core-docs.md)
 
+## core/duplication
+
+pinned jscpd 5 with the pack's settings (a clone is 100 tokens and 10 lines): its duplicated lines under the lowest ceiling in ci/ratchet/duplication.d, a ceiling that only falls
+
+- fix: move the copied block into one function both places call; a count a whole step under its ceiling turns the ratchet: ./.gatekeeper/run baseline core/duplication adds a lower file. A ceiling file is never edited or deleted
+- budget: 60s
+- cached: yes
+- rerun: `./.gatekeeper/run check --gate core/duplication`
+- what a failure looks like: [core-duplication](../examples/core-duplication.md)
+
 ## core/hygiene
 
 the tree, the PR's commit messages and its body against the private-names list

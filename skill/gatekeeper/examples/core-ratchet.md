@@ -2,6 +2,38 @@
 
 Each case is one change on the pack's fixture repo. `gatekeeper selftest` runs every case and fails unless the gate fails on it printing the line shown, so these examples cannot go stale.
 
+## ceiling-deleted
+
+Commits with the message:
+
+```
+duplication: drop the ceiling
+```
+
+Removes `ci/ratchet/duplication.d/2026-11-26-0.toml`.
+
+The gate fails and its log prints `ci/ratchet/duplication.d/2026-11-26-0.toml: a ceiling file is never edited or deleted`.
+
+Fix: fix the new finding instead of listing it; a raise is the owner's decision, its commit carries `Ratchet: <pack/gate> <old> → <new> (#issue, q<N>)`. Rerun: `./.gatekeeper/run check --gate core/ratchet`
+
+## ceiling-edited
+
+Writes `ci/ratchet/duplication.d/2026-11-26-0.toml`:
+
+```
+ceiling = 10
+```
+
+Commits with the message:
+
+```
+duplication: raise the ceiling by hand
+```
+
+The gate fails and its log prints `ci/ratchet/duplication.d/2026-11-26-0.toml: a ceiling file is never edited or deleted`.
+
+Fix: fix the new finding instead of listing it; a raise is the owner's decision, its commit carries `Ratchet: <pack/gate> <old> → <new> (#issue, q<N>)`. Rerun: `./.gatekeeper/run check --gate core/ratchet`
+
 ## list-grew
 
 Writes `.gatekeeper/baseline/rust-dead-code.txt`:
@@ -79,6 +111,44 @@ Commits with the message:
 ```
 floor: list a finding
 ```
+
+The gate passes.
+
+## new-file-not-lower
+
+Writes `ci/ratchet/duplication.d/2026-11-27-10.toml`:
+
+```
+ceiling = 10
+```
+
+Commits with the message:
+
+```
+duplication: a higher ceiling beside the old one
+```
+
+The gate fails and its log prints `ci/ratchet/duplication.d/2026-11-27-10.toml: ceiling 10 is not under the base's ceiling 0: a ceiling only falls`.
+
+Fix: fix the new finding instead of listing it; a raise is the owner's decision, its commit carries `Ratchet: <pack/gate> <old> → <new> (#issue, q<N>)`. Rerun: `./.gatekeeper/run check --gate core/ratchet`
+
+## raised-with-trailer
+
+Writes `ci/ratchet/duplication.d/2026-11-27-10.toml`:
+
+```
+ceiling = 10
+```
+
+Commits with the message:
+
+```
+duplication: the owner raised the ceiling
+
+Ratchet: duplication 0 → 10 (#5, q7)
+```
+
+Removes `ci/ratchet/duplication.d/2026-11-26-0.toml`.
 
 The gate passes.
 

@@ -1,5 +1,5 @@
 use crate::run::{self, CheckCx};
-use crate::{Error, Result, check, config};
+use crate::{Error, Result, check, config, ratchet};
 use gatekeeper_model::{Config, Date, Gate, GateId, Step};
 use std::cell::OnceCell;
 use std::collections::BTreeSet;
@@ -82,39 +82,47 @@ fn check_steps(gate: &Gate) -> Vec<&String> {
     checks.collect()
 }
 
-fn now(
-    checks: Vec<&String>,
-    root: &Path,
-    cache: &Path,
+fn with_cx<R>(
+    name: &str,
+    (root, cache): (&Path, &Path),
     (config, today): (&Config, Date),
-) -> BTreeSet<String> {
-    let out = run::out_dir(root);
-    let mut now = BTreeSet::new();
-    for name in checks {
-        let scratch = out.join("check").join(name);
-        now.extend(findings(
-            name,
-            &CheckCx {
-                root,
-                scratch: &scratch,
-                cache,
-                rust: &config.rust,
-                ts: config.ts.as_ref(),
-                swift: config.swift.as_ref(),
-                docs: &config.docs,
-                tools: &config::tools(config, root),
-                base: None,
-                names: None,
-                head: None,
-                pr_body: None,
-                integration: &config.integration,
-                note: &OnceCell::new(),
-                tests: &config.tests,
-                today,
-            },
-        ));
-    }
-    now
+    f: impl FnOnce(&CheckCx) -> R,
+) -> R {
+    let scratch = run::out_dir(root).join("check").join(name);
+    f(&CheckCx {
+        root,
+        scratch: &scratch,
+        cache,
+        rust: &config.rust,
+        ts: config.ts.as_ref(),
+        swift: config.swift.as_ref(),
+        docs: &config.docs,
+        tools: &config::tools(config, root),
+        base: None,
+        names: None,
+        head: None,
+        pr_body: None,
+        integration: &config.integration,
+        note: &OnceCell::new(),
+        tests: &config.tests,
+        today,
+    })
+}
+
+fn now(checks: Vec<&String>, at: (&Path, &Path), config: (&Config, Date)) -> BTreeSet<String> {
+    let each = checks.into_iter();
+    let found = each.flat_map(|name| with_cx(name, at, config, |cx| findings(name, cx)));
+    found.collect()
+}
+
+fn ceiling(root: &Path, cache: &Path, (config, today): (&Config, Date)) -> Result<Written> {
+    let measured = with_cx("duplication", (root, cache), (config, today), |cx| {
+        check::duplication::measure(cx)
+    });
+    let (c, _, _) = measured?;
+    let fits = ratchet::judge::fits(c.n, c.step);
+    let dir = c.name.dir();
+    ratchet::folder::write(root, (&dir, "the count"), today, (fits, fits))
 }
 
 /// # Errors
@@ -132,6 +140,9 @@ pub fn write(
         let lines = check::test_health::lines(root, &config.tests)?;
         return crate::health::ratchet::write(root, today, lines);
     }
+    if checks == ["duplication"] {
+        return ceiling(root, cache, (config, today));
+    }
     let now = match &gate.timed {
         Some(timed) => {
             let mut cx = run::RunCtx::lane(root, cache);
@@ -145,7 +156,7 @@ pub fn write(
                 gate.id
             )));
         }
-        None => now(checks, root, cache, (config, today)),
+        None => now(checks, (root, cache), (config, today)),
     };
     let path = path(root, &gate.id);
     let (keep, unlisted): (BTreeSet<String>, Vec<String>) = match read(&path)? {

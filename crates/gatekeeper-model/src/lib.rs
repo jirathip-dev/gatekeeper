@@ -4,6 +4,7 @@ mod gate;
 mod glob;
 mod health;
 mod names;
+mod ratchet;
 mod report;
 mod scope;
 mod select;
@@ -19,6 +20,7 @@ pub use health::{
     Case, Ceiling, Changed, Date, Ended, Health, Lines, RunKind, Runner, TestId, TestsConfig, Timed,
 };
 pub use names::PrivateNames;
+pub use ratchet::{CountName, Counted, DUPLICATION_IGNORED, DUPLICATION_STEP, DuplicationConfig};
 pub use report::{
     BudgetMode, CacheTotals, Failure, GateReport, Host, JobReport, Kept, Millis, Outcome, Report,
     judge,
@@ -173,6 +175,8 @@ pub struct Config {
     pub docs: DocsConfig,
     #[serde(default)]
     pub tests: TestsConfig,
+    #[serde(default)]
+    pub duplication: DuplicationConfig,
 }
 
 /// Which gatekeeper runs: this checkout's build, or a release by version and per-target sha256.

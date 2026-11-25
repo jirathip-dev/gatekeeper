@@ -1,0 +1,74 @@
+about = "a real jscpd 5.4.3 report of the over-ceiling fixture: one rust clone of 16 lines"
+jscpd = '''
+{
+  "duplicates": [
+    {
+      "firstFile": {
+        "end": 16,
+        "endLoc": {
+          "column": 1,
+          "line": 16,
+          "position": 455
+        },
+        "name": "crates/high/src/copy.rs",
+        "start": 1,
+        "startLoc": {
+          "column": 0,
+          "line": 1,
+          "position": 0
+        }
+      },
+      "format": "rust",
+      "fragment": "pub fn handle(items: &[u32], limit: u32) -> Vec<String> {\n    let mut out = Vec::new();\n    for item in items {\n        if *item > limit {\n            out.push(format!(\"over: {item} > {limit}\"));\n        } else if *item == limit {\n            out.push(format!(\"at: {item} == {limit}\"));\n        } else {\n            let gap = limit - item;\n            out.push(format!(\"under: {item} by {gap}\"));\n        }\n    }\n    out.sort();\n    out.dedup();\n    out\n}",
+      "isNew": false,
+      "kind": "exact",
+      "lines": 16,
+      "secondFile": {
+        "end": 16,
+        "endLoc": {
+          "column": 1,
+          "line": 16,
+          "position": 455
+        },
+        "name": "crates/low/src/copy.rs",
+        "start": 1,
+        "startLoc": {
+          "column": 0,
+          "line": 1,
+          "position": 0
+        }
+      },
+      "tokens": 112
+    }
+  ],
+  "statistics": {
+    "detectionDate": "2026-11-25T20:59:19.791Z",
+    "formats": {
+      "rust": {
+        "clones": 1,
+        "duplicatedLines": 16,
+        "duplicatedTokens": 112,
+        "lines": 57,
+        "newClones": 0,
+        "newDuplicatedLines": 0,
+        "percentage": 28.07017543859649,
+        "percentageTokens": 32.0,
+        "sources": 3,
+        "tokens": 350
+      }
+    },
+    "total": {
+      "clones": 1,
+      "duplicatedLines": 16,
+      "duplicatedTokens": 112,
+      "lines": 57,
+      "newClones": 0,
+      "newDuplicatedLines": 0,
+      "percentage": 28.07017543859649,
+      "percentageTokens": 32.0,
+      "sources": 3,
+      "tokens": 350
+    }
+  }
+}'''
+out = ["16 duplicated lines", "rust 16", "crates/high/src/copy.rs:1-16 ~ crates/low/src/copy.rs:1-16 (16 lines)"]

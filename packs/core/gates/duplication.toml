@@ -1,0 +1,6 @@
+about = "pinned jscpd 5 with the pack's settings (a clone is 100 tokens and 10 lines): its duplicated lines under the lowest ceiling in ci/ratchet/duplication.d, a ceiling that only falls"
+fix = "move the copied block into one function both places call; a count a whole step under its ceiling turns the ratchet: ./.gatekeeper/run baseline core/duplication adds a lower file. A ceiling file is never edited or deleted"
+budget_secs = 60
+
+[[step]]
+check = "duplication"
