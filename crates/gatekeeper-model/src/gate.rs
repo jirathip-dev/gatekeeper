@@ -1,4 +1,4 @@
-use crate::{GateId, Glob, Secs, Select, Shards};
+use crate::{GateId, Glob, Secs, Select, Shards, Timed};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::fmt;
@@ -48,6 +48,8 @@ pub struct GateFile {
     pub cache: bool,
     #[serde(default)]
     pub select: Option<Select>,
+    #[serde(default)]
+    pub timed: Option<Timed>,
 }
 
 fn yes() -> bool {
@@ -82,6 +84,8 @@ pub struct Gate {
     pub cache: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub select: Option<Select>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timed: Option<Timed>,
 }
 
 impl Gate {
@@ -97,6 +101,9 @@ impl Gate {
     pub fn from_file(id: GateId, file: GateFile, pack: &PackFile) -> Result<Gate, &'static str> {
         if file.select.is_some() {
             select_refusal(&file)?;
+        }
+        if file.timed.is_some() {
+            timed_refusal(&file)?;
         }
         let steps = match (file.run, file.step) {
             (Some(run), s) if s.is_empty() => vec![Step::Run { run }],
@@ -125,6 +132,7 @@ impl Gate {
             versions: file.versions,
             cache: file.cache,
             select: file.select,
+            timed: file.timed,
         })
     }
 }
@@ -142,6 +150,16 @@ fn select_refusal(file: &GateFile) -> Result<(), &'static str> {
     let sharded = file.shards.hosted.get() > 1 || file.shards.self_hosted.get() > 1;
     if sharded && !run.contains("{report}") {
         return Err("a sharded [select] gate needs `{report}` in `run`: shards are split by time");
+    }
+    Ok(())
+}
+
+fn timed_refusal(file: &GateFile) -> Result<(), &'static str> {
+    let Some(run) = file.run.as_deref().filter(|_| file.step.is_empty()) else {
+        return Err("[timed] runs one `run` line, not `[[step]]`");
+    };
+    if file.select.is_none() && !run.contains("{only}") {
+        return Err("[timed] needs `{only}` in `run`: the tests to run again go there");
     }
     Ok(())
 }

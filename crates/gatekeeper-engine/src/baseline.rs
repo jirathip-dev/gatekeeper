@@ -56,8 +56,8 @@ impl Baseline {
         new
     }
 
-    pub(crate) fn len(&self) -> usize {
-        self.listed.len()
+    pub(crate) fn listed(&self) -> impl Iterator<Item = &String> {
+        self.listed.iter()
     }
 
     pub(crate) fn stale(&self) -> impl Iterator<Item = &String> {
@@ -132,13 +132,21 @@ pub fn write(
         let lines = check::test_health::lines(root, &config.tests)?;
         return crate::health::ratchet::write(root, today, lines);
     }
-    if checks.is_empty() {
-        return Err(Error(format!(
-            "{}: no check step, so no findings to list",
-            gate.id
-        )));
-    }
-    let now = now(checks, root, cache, (config, today));
+    let now = match &gate.timed {
+        Some(timed) => {
+            let mut cx = run::RunCtx::lane(root, cache);
+            cx.tools = config::tools(config, root);
+            cx.tests = config.tests.clone();
+            crate::health::timed::slow(gate, timed, &cx)?
+        }
+        None if checks.is_empty() => {
+            return Err(Error(format!(
+                "{}: no check step, so no findings to list",
+                gate.id
+            )));
+        }
+        None => now(checks, root, cache, (config, today)),
+    };
     let path = path(root, &gate.id);
     let (keep, unlisted): (BTreeSet<String>, Vec<String>) = match read(&path)? {
         None => (now, Vec::new()),

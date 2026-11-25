@@ -1,0 +1,7 @@
+about = "a test over 2 s and not listed runs twice more and fails a pull request at its fastest; a failed test fails it"
+runner = "nextest"
+trigger = "pull-request"
+runs = ["nextest.xml", "nextest-rerun-slow.xml", "nextest-rerun-slow.xml"]
+rerun = ["demo-app board::tests::renders_slowly"]
+only = "-E '(binary_id(=demo-app) & test(=board::tests::renders_slowly))'"
+findings = ["failed: demo-app tests::fails_on_purpose", "over 2 s: demo-app board::tests::renders_slowly took 2.5 s at its fastest of 3"]

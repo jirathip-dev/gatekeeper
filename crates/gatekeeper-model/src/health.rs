@@ -171,3 +171,82 @@ pub struct Health {
     pub schema: u32,
     pub legs: BTreeMap<String, Millis>,
 }
+
+/// `[timed]`: the gate's line runs tests and leaves a `JUnit` file.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Timed {
+    pub runner: Runner,
+    pub junit: String,
+    #[serde(default = "here")]
+    pub root: String,
+}
+
+fn here() -> String {
+    ".".into()
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Runner {
+    Nextest,
+    Vitest,
+}
+
+/// `<classname> <name>` as the `JUnit` file gives them.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct TestId(pub String);
+
+impl fmt::Display for TestId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+/// One `testcase` of a `JUnit` file.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Case {
+    pub class: String,
+    pub name: String,
+    pub took: Millis,
+    pub ended: Ended,
+}
+
+impl Case {
+    #[must_use]
+    pub fn id(&self) -> TestId {
+        TestId(format!("{} {}", self.class, self.name))
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Ended {
+    Passed,
+    Failed,
+    Skipped,
+}
+
+/// A changed piece of test code: a Rust test function, the test code of a Rust file, or a whole TS test file.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Changed {
+    RustFn {
+        binary: String,
+        module: String,
+        name: String,
+    },
+    RustFile {
+        binary: String,
+        module: String,
+    },
+    TsFile(String),
+}
+
+/// What started a timed gate's run: it picks the rerun set and whether over budget fails.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum RunKind {
+    PullRequest,
+    Lane,
+    Integration,
+}
