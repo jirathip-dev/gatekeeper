@@ -1,0 +1,1 @@
+a crate without publish = false is exempt: its pub items are its product

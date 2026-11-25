@@ -1,0 +1,1 @@
+a file under [rust.exported] is exempt: its pub items are called from outside the workspace

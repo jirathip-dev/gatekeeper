@@ -88,6 +88,16 @@ the PR body names the head, has `## For humans`, has no "Generated with" line
 - rerun: `./.gatekeeper/run check --gate core/pr-body`
 - what a failure looks like: [core-pr-body](../examples/core-pr-body.md)
 
+## core/ratchet
+
+against the base, no pack gate's baseline list grew, unless a commit carries its Ratchet: trailer or the change moves [pin]
+
+- fix: fix the new finding instead of listing it; a raise is the owner's decision, its commit carries `Ratchet: <pack/gate> <old> → <new> (#issue, q<N>)`
+- budget: 5s
+- cached: no, cache = false
+- rerun: `./.gatekeeper/run check --gate core/ratchet`
+- what a failure looks like: [core-ratchet](../examples/core-ratchet.md)
+
 ## core/rules
 
 every active check in .drover/rules.md passes, each rule names its enforcer, and the file is at most 30 lines; writes checks.json for drover's lesson lane

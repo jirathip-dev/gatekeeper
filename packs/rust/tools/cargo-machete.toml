@@ -1,0 +1,11 @@
+version = "0.10.1"
+
+[asset.aarch64-apple-darwin]
+url = "https://github.com/bnjbvr/cargo-machete/releases/download/v0.10.1/cargo-machete-v0.10.1-aarch64-apple-darwin.tar.gz"
+sha256 = "0659860970e26179d730d1a2e99fc6513e41fea122ad5451d7ae43234fc1ebab"
+bin = "cargo-machete-v0.10.1-aarch64-apple-darwin/cargo-machete"
+
+[asset.x86_64-unknown-linux-gnu]
+url = "https://github.com/bnjbvr/cargo-machete/releases/download/v0.10.1/cargo-machete-v0.10.1-x86_64-unknown-linux-musl.tar.gz"
+sha256 = "785d381985140ffa172246d82089adeb7f2eb9c774d961c48f77a4494023afb5"
+bin = "cargo-machete-v0.10.1-x86_64-unknown-linux-musl/cargo-machete"

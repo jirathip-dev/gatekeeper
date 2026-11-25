@@ -85,6 +85,20 @@ fn here(gate: &Gate, cx: &RunCtx, log: &mut File) -> std::result::Result<(), Fai
     Err(Failure::CannotRunHere(Platform::Macos))
 }
 
+fn stale(gate: &Gate, listed: &Baseline, log: &mut File) -> std::result::Result<(), Failure> {
+    let mut stale = listed.stale().peekable();
+    let none = stale.peek().is_none();
+    for line in stale {
+        writeln!(
+            log,
+            "stale: shrink the baseline (./.gatekeeper/run baseline {}): {line}",
+            gate.id
+        )
+        .ok();
+    }
+    if none { Ok(()) } else { Err(Failure::Exit(1)) }
+}
+
 pub(crate) fn gate(
     gate: &Gate,
     (shard, picked): (Shard, Option<&Picked>),
@@ -117,19 +131,7 @@ pub(crate) fn gate(
     };
     let sighted = OnceCell::new();
     let out = (&mut log, &mut listed, &summary, &sighted);
-    let result = health::after(steps, &run, out).and_then(|()| {
-        let mut stale = listed.stale().peekable();
-        let none = stale.peek().is_none();
-        for line in stale {
-            writeln!(
-                log,
-                "stale: shrink the baseline (./.gatekeeper/run baseline {}): {line}",
-                gate.id
-            )
-            .ok();
-        }
-        if none { Ok(()) } else { Err(Failure::Exit(1)) }
-    });
+    let result = health::after(steps, &run, out).and_then(|()| stale(gate, &listed, &mut log));
     let took = start.elapsed().into();
     let mut report = GateReport::unrun(gate, judge(result, took, gate.budget, cx.host));
     report.took = took;
@@ -140,7 +142,10 @@ pub(crate) fn gate(
         .into_owned();
     report.kept = kept::collect(gate, &cx.root, &cx.out)?;
     report.projects = projects.to_vec();
-    report.note = summary.into_inner();
+    let n = listed.listed().count();
+    let listed = (n > 0).then(|| format!("{n} listed"));
+    let notes: Vec<String> = summary.into_inner().into_iter().chain(listed).collect();
+    report.note = (!notes.is_empty()).then(|| notes.join("; "));
     report.flaky = sighted.into_inner().unwrap_or_default();
     Ok(report)
 }

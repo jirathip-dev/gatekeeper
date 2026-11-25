@@ -27,6 +27,16 @@ clippy with the repo's lints (pedantic and the bans), -D warnings, the pack's cl
 - rerun: `./.gatekeeper/run check --gate rust/clippy`
 - what a failure looks like: [rust-clippy](../examples/rust-clippy.md)
 
+## rust/dead-code
+
+pinned cargo-machete and the pub scan: no unused dependency, no machete ignore, no pub item that no other crate names, that only tests name, or a type nothing names, beyond the baseline
+
+- fix: write pub(crate), and the compiler then says whether it is dead; delete an unused dependency or its machete ignore; a crate others build against goes under [rust.exported] with its reason; once one is fixed, shrink the list: ./.gatekeeper/run baseline rust/dead-code
+- budget: 60s
+- cached: yes
+- rerun: `./.gatekeeper/run check --gate rust/dead-code`
+- what a failure looks like: [rust-dead-code](../examples/rust-dead-code.md)
+
 ## rust/deny
 
 deny.toml holds the floor (yanked, duplicates, wildcards, unknown sources denied; shared licences), then cargo deny check
