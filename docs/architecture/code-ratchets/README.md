@@ -4,7 +4,7 @@
 
 Decision: four ratchets from six new gates and the knip gate, which stays as it is. Dead code and complexity keep a list of named findings that only shrinks, as knip does today. Duplication and surface keep one number each, in the ceiling folders of the test health design (#99). A list or a number goes up only in a commit that carries the owner's decision. No new tool: the pinned oxlint has both complexity rules.
 Slices: gatekeeper: a cap raise, dead code (with the gate that guards every list), duplication, complexity, surface, its own adoption and release 1.7.0. Then one adoption per repo, drover and shed first.
-Open questions: (1) Dead code and complexity as named lists, not bare counts: swapping one dead item for a new one then fails. Agree? (2) May a surface count ever rise? Recommended: only with your decision in the commit, as a cap raise. (3) Approve one cap raise for gatekeeper, 11,700 to 12,700?
+Approved 2026-11-25 (q3681): named lists, a surface raise only with the owner's decision, the cap raise to 12,700.
 
 ## Read in this order
 
@@ -61,10 +61,10 @@ Read on gatekeeper staging 06e8d38 (1.5.0), drover staging 4cf52e4bf, shed faee4
 - Let a repo loosen a threshold or the clone size.
 - Read the GitHub API, or give a lane a different answer than CI.
 
-## What the owner decides
+## What the owner decided
 
-Approve, revise or reject, and answer the three open questions in `adr.md`. Four effects worth a look, all
-under "Consequences" there: drover starts with about 315 dead-code entries, nearly all of them live code that
-is `pub` without need; tests count for duplication and complexity; two open PRs that both lower one ceiling
-cost the second an update round; and from the bump on a hand-added line fails in every pack gate's list, docs
-and knip included.
+Approved 2026-11-25 (q3681). Dead code and complexity are named lists; a surface count rises only in a commit
+carrying the owner's decision; the cap raise 11,700 to 12,700 is R0; R2 proves jscpd 5 on a real run before
+relying on it. The four effects worth a look stay under "Consequences" in `adr.md`: drover starts with about
+315 dead-code entries, tests count for duplication and complexity, two PRs lowering one ceiling cost the second
+an update round, and from the bump on a hand-added line fails in every pack gate's list.

@@ -4,10 +4,10 @@
 
 Decision: four ratchets from six new gates and the knip gate, which stays as it is. Dead code and complexity keep a list of named findings that only shrinks, as knip does today. Duplication and surface keep one number each, in the ceiling folders of the test health design (#99). A list or a number goes up only in a commit that carries the owner's decision. No new tool: the pinned oxlint has both complexity rules.
 Slices: gatekeeper: a cap raise, dead code (with the gate that guards every list), duplication, complexity, surface, its own adoption and release 1.7.0. Then one adoption per repo, drover and shed first.
-Open questions: (1) Dead code and complexity as named lists, not bare counts: swapping one dead item for a new one then fails. Agree? (2) May a surface count ever rise? Recommended: only with your decision in the commit, as a cap raise. (3) Approve one cap raise for gatekeeper, 11,700 to 12,700?
+Approved 2026-11-25 (q3681): named lists, a surface raise only with the owner's decision, the cap raise to 12,700.
 
-Status: proposed 2026-11-25 (architect lane). Read on gatekeeper staging 06e8d38 (1.5.0), drover staging
-4cf52e4bf, shed faee4f3b. Read `README.md` first.
+Status: approved by the owner 2026-11-25 (q3681), with the amendment of 2026-11-25. Read on gatekeeper staging
+06e8d38 (1.5.0), drover staging 4cf52e4bf, shed faee4f3b. Read `README.md` first.
 
 ## Question
 
@@ -112,7 +112,7 @@ duplication and surface follow it. Dead code and complexity need only the test-c
 | Option | Verdict |
 |---|---|
 | A. Never | No. A tool bump can find more, and a feature can need a flag. With no way up the gate gets switched off instead. |
-| B. A commit trailer with the owner's decision, as `Cap:` | **Yes**, pending open question 2. `Ratchet: <record> <old> → <new> (#issue, q<N>)`. A release bump may also add list lines, since it is the bump that brings the new checks. |
+| B. A commit trailer with the owner's decision, as `Cap:` | **Yes** (open question 2, answered). `Ratchet: <record> <old> → <new> (#issue, q<N>)`. A release bump may also add list lines, since it is the bump that brings the new checks. |
 
 ## Decision
 
@@ -213,19 +213,17 @@ Adoption, one issue per repo after R5. drover and shed first.
 | A2 | shed adopts the code ratchets | R5, #99 A2 | the same; a crate another repo builds against goes under `[rust.exported]` with its reason |
 | A3… | each other fleet repo, one each | R5 | the same for the packs it has; `[surface]` once it has a names list |
 
-## Open questions
+## Open questions, answered
 
-1. **Lists for dead code and complexity.** The issue speaks of counts. A list's length is that count, and it
-   also fails a swap and names the new item. A bare ceiling instead would be option 1A.
-2. **Raising a surface count.** Recommended: yes, only in a commit with `Ratchet: surface-<count> <old> → <new>
-   (#issue, q<N>)` after your answer, as a cap raise works. The other way: never, and a new flag must replace
-   an old one.
-3. **The cap.** 11,700 after #99's raise, about 11,400 used once #99 lands, about 900 arrive: approve one
-   raise to 12,700, as R0?
+1. **Lists for dead code and complexity.** The owner chose named lists: a swap fails and names the new item.
+2. **Raising a surface count.** Only in a commit that carries the owner's decision, `Ratchet: surface-<count>
+   <old> → <new> (#issue, q<N>)`, as a cap raise works.
+3. **The cap.** One raise for gatekeeper, 11,700 to 12,700, approved as R0. R2 proves jscpd 5 on a real run
+   before relying on it.
 
 ## `.drover/arch.toml` lines
 
-Gatekeeper, in R1:
+Gatekeeper, landed with this ADR (#100), ahead of the folders R1 adds:
 
 ```toml
 [[collect]]
