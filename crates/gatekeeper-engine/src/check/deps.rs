@@ -333,8 +333,12 @@ fn change(was: usize, now: usize) -> String {
 }
 
 fn growth(cx: &Cx, list: &List) -> Result<Vec<String>> {
+    let integration = format!("origin/{}", cx.integration);
     let base = match cx.base {
-        Some(b) => Some(runner::ok("git", &["merge-base", b, "HEAD"], cx.root)?),
+        Some(b) => Some(
+            runner::ok("git", &["merge-base", "HEAD", b, &integration], cx.root)
+                .or_else(|_| runner::ok("git", &["merge-base", b, "HEAD"], cx.root))?,
+        ),
         None => None,
     };
     let base = base.as_deref().map(str::trim);

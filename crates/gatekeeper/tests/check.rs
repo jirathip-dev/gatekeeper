@@ -508,7 +508,10 @@ fn deps_passes_a_release_pr_of_growth_already_on_the_integration_branch_and_stil
     let (root, main) = grown_deps_repo("deps-release");
     git(&root, &["update-ref", "refs/remotes/origin/main", &main]);
     let staging = git(&root, &["rev-parse", "HEAD"]);
-    git(&root, &["update-ref", "refs/remotes/origin/staging", &staging]);
+    git(
+        &root,
+        &["update-ref", "refs/remotes/origin/staging", &staging],
+    );
     let ci = [("GITHUB_ACTIONS", "true")];
     let (code, release) = gk(&root, &["check", "--base", "origin/main"], &ci);
     assert_eq!(code, 0, "{release}");
