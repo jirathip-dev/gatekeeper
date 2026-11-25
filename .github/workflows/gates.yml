@@ -303,6 +303,13 @@ jobs:
           PACKS: ${{ inputs.packs }}
           RUNNERS: ${{ inputs.runners }}
         run: ./.gatekeeper/run ci "done" --pack "$PACKS" --runners "$RUNNERS" --reports "$RUNNER_TEMP/reports" --entry target/gatekeeper-timings --timings-out target/gatekeeper-timings | tee -a "$GITHUB_STEP_SUMMARY"
+      - if: always() && hashFiles('target/gatekeeper-timings/flaky.json') != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: gates-done
+          path: |
+            target/gatekeeper-timings/flaky.json
+            target/gatekeeper-timings/flaky/
       - if: always() && needs.plan.outputs.timings-save != '' && hashFiles('target/gatekeeper-timings/*.json') != ''
         uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         with:
