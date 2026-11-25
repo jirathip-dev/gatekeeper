@@ -4,9 +4,9 @@
 
 Decision: two new core gates read the tree alone: the test-to-src ratio under a ceiling that only falls, and a lint for sleeps in tests. A repo's own test gate becomes "timed": gatekeeper reads its JUnit file, fails a new or changed test over 2 s, and runs changed tests three times. Flaky tests are one small file each, dated, blocking after 7 days. Coverage is compared with the integration branch's last run. Perf tests are whole files named in config and run by a nightly gate.
 Slices: gatekeeper: a cap raise, the ratio gate, the sleep lint, timed gates, flaky list, coverage, nightly gates, release 1.6.0. Then one adoption per repo, drover and shed first, and one drover issue to file flaky issues.
-Open questions: (1) approve cargo-nextest as a pinned tool? It is a new dependency and the only stable source of per-test times in Rust. (2) Approve one cap raise for gatekeeper, 10,500 to 11,700? (3) Who files a flaky test's issue: drover from gatekeeper's report (recommended), or the gates workflow with issue-write permission?
+Answered: (1) cargo-nextest is approved as a pinned tool of the rust pack; (2) one cap raise for gatekeeper, 10,500 to 11,700, is approved as G0; (3) drover files a flaky test's issue (D1), and the gates workflow stays read-only.
 
-Status: proposed 2026-11-25 (architect lane). Read on gatekeeper staging 06e8d38 (1.5.0), drover staging
+Status: approved by the owner 2026-11-25 (q3675), with the amendment below. Read on gatekeeper staging 06e8d38 (1.5.0), drover staging
 4cf52e4bf, shed 7a794152. Read `README.md` first.
 
 ## Question
@@ -47,7 +47,7 @@ suite more than it runs today except for the tests a change touches?
 |---|---|
 | A. Parse stable libtest output | No. It has no times. |
 | B. libtest's JSON format | No. Unstable: it needs nightly or a bootstrap flag. |
-| C. cargo-nextest's JUnit file | **Yes, if the owner approves the tool** (open question 1). Times per test, a filter to rerun exact tests, prebuilt binaries to pin. drover uses it already. |
+| C. cargo-nextest's JUnit file | **Yes** (open question 1, answered: approved as a pinned tool). Times per test, a filter to rerun exact tests, prebuilt binaries to pin. drover uses it already. |
 
 ### 3. What "a changed test" is
 
@@ -154,7 +154,7 @@ Who writes what:
 - A red nightly run is a red scheduled workflow. With the drover slice it also becomes an issue.
 - Swift gets the ratio and the lint only: no runner is read for it. `swift test` writes the same JUnit shape,
   so it can join `Runner` later.
-- gatekeeper gains about 1,650 lines (open question 2).
+- gatekeeper gains about 1,650 lines: the cap goes from 10,500 to 11,700 in G0 (open question 2).
 
 ## Slices
 
@@ -162,10 +162,10 @@ Gatekeeper. G2 to G6 add files to collected folders; `run/gate.rs` and `ci.rs` g
 
 | # | Issue | Blocked on | AC |
 |---|---|---|---|
-| G0 | cap: raise gatekeeper to 11,700 (filed by the orchestrator) | open question 2 | the raise file with its reason; nothing else |
-| G1 | `core/test-health`: counting, the ceiling folder, `baseline core/test-health`; `[tests]` and the date as typed values; leg times in `ci done`; this ADR's `arch.toml` lines | G0 | the selftest cases of `boundaries.md` for the ratio pass; `core/cap` prints what it printed (no `expect` file of it edited); a second `baseline` run writes nothing; `ci done` prints a `legs:` line |
+| G0 | cap: raise gatekeeper to 11,700 (filed by the orchestrator) | none (approved) | the raise file with its reason; nothing else |
+| G1 | `core/test-health`: counting, the ceiling folder, `baseline core/test-health`; `[tests]` and the date as typed values; leg times in `ci done` | G0 | the selftest cases of `boundaries.md` for the ratio pass; `core/cap` prints what it printed (no `expect` file of it edited); a second `baseline` run writes nothing; `ci done` prints a `legs:` line |
 | G2 | `core/test-sleeps` with its pattern file | G1 | a failing case per language; a soak file's sleep passes; `baseline core/test-sleeps` lists and then only shrinks |
-| G3 | timed gates: `[timed]`, the JUnit reader, the budget and the slow list, changed tests, three runs; cargo-nextest pinned | G1, open question 1 | the pure cases pass on real nextest and vitest JUnit files; the stand-in runner case shows three runs and the `{only}` text; `baseline <timed gate>` writes the slow list; a `[timed]` gate without `{only}` is refused |
+| G3 | timed gates: `[timed]`, the JUnit reader, the budget and the slow list, changed tests, three runs; cargo-nextest pinned | G1 | the pure cases pass on real nextest and vitest JUnit files; the stand-in runner case shows three runs and the `{only}` text; `baseline <timed gate>` writes the slow list; a `[timed]` gate without `{only}` is refused |
 | G4 | flaky: entries and the quarantine in `core/test-health` and the verdict; the integration rerun; `flaky.json` and the entry file from `ci done` | G3 | cases: in quarantine passes with a warning; day 8 fails `core/test-health`; no issue fails; failed-then-passed on integration passes and is written; failed three times fails |
 | G5 | coverage: `[coverage]`, `health.json` in the integration entry, drop files and their trailer; cargo-llvm-cov pinned; the workflow gives a coverage job its LLVM tools | G1 | cases for both tools' summaries, under and within tolerance, a drop with and without its trailer, no entry; a lane skips the gate with its reason |
 | G6 | nightly gates: `when = "nightly"`, the schedule event, a soak test in a timed gate's JUnit fails | G3, G5 (both edit `gates.yml`) | a PR plan and a lane skip the gate with its reason; a schedule plan runs only such gates; the soak case fails with its line |
@@ -177,21 +177,21 @@ Adoption, one issue per repo after G7. drover and shed first.
 |---|---|---|---|
 | A1 | drover adopts test health | G7, drover#1587 | pin 1.6.0; the start ceiling by the `baseline` verb; the test gates `[timed]` on nextest, one per shard layout as today; slow list and sleeps baseline written; `perf.rs`, `soak.rs` and the timing tests in `[tests] soak` and a nightly gate; a coverage gate; drover#1760's cap slice is closed as done by this |
 | A2 | shed adopts test health | G7 | the same; its test gates move to nextest; `scripts/budget.py` and its fixture are deleted; `timing.toml` and the bench gates become nightly or stay, said in the PR |
-| A3… | synergy-apps, cooee, blocks, then the rest, one each | G7 | pin 1.6.0; the start ceiling (1.00); sleeps baseline; `[timed]` and coverage on its vitest gates where it has them |
-| D1 | drover: file `flaky: <test>` from an integration run's `flaky.json` with the entry file in the brief, queue it on top and spawn its lane; file `soak: <gate>` for a red nightly gate | G4, G6, open question 3 | one issue per test, never twice; the lane's first commit is the entry file with the issue's number |
+| A3… | each other fleet repo, one each | G7 | pin 1.6.0; the start ceiling (1.00); sleeps baseline; `[timed]` and coverage on its vitest gates where it has them |
+| D1 | drover: file `flaky: <test>` from an integration run's `flaky.json` with the entry file in the brief, queue it on top and spawn its lane; file `soak: <gate>` for a red nightly gate | G4, G6 | one issue per test, never twice; the lane's first commit is the entry file with the issue's number |
 
-## Open questions
+## Open questions, answered
 
-1. **cargo-nextest.** Approve it as a pinned tool of the rust pack? It is the new dependency the issue's notes
-   foresee. Without it Rust repos get the ratio, the lint and coverage, and no per-test budget or flaky check.
-2. **The cap.** 9,753 lines now, about 1,650 arrive: approve one raise, 10,500 to 11,700, as G0?
-3. **Who files the flaky issue.** Recommended: drover (D1), which files every other fleet issue and can queue
-   and spawn at once; gatekeeper's workflow stays read-only. The other way: the gates workflow's done job
-   files it with `issues: write`, which every adopting repo's workflow must then grant.
+The owner's amendment of 2026-11-25:
+
+1. **cargo-nextest.** Approved as a pinned tool of the rust pack. It lands in G3.
+2. **The cap.** One raise, 10,500 to 11,700, approved as G0, filed by the orchestrator.
+3. **Who files the flaky issue.** drover (D1), which files every other fleet issue and can queue and spawn at
+   once. The gates workflow stays read-only.
 
 ## `.drover/arch.toml` lines
 
-Gatekeeper, in G1:
+Gatekeeper, landed with this ADR (#99), so G1 adds none:
 
 ```toml
 [[collect]]

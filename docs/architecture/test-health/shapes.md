@@ -192,6 +192,6 @@ struct RunCtx { /* … */ tests: TestsConfig, today: Date, health: Option<Health
 
 | File | Tool | Status |
 |---|---|---|
-| `packs/rust/tools/cargo-nextest.toml` | cargo-nextest, per target with its sha256 | **new dependency: the owner's approval (open question 1)** |
+| `packs/rust/tools/cargo-nextest.toml` | cargo-nextest, per target with its sha256 | new dependency, approved by the owner 2026-11-25 |
 | `packs/rust/tools/cargo-llvm-cov.toml` | cargo-llvm-cov, the same | approved |
 | none | vitest and its v8 coverage are the consumer's own dev dependencies | approved |
