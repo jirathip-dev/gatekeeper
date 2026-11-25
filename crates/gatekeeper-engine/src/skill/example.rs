@@ -19,6 +19,7 @@ fn case_change(prefix: &str) -> String {
                 format!("With the environment:\n\n```\n{}\n```\n\n", text.trim_end())
             }
             ("expect" | "passes", _) => String::new(),
+            ("release", _) => "The integration branch is at the case's commit: a release PR moves main up to it.\n\n".to_owned(),
             ("checks.json", Ok(text)) => format!(
                 "The check writes `checks.json`:\n\n```json\n{}\n```\n\n",
                 text.trim_end()

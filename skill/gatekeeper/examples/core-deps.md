@@ -96,6 +96,14 @@ The gate fails and its log prints `wrote it with an empty reason for each of the
 
 Fix: ask the owner before you add a dependency; then list it with its reason, drop a stale entry, and for growth over the limit put `Deps: #<issue> <the owner's answer>` in a commit message. Rerun: `./.gatekeeper/run check --gate core/deps`
 
+## release-of-integration-growth
+
+Writes `pnpm-lock.yaml` (not shown).
+
+The integration branch is at the case's commit: a release PR moves main up to it.
+
+The gate passes.
+
 ## stale-entry
 
 Writes `.gatekeeper/deps.toml`:

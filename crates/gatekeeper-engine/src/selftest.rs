@@ -40,7 +40,7 @@ fn commit(dir: &Path, message: &str) -> Result<String> {
         .to_owned())
 }
 
-pub(crate) const CASE_META: [&str; 8] = [
+pub(crate) const CASE_META: [&str; 9] = [
     "body",
     "checks.json",
     "env",
@@ -48,6 +48,7 @@ pub(crate) const CASE_META: [&str; 8] = [
     "message",
     "names",
     "passes",
+    "release",
     "remove",
 ];
 
@@ -114,6 +115,7 @@ pub fn case_ctx(gate: &Gate, case: Option<&str>, out: &Path, bench: &Bench) -> R
     let mut prefixes = vec![format!("{pack}/fixtures/{}/", gate.id.name())];
     let mut pr_body = None;
     let mut names = None;
+    let mut release = false;
     if let Some(case) = case {
         let prefix = format!("{pack}/fixtures/{}/{case}/", gate.id.name());
         lay_case(&prefix, &dir)?;
@@ -123,6 +125,7 @@ pub fn case_ctx(gate: &Gate, case: Option<&str>, out: &Path, bench: &Bench) -> R
         )?;
         pr_body = write_body(&prefix, (&base, &head), &dir.with_extension("body"))?;
         names = packs::text(&format!("{prefix}names"));
+        release = packs::text(&format!("{prefix}release")).is_some();
         prefixes.push(prefix);
     }
     let config = dir
@@ -130,6 +133,10 @@ pub fn case_ctx(gate: &Gate, case: Option<&str>, out: &Path, bench: &Bench) -> R
         .exists()
         .then(|| config::load(&dir))
         .transpose()?;
+    if let Some(c) = config.as_ref().filter(|_| release) {
+        let branch = format!("refs/remotes/origin/{}", c.integration);
+        runner::ok("git", &["update-ref", &branch, &head], &dir)?;
+    }
     let mut cx = RunCtx::lane(&dir, &bench.cache);
     cx.base = Some(base);
     cx.pr_body = pr_body;
