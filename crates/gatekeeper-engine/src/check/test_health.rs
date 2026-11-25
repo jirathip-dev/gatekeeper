@@ -1,8 +1,8 @@
-use crate::health::{self, ratchet};
+use crate::health::{self, flaky, ratchet};
 use crate::ratchet::folder;
 use crate::run::CheckCx as Cx;
 use crate::{Result, runner};
-use gatekeeper_model::{Ceiling, Lines, TestsConfig};
+use gatekeeper_model::{Ceiling, Flaky, Lines, TestId, TestsConfig};
 use std::path::Path;
 
 const LOWER: &str = "./.gatekeeper/run baseline core/test-health";
@@ -50,7 +50,77 @@ fn changed(cx: &Cx, base: &str, files: &[(String, Ceiling)]) -> Result<Vec<Strin
     Ok(out)
 }
 
-/// The test-to-src line ratio under the lowest ceiling in `ci/tests/ratio.d/`; with a base, no ceiling file is edited, deleted or raised.
+fn renewed(
+    cx: &Cx,
+    base: &str,
+    now: &[(String, std::result::Result<Flaky, String>)],
+) -> Result<Vec<String>> {
+    let args = [
+        "diff",
+        "--name-status",
+        "--no-renames",
+        base,
+        "HEAD",
+        "--",
+        flaky::DIR,
+    ];
+    let diff = runner::ok("git", &args, cx.root)?;
+    let gone = diff.lines().filter_map(|l| l.strip_prefix("D\t"));
+    let was = |p: &str| -> Option<TestId> {
+        let text = runner::ok("git", &["show", &format!("{base}:{p}")], cx.root).ok()?;
+        Some(toml::from_str::<Flaky>(&text).ok()?.test)
+    };
+    let tests: Vec<TestId> = gone.filter_map(was).collect();
+    let added = |p: &str| diff.lines().any(|l| l.strip_prefix("A\t") == Some(p));
+    let each = now.iter().filter(|(p, _)| added(p));
+    let renewed = each.filter_map(|(p, f)| Some((p, &f.as_ref().ok()?.test)));
+    let renewed = renewed.filter(|(_, t)| tests.contains(t));
+    Ok(renewed
+        .map(|(p, t)| format!("{p}: {t} replaces its deleted entry: a quarantine is never renewed"))
+        .collect())
+}
+
+fn flaky(cx: &Cx) -> Result<Vec<String>> {
+    let entries = flaky::read(cx.root);
+    let mut out = match cx.base {
+        Some(base) => renewed(cx, base, &entries)?,
+        None => Vec::new(),
+    };
+    for (at, entry) in entries {
+        let f = match entry {
+            Ok(f) => f,
+            Err(e) => {
+                out.push(format!("{at}: no flaky entry: {e}"));
+                continue;
+            }
+        };
+        let hex = f.sha.len() >= 7 && f.sha.len() <= 40;
+        if !hex || !f.sha.chars().all(|c| c.is_ascii_hexdigit()) {
+            out.push(format!("{at}: sha `{}` is no commit sha", f.sha));
+        }
+        if f.since > cx.today {
+            out.push(format!(
+                "{at}: since {} is after today {}",
+                f.since, cx.today
+            ));
+        }
+        match f.issue {
+            None => out.push(format!(
+                "{at}: {} has no issue: add `issue = <n>`, the issue that fixes it",
+                f.test
+            )),
+            Some(n) if f.until() < cx.today => out.push(format!(
+                "{at}: quarantine ended {} (#{n}): fix or delete {}, then delete this file",
+                f.until().plus(1),
+                f.test
+            )),
+            Some(_) => {}
+        }
+    }
+    Ok(out)
+}
+
+/// The test-to-src line ratio under the lowest ceiling in `ci/tests/ratio.d/`, no ceiling file edited, deleted or raised; each flaky entry with its issue, in its 7 days.
 pub fn run(cx: &Cx) -> Result<Vec<String>> {
     let lines = lines(cx.root, cx.tests)?;
     let files = ratchet::read(cx.root)?;
@@ -58,6 +128,7 @@ pub fn run(cx: &Cx) -> Result<Vec<String>> {
         Some(base) => changed(cx, base, &files)?,
         None => Vec::new(),
     };
+    out.extend(flaky(cx)?);
     let counted = format!(
         "tests {} / src {} lines: ratio {}",
         lines.test,

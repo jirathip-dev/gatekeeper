@@ -1,0 +1,4 @@
+test = "demo-app tests::reconnects"
+since = "2026-11-25"
+sha = "b2e8033"
+issue = 7

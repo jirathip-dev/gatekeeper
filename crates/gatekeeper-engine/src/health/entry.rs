@@ -1,10 +1,37 @@
+use super::flaky::slug;
 use crate::{Error, Result};
-use gatekeeper_model::{Health, JobReport, Millis};
+use gatekeeper_model::{Health, JobReport, Millis, Sighting};
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
 use std::path::Path;
 
 const FILE: &str = "health.json";
+const FLAKY: &str = "flaky.json";
+
+fn entry_file(s: &Sighting) -> Result<String> {
+    let mut t = toml::Table::new();
+    t.insert("test".into(), s.test.0.clone().into());
+    t.insert("since".into(), s.on.to_string().into());
+    t.insert("sha".into(), s.sha.clone().into());
+    toml::to_string(&t).map_err(|e| Error(e.to_string()))
+}
+
+fn sightings(dir: &Path, seen: &[&Sighting]) -> Result<()> {
+    let each = dir.join("flaky");
+    std::fs::remove_dir_all(&each).ok();
+    std::fs::remove_file(dir.join(FLAKY)).ok();
+    if seen.is_empty() {
+        return Ok(());
+    }
+    std::fs::create_dir_all(&each).map_err(|e| Error::at(&each, e))?;
+    for s in seen {
+        let path = each.join(format!("{}.toml", slug(&s.test)));
+        std::fs::write(&path, entry_file(s)?).map_err(|e| Error::at(&path, e))?;
+    }
+    let path = dir.join(FLAKY);
+    let json = serde_json::to_string_pretty(seen).map_err(|e| Error(e.to_string()))?;
+    std::fs::write(&path, json).map_err(|e| Error::at(&path, e))
+}
 
 fn clock(t: Millis) -> String {
     let s = t.0 / 1000;
@@ -44,5 +71,27 @@ pub(crate) fn done(jobs: &[JobReport], entry: Option<&Path>, out: Option<&Path>)
         std::fs::create_dir_all(dir).map_err(|e| Error::at(dir, e))?;
         std::fs::write(&path, json).map_err(|e| Error::at(&path, e))?;
     }
-    Ok(format!("legs: {}", each.join(" · ")))
+    let seen: Vec<&Sighting> = jobs
+        .iter()
+        .flat_map(|j| &j.gates)
+        .flat_map(|g| &g.flaky)
+        .collect();
+    let mut text = format!("legs: {}", each.join(" · "));
+    for s in &seen {
+        write!(
+            text,
+            "\nflaky at {}: {} in {} failed, then passed {} of 2 reruns\n  list it: {}/{}.toml (in the artifact gates-done, under flaky/)",
+            s.sha.get(..7).unwrap_or(&s.sha),
+            s.test,
+            s.gate,
+            s.passed_on_rerun,
+            super::flaky::DIR,
+            slug(&s.test)
+        )
+        .ok();
+    }
+    if let Some(dir) = out {
+        sightings(dir, &seen)?;
+    }
+    Ok(text)
 }

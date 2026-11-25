@@ -1,0 +1,20 @@
+about = "on a push to the integration branch a test that fails all three runs fails the gate; nothing is written"
+gate = """
+about = "the tests, timed"
+fix = "fix the test the log names"
+budget_secs = 30
+run = "sh runner.sh {only}"
+
+[timed]
+runner = "nextest"
+junit = "target/nextest/ci/junit.xml"
+"""
+trigger = "integration"
+runs = ["stand-in-adds-fail.xml", "stand-in-adds-fail.xml", "stand-in-adds-fail.xml"]
+calls = ["", "-E (binary_id(=demo-app) & test(=tests::adds))", "-E (binary_id(=demo-app) & test(=tests::adds))"]
+fails = true
+log = ["failed: demo-app tests::adds in all 3 runs"]
+written = []
+
+[base]
+"Cargo.toml" = "[package]\nname = \"demo-app\"\nversion = \"0.1.0\"\n"

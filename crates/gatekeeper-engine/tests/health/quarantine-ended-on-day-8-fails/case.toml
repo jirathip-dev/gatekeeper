@@ -1,0 +1,14 @@
+about = "on day 8 the quarantine has ended: the test's failure is a finding again"
+runner = "nextest"
+trigger = "pull-request"
+runs = ["nextest.xml", "nextest-rerun-slow.xml", "nextest-rerun-slow.xml"]
+today = "2026-11-26"
+rerun = ["demo-app board::tests::renders_slowly"]
+only = "-E '(binary_id(=demo-app) & test(=board::tests::renders_slowly))'"
+findings = ["failed: demo-app tests::fails_on_purpose", "over 2 s: demo-app board::tests::renders_slowly took 2.5 s at its fastest of 3"]
+
+[[flaky]]
+test = "demo-app tests::fails_on_purpose"
+since = "2026-11-19"
+sha = "b2e8033"
+issue = 42

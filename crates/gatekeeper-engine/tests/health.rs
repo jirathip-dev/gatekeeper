@@ -1,9 +1,10 @@
 use gatekeeper_engine::health::judge::{self, Evidence};
 use gatekeeper_engine::health::{junit, rerun, spans};
 use gatekeeper_engine::run::{self, RunCtx};
-use gatekeeper_engine::{baseline, plan};
+use gatekeeper_engine::{baseline, ci, plan};
 use gatekeeper_model::{
-    Case, Config, Date, Filter, Host, RunKind, Runner, Secs, TestId, TestsConfig,
+    Case, Config, Date, Filter, Flaky, Host, Plan, Report, RunKind, Runner, Secs, Sighting, TestId,
+    TestsConfig, artifact,
 };
 use serde::Deserialize;
 use std::collections::{BTreeMap, BTreeSet};
@@ -37,6 +38,10 @@ struct Pure {
     warnings: Vec<String>,
     #[serde(default)]
     stale: BTreeSet<TestId>,
+    #[serde(default)]
+    flaky: Vec<Flaky>,
+    #[serde(default = "today")]
+    today: String,
 }
 
 #[derive(Deserialize)]
@@ -61,10 +66,22 @@ struct Run {
     log: Vec<String>,
     #[serde(default)]
     baseline: Option<String>,
+    #[serde(default = "lane")]
+    trigger: RunKind,
+    #[serde(default)]
+    written: Vec<String>,
 }
 
 fn here() -> String {
     ".".into()
+}
+
+fn today() -> String {
+    "2026-11-26".into()
+}
+
+fn lane() -> RunKind {
+    RunKind::Lane
 }
 
 fn dir() -> PathBuf {
@@ -113,9 +130,11 @@ fn each_pure_case_reruns_and_judges_as_its_folder_expects() {
             runs: &runs,
             changed: &changed,
             slow: &case.slow,
+            flaky: &case.flaky,
             budget: Secs(2),
             kind: case.trigger,
             root: &case.root,
+            today: case.today.parse().expect("today"),
         };
         let again = judge::rerun_set(runs.first().expect("a first run"), &e);
         assert_eq!(ids(&again), case.rerun, "{name}: the rerun set");
@@ -131,7 +150,7 @@ fn each_pure_case_reruns_and_judges_as_its_folder_expects() {
         assert_eq!(stale, case.stale, "{name}: stale");
         seen += 1;
     }
-    assert_eq!(seen, 9);
+    assert_eq!(seen, 12);
 }
 
 #[test]
@@ -202,6 +221,38 @@ fn repo(name: &str, case: &Run) -> (PathBuf, String) {
     (root, sha)
 }
 
+fn written_by_done(
+    plan: &Plan,
+    root: &Path,
+    report: &Report,
+    (sha, today): (&str, Date),
+) -> Vec<String> {
+    let job = &plan.jobs[0];
+    let reports = root.join("reports").join(artifact(&job.leg, job.shard));
+    fs::create_dir_all(&reports).expect("reports");
+    let json = serde_json::to_string(report).expect("json");
+    fs::write(reports.join("report.json"), json).expect("report");
+    let entry = root.join("entry");
+    ci::done(plan, &root.join("reports"), (None, Some(&entry))).expect("done");
+    let sighted: Vec<Sighting> = fs::read_to_string(entry.join("flaky.json"))
+        .map_or_default(|t| serde_json::from_str(&t).expect("flaky.json"));
+    let mut written = Vec::new();
+    for s in &sighted {
+        let slug = gatekeeper_engine::health::flaky::slug(&s.test);
+        let text = fs::read_to_string(entry.join(format!("flaky/{slug}.toml"))).expect("entry");
+        let entry: Flaky = toml::from_str(&text).expect("an entry");
+        assert_eq!(
+            (&entry.test, entry.since),
+            (&s.test, today),
+            "{}",
+            root.display()
+        );
+        assert_eq!((entry.sha.as_str(), entry.issue), (sha, None), "{text}");
+        written.push(slug);
+    }
+    written
+}
+
 #[test]
 fn a_timed_gate_runs_through_a_stand_in_runner_as_its_folder_expects() {
     let config: Config =
@@ -228,8 +279,14 @@ fn a_timed_gate_runs_through_a_stand_in_runner_as_its_folder_expects() {
             continue;
         }
         let mut cx = RunCtx::lane(&root, &cache);
-        cx.base = Some(sha);
+        cx.today = today().parse().expect("today");
+        match case.trigger {
+            RunKind::Integration => cx.host = Host::SelfHosted,
+            _ => cx.base = Some(sha.clone()),
+        }
         let report = run::run(&plan, &cx, &mut |_, _| {}).expect("run");
+        let written = written_by_done(&plan, &root, &report, (&sha, cx.today));
+        assert_eq!(written, case.written, "{name}: written entries");
         let gate = &report.jobs[0].gates[0];
         assert_eq!(
             gate.outcome.fails(),
@@ -251,5 +308,5 @@ fn a_timed_gate_runs_through_a_stand_in_runner_as_its_folder_expects() {
             );
         }
     }
-    assert_eq!(seen, 4);
+    assert_eq!(seen, 6);
 }

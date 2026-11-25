@@ -1,0 +1,3 @@
+test = "demo-app tests::adds"
+since = "2026-11-26"
+sha = "b2e8033"
