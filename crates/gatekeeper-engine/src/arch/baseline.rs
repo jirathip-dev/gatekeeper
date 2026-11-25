@@ -86,5 +86,6 @@ pub fn write(root: &Path) -> Result<Written> {
         path,
         lines,
         unlisted,
+        note: None,
     })
 }

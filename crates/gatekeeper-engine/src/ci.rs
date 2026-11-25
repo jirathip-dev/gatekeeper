@@ -1,4 +1,4 @@
-use crate::{Error, Result};
+use crate::{Error, Result, health};
 use gatekeeper_model::{
     CacheMode, CacheNote, CacheTotals, GateId, GateReport, Host, JobReport, Millis, Outcome, Plan,
     Platform, Report, Selected, Tier, Timings, Toolchain, artifact, job_label,
@@ -75,8 +75,6 @@ pub fn matrix(
         entries.push(entry);
     }
     let (after, first): (Vec<_>, Vec<_>) = entries.into_iter().partition(|e| e["after"] != "");
-    let selects = plan.jobs.iter().flat_map(|j| &j.gates);
-    let save = save && selects.clone().any(|g| g.gate.select.is_some());
     Ok(format!(
         "matrix={}\nafter={}\ntimings-save={}",
         json!({ "include": first }),
@@ -171,14 +169,14 @@ fn row(table: &mut String, jr: &JobReport, g: &GateReport) -> Result<()> {
 pub fn done(
     plan: &Plan,
     reports: &Path,
-    timings_out: Option<&Path>,
+    (entry, timings_out): (Option<&Path>, Option<&Path>),
 ) -> Result<(String, Vec<String>)> {
     let mut table = String::from(
         "| job | host | setup | gate | took | budget | | note | proved by |\n|---|---|---|---|---|---|---|---|---|\n",
     );
     let mut problems = Vec::new();
     let mut selected = String::new();
-    let mut all = Vec::new();
+    let mut jobs = Vec::new();
     let mut sliced = Sliced::default();
     for job in &plan.jobs {
         let path = reports
@@ -206,15 +204,21 @@ pub fn done(
                 }
             }
         }
-        all.extend(report.jobs.into_iter().flat_map(|j| j.gates));
+        jobs.extend(report.jobs);
     }
     problems.extend(sliced.problems());
     if let Some(dir) = timings_out {
         sliced.save(dir)?;
     }
-    if let Some(line) = cache_line(&CacheTotals::of(&all)) {
+    if let Some(line) = cache_line(&CacheTotals::of(jobs.iter().flat_map(|j| &j.gates))) {
         writeln!(table, "\ncache: {line}").ok();
     }
+    writeln!(
+        table,
+        "\n{}",
+        health::entry::done(&jobs, entry, timings_out)?
+    )
+    .ok();
     table.push_str(&selected);
     Ok((table, problems))
 }

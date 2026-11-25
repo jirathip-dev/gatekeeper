@@ -229,3 +229,51 @@ fn a_leg_or_projects_the_config_does_not_back_is_a_config_error() {
     assert_eq!(code, 2);
     assert!(out.contains("[legs.late] after = `seed`"), "{out}");
 }
+
+#[test]
+fn ci_done_prints_each_legs_time_against_the_entry_and_writes_this_runs() {
+    let one = "about = \"one\"\nfix = \"none\"\nbudget_secs = 5\nrun = \"true\"\n";
+    let root = repo("legs", CONFIG, &[("one", one)]);
+    let (code, out) = gk(&root, &["check"], &[]);
+    assert_eq!(code, 0, "{out}");
+    let text = fs::read_to_string(root.join("target/gatekeeper/report.json")).expect("report");
+    let mut report: serde_json::Value = serde_json::from_str(&text).expect("json");
+    report["jobs"][0]["setup"] = 10_000.into();
+    report["jobs"][0]["gates"][0]["took"] = 90_000.into();
+    let reports = root.join("reports/gates-local");
+    fs::create_dir_all(&reports).expect("reports");
+    fs::write(reports.join("report.json"), report.to_string()).expect("write");
+    let args = ["ci", "done", "--reports", "reports", "--timings-out", "out"];
+    let (code, done) = gk(&root, &args, &[]);
+    assert_eq!(code, 0, "{done}");
+    assert!(done.contains("\nlegs: local 1m40s\n"), "{done}");
+    let entry = root.join("entry");
+    fs::create_dir_all(&entry).expect("entry");
+    fs::write(
+        entry.join("health.json"),
+        r#"{"schema": 1, "legs": {"local": 60000}}"#,
+    )
+    .expect("health");
+    let mut args = args.to_vec();
+    args.extend(["--entry", "entry"]);
+    let (code, done) = gk(&root, &args, &[]);
+    assert_eq!(code, 0, "a slower leg only warns: {done}");
+    assert!(
+        done.contains("legs: local 1m40s (integration 1m00s) WARN +66%"),
+        "{done}"
+    );
+    fs::write(
+        entry.join("health.json"),
+        r#"{"schema": 1, "legs": {"local": 95000}}"#,
+    )
+    .expect("health");
+    let (_, done) = gk(&root, &args, &[]);
+    assert!(
+        done.contains("legs: local 1m40s (integration 1m35s)\n"),
+        "{done}"
+    );
+    let written: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(root.join("out/health.json")).expect("written"))
+            .expect("json");
+    assert_eq!(written["legs"]["local"], 100_000, "{written}");
+}

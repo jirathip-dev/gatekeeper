@@ -140,18 +140,19 @@ pub fn case_ctx(gate: &Gate, case: Option<&str>, out: &Path, bench: &Bench) -> R
     let mut cx = RunCtx::lane(&dir, &bench.cache);
     cx.base = Some(base);
     cx.pr_body = pr_body;
-    cx.env = env(&prefixes);
-    cx.names = PrivateNames::parse(names.unwrap_or(typed(&cx.env, "DROVER_PRIVATE_NAMES")));
-    let given = typed(&cx.env, "GATEKEEPER_HEAD");
-    cx.head = Some(if given.is_empty() {
-        head
-    } else {
-        given.to_owned()
-    });
+    let env = env(&prefixes);
+    let given = |key: &str| Some(typed(&env, key)).filter(|v| !v.is_empty());
+    cx.names = PrivateNames::parse(names.unwrap_or(typed(&env, "DROVER_PRIVATE_NAMES")));
+    cx.head = Some(given("GATEKEEPER_HEAD").map_or(head, str::to_owned));
+    if let Some(today) = given("GATEKEEPER_TODAY") {
+        cx.today = today.parse().map_err(Error)?;
+    }
+    cx.env = env;
     cx.integration = config.as_ref().map_or_default(|c| c.integration.clone());
     cx.rust = config.as_ref().map_or_default(|c| c.rust.clone());
     cx.ts = config.as_ref().and_then(|c| c.ts.clone());
     cx.docs = config.as_ref().map_or_default(|c| c.docs.clone());
+    cx.tests = config.as_ref().map_or_default(|c| c.tests.clone());
     cx.swift = config.and_then(|c| c.swift);
     cx.tools = bench.tools.clone();
     cx.platform = bench.platform;

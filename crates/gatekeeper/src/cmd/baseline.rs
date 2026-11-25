@@ -17,7 +17,7 @@ fn write(args: &[String]) -> Result<baseline::Written, Error> {
         .iter()
         .find(|g| g.id == id)
         .ok_or_else(|| Error(format!("{id}: no such gate")))?;
-    baseline::write(gate, &root, &cli::cache(), &config)
+    baseline::write(gate, &root, &cli::cache(), (&config, cli::today()?))
 }
 
 /// `baseline <gate>`: list the gate's findings once; after that only drop the fixed ones.
@@ -29,6 +29,13 @@ pub fn run(args: &[String]) -> ExitCode {
     let root = cli::root().unwrap_or_default();
     let path = written.path.strip_prefix(&root).unwrap_or(&written.path);
     match written.lines {
+        _ if written.note.is_some() => {
+            say(&format!(
+                "{}: {}",
+                path.display(),
+                written.note.unwrap_or_default()
+            ));
+        }
         0 => say(&format!("{}: no findings listed, no file", path.display())),
         n => say(&format!("{}: {n} findings", path.display())),
     }

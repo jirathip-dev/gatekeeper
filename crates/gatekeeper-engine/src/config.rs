@@ -1,5 +1,5 @@
 use crate::{Error, Result, VERSION, packs};
-use gatekeeper_model::{Config, PackId, Pin};
+use gatekeeper_model::{Config, Glob, PackId, Pin};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
@@ -42,6 +42,19 @@ pub fn load(root: &Path) -> Result<Config> {
     {
         return Err(Error(format!(
             "{PATH}: [swift] names its sources and at least one of packages or projects"
+        )));
+    }
+    if config.tests.budget_secs.0 == 0 {
+        return Err(Error(format!("{PATH}: [tests] budget_secs is at least 1")));
+    }
+    let outside = |g: &&Glob| {
+        let g = g.to_string();
+        let rust = Path::new(&g).extension().is_some_and(|x| x == "rs");
+        (rust || g.ends_with('*')) && !g.split('/').any(|p| p == "tests")
+    };
+    if let Some(g) = config.tests.soak.iter().find(outside) {
+        return Err(Error(format!(
+            "{PATH}: [tests] soak `{g}` can match a Rust file outside a tests/ folder: a soak test is its own test target"
         )));
     }
     if let Some(name) = config.tools.keys().find(|t| packs::tool_file(t).is_none()) {

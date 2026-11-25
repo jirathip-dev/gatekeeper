@@ -46,7 +46,7 @@ impl Counted {
         let text = fs::read_to_string(p).unwrap_or_default();
         let body = text
             .lines()
-            .take_while(|l| !(cut && l.trim_start().starts_with("#[cfg(test)]")));
+            .take_while(|l| !(cut && crate::health::count::starts_tail(l)));
         body.filter(|l| !(self.skip_blank && l.trim().is_empty()))
             .count()
     }

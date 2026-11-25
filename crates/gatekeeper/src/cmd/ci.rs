@@ -41,7 +41,8 @@ fn done(args: &Args) -> Result<bool, Error> {
         .value("--reports")
         .ok_or_else(|| Error("ci done needs --reports DIR".into()))?;
     let out = args.value("--timings-out").map(Path::new);
-    let (table, problems) = ci::done(&plan, Path::new(reports), out)?;
+    let entry = args.value("--entry").map(Path::new);
+    let (table, problems) = ci::done(&plan, Path::new(reports), (entry, out))?;
     say(&table);
     for p in &problems {
         say(&format!("FAIL {p}"));
@@ -49,7 +50,7 @@ fn done(args: &Args) -> Result<bool, Error> {
     Ok(!problems.is_empty())
 }
 
-/// `ci plan [--pack P] [--runners JSON] [--timings ENTRY] [--all]` prints the job matrices; `ci done --reports DIR [--runners JSON] [--timings-out DIR]` merges the reports.
+/// `ci plan [--pack P] [--runners JSON] [--timings ENTRY] [--all]` prints the job matrices; `ci done --reports DIR [--runners JSON] [--entry DIR] [--timings-out DIR]` merges the reports and compares each leg's time with the entry's.
 pub fn run(args: &[String]) -> ExitCode {
     let Some((sub, rest)) = args.split_first() else {
         return cli::usage_error(&"ci: plan or done");
@@ -62,6 +63,7 @@ pub fn run(args: &[String]) -> ExitCode {
             "--reports",
             "--timings",
             "--timings-out",
+            "--entry",
         ],
         &["--all"],
     );

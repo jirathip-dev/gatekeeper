@@ -2,6 +2,7 @@ mod cache;
 mod docs;
 mod gate;
 mod glob;
+mod health;
 mod names;
 mod report;
 mod scope;
@@ -14,6 +15,7 @@ pub use cache::{
 pub use docs::{AGENT_TEXT, DOCS, DocsConfig, Excuses, Names, Prefix, RECORDS, SetName, Source};
 pub use gate::{Capability, Gate, GateFile, PackFile, Platform, Step, Toolchain, Upload};
 pub use glob::Glob;
+pub use health::{Ceiling, Date, Health, Lines, TestsConfig};
 pub use names::PrivateNames;
 pub use report::{
     BudgetMode, CacheTotals, Failure, GateReport, Host, JobReport, Kept, Millis, Outcome, Report,
@@ -167,6 +169,8 @@ pub struct Config {
     pub tools: BTreeMap<String, String>,
     #[serde(default)]
     pub docs: DocsConfig,
+    #[serde(default)]
+    pub tests: TestsConfig,
 }
 
 /// Which gatekeeper runs: this checkout's build, or a release by version and per-target sha256.

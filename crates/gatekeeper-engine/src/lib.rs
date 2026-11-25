@@ -7,6 +7,7 @@ pub mod config;
 pub(crate) mod docs;
 pub mod fetch;
 pub mod graph;
+pub(crate) mod health;
 pub(crate) mod kept;
 pub mod packs;
 pub mod pin;
