@@ -51,6 +51,14 @@ glob = "*.rs"
 dir = "crates/gatekeeper-engine/tests/health"
 glob = "*/case.toml"
 
+[[collect]]
+dir = "crates/gatekeeper-engine/src/ratchet"
+glob = "*.rs"
+
+[[collect]]
+dir = "crates/gatekeeper-engine/tests/ratchet"
+glob = "*/case.toml"
+
 [[layer]]
 name = "model"
 paths = ["crates/gatekeeper-model/src/**"]
@@ -148,3 +156,15 @@ max_file_lines = 150
 [comments]
 policy = "strict"
 except = ["packs/*/fixtures/**"]
+
+[[ban]]
+pattern = "runner::"
+paths = ["crates/gatekeeper-engine/src/ratchet/**"]
+except = ["crates/gatekeeper-engine/src/ratchet/change.rs"]
+reason = "the ratchet rules are pure: a tool's output in, findings out; one module reads git"
+
+[[ban]]
+pattern = "fs::"
+paths = ["crates/gatekeeper-engine/src/ratchet/**"]
+except = ["crates/gatekeeper-engine/src/ratchet/folder.rs", "crates/gatekeeper-engine/src/ratchet/change.rs"]
+reason = "the ratchet rules are pure: a tool's output in, findings out; two modules read files"
