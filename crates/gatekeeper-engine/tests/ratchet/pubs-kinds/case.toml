@@ -1,0 +1,33 @@
+about = "each kind of finding, and what the scan does not read: fields, pub(crate), pub use, comments, the declaration"
+members = [{ dir = "crates/a", published = false }, { dir = "crates/b", published = false }]
+out = [
+    "crates/a/src/lib.rs: pub fn probe: only tests name it",
+    "crates/a/src/lib.rs: pub struct Old: nothing names it",
+    "crates/a/src/lib.rs: pub fn helper: no other crate names it",
+]
+
+[files]
+"crates/a/src/lib.rs" = """
+pub use inner::api;
+pub(crate) fn hidden() {}
+pub struct Shape {
+    pub side: u8,
+}
+pub const fn probe() -> u8 { 2 }
+pub struct Old;
+impl Old {}
+impl Default for Shape {
+    fn default() -> Self { Shape { side: helper() } }
+}
+pub fn helper() -> u8 { 1 } // api helper Old
+#[cfg(test)]
+mod tests {
+    fn t() { super::probe(); }
+}
+"""
+"crates/a/src/inner.rs" = """
+pub fn api() -> u8 { 1 }
+"""
+"crates/b/src/main.rs" = """
+fn main() { let _ = a::api(); let _: a::Shape = Default::default(); }
+"""

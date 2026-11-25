@@ -1,0 +1,9 @@
+about = "pinned cargo-machete and the pub scan: no unused dependency, no machete ignore, no pub item that no other crate names, that only tests name, or a type nothing names, beyond the baseline"
+fix = "write pub(crate), and the compiler then says whether it is dead; delete an unused dependency or its machete ignore; a crate others build against goes under [rust.exported] with its reason; once one is fixed, shrink the list: ./.gatekeeper/run baseline rust/dead-code"
+budget_secs = 60
+
+[[step]]
+check = "machete"
+
+[[step]]
+check = "unused-pub"

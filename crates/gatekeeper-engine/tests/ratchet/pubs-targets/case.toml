@@ -1,0 +1,33 @@
+about = "a binary's pub items are its own target's; tests/ is another target but test code; a published crate and an exported file are exempt; the same text twice is numbered"
+members = [{ dir = ".", published = false }, { dir = "crates/lib", published = true }, { dir = "crates/ffi", published = false }]
+exported = ["crates/ffi/src/**"]
+out = [
+    "src/cmd.rs: pub fn checked: only tests name it",
+    "src/cmd.rs: pub fn new: no other crate names it",
+    "src/cmd.rs: pub fn new: no other crate names it #2",
+    "src/main.rs: pub fn run: no other crate names it",
+]
+
+[files]
+"src/main.rs" = """
+mod cmd;
+fn main() { run(); cmd::new(); cmd::Two::new(); }
+pub fn run() {}
+"""
+"src/cmd.rs" = """
+pub fn checked() {}
+pub fn new() {}
+pub struct Two;
+impl Two {
+    pub fn new() {}
+}
+"""
+"tests/cli.rs" = """
+fn t() { checked(); }
+"""
+"crates/lib/src/lib.rs" = """
+pub fn lonely() {}
+"""
+"crates/ffi/src/lib.rs" = """
+pub fn from_swift() {}
+"""

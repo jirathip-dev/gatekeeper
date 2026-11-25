@@ -1,0 +1,6 @@
+packs = ["rust"]
+integration = "main"
+pin = "checkout"
+
+[rust.exported]
+"crates/a/src/lib.rs" = "called from a host program outside the workspace"

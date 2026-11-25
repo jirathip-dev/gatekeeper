@@ -130,6 +130,8 @@ pub(crate) fn gate(
         .into_owned();
     report.kept = kept::collect(gate, &cx.root, &cx.out)?;
     report.projects = projects.to_vec();
-    report.note = summary.into_inner();
+    let listed = (listed.len() > 0).then(|| format!("{} listed", listed.len()));
+    let notes: Vec<String> = summary.into_inner().into_iter().chain(listed).collect();
+    report.note = (!notes.is_empty()).then(|| notes.join("; "));
     Ok(report)
 }

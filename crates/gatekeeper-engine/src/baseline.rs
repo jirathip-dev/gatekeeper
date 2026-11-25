@@ -56,6 +56,10 @@ impl Baseline {
         new
     }
 
+    pub(crate) fn len(&self) -> usize {
+        self.listed.len()
+    }
+
     pub(crate) fn stale(&self) -> impl Iterator<Item = &String> {
         self.listed.difference(&self.met)
     }
