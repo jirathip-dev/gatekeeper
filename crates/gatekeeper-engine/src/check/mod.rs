@@ -15,6 +15,7 @@ pub mod rules;
 pub mod swift_tokens;
 pub mod swift_warnings;
 pub mod test_health;
+pub mod test_sleeps;
 pub mod tsc;
 
 use crate::run::CheckCx;
@@ -38,6 +39,7 @@ pub const NAMES: &[&str] = &[
     "swift-tokens",
     "swift-warnings",
     "test-health",
+    "test-sleeps",
     "tsc",
 ];
 
@@ -60,6 +62,7 @@ pub fn run(name: &str, cx: &CheckCx) -> Result<Vec<String>> {
         "swift-tokens" => swift_tokens::run(cx),
         "swift-warnings" => swift_warnings::run(cx),
         "test-health" => test_health::run(cx),
+        "test-sleeps" => test_sleeps::run(cx),
         "tsc" => tsc::run(cx),
         _ => Err(Error(format!("no built-in check `{name}`"))),
     }

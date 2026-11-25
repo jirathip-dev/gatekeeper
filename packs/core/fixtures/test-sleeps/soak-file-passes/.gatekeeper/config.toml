@@ -1,0 +1,6 @@
+packs = ["core"]
+integration = "main"
+pin = "checkout"
+
+[tests]
+soak = ["crates/*/tests/soak.rs"]
