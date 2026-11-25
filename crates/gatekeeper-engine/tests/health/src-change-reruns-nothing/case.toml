@@ -1,0 +1,36 @@
+about = "a change above the test tail of a Rust file is no test change"
+runner = "nextest"
+trigger = "pull-request"
+runs = ["nextest.xml"]
+slow = ["demo-app board::tests::renders_slowly"]
+rerun = []
+only = ""
+findings = ["failed: demo-app tests::fails_on_purpose"]
+warnings = ["warn: over 2 s, listed: demo-app board::tests::renders_slowly 2.5 s"]
+diff = '''
+diff --git a/src/lib.rs b/src/lib.rs
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -2 +2 @@
+-pub fn add(a: u32, b: u32) -> u32 { b + a }
++pub fn add(a: u32, b: u32) -> u32 { a + b }
+'''
+
+[krates]
+"" = "demo-app"
+
+[head]
+"src/lib.rs" = '''pub mod board;
+pub fn add(a: u32, b: u32) -> u32 { a + b }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn adds() { assert_eq!(add(2, 1), 3); }
+    #[test]
+    fn fails_on_purpose() { assert_eq!(add(1, 2), 4); }
+    #[test]
+    #[ignore]
+    fn ignored() {}
+}
+'''

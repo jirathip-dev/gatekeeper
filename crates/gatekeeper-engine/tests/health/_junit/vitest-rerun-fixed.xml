@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="3" failures="0" errors="0" time="2.288517083">
+    <testsuite name="src/board.test.ts" timestamp="2026-11-25T13:10:25.433Z" hostname="localhost" tests="3" failures="0" errors="0" skipped="1" time="2.288517083">
+        <testcase classname="src/board.test.ts" name="board &gt; renders 30k events" time="2.283113042">
+        </testcase>
+        <testcase classname="src/board.test.ts" name="board &gt; sums &amp; &lt;counts&gt;" time="0.00085025">
+        </testcase>
+        <testcase classname="src/board.test.ts" name="board &gt; waits" time="0">
+            <skipped/>
+        </testcase>
+    </testsuite>
+</testsuites>

@@ -15,7 +15,9 @@ pub use cache::{
 pub use docs::{AGENT_TEXT, DOCS, DocsConfig, Excuses, Names, Prefix, RECORDS, SetName, Source};
 pub use gate::{Capability, Gate, GateFile, PackFile, Platform, Step, Toolchain, Upload};
 pub use glob::Glob;
-pub use health::{Ceiling, Date, Health, Lines, TestsConfig};
+pub use health::{
+    Case, Ceiling, Changed, Date, Ended, Health, Lines, RunKind, Runner, TestId, TestsConfig, Timed,
+};
 pub use names::PrivateNames;
 pub use report::{
     BudgetMode, CacheTotals, Failure, GateReport, Host, JobReport, Kept, Millis, Outcome, Report,

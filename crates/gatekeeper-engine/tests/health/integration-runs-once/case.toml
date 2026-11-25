@@ -1,0 +1,8 @@
+about = "a push to the integration branch reruns nothing; over budget is a warning"
+runner = "nextest"
+trigger = "integration"
+runs = ["nextest.xml"]
+rerun = []
+only = ""
+findings = ["failed: demo-app tests::fails_on_purpose"]
+warnings = ["warn: over 2 s: demo-app board::tests::renders_slowly took 2.5 s at its fastest of 1"]

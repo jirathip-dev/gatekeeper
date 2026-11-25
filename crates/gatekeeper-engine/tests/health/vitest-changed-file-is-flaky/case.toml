@@ -1,0 +1,22 @@
+about = "a changed vitest file runs its tests twice more: runs that differ are flaky"
+runner = "vitest"
+root = "web"
+trigger = "pull-request"
+runs = ["vitest.xml", "vitest-rerun-fixed.xml", "vitest.xml"]
+rerun = ["src/board.test.ts board > renders 30k events", "src/board.test.ts board > sums & <counts>"]
+only = "'src/board.test.ts'"
+findings = [
+    "over 2 s: src/board.test.ts board > renders 30k events took 2.2 s at its fastest of 3 (changed in this change)",
+    "flaky: src/board.test.ts board > sums & <counts> passed 1 of 3 runs",
+]
+diff = '''
+diff --git a/web/src/board.test.ts b/web/src/board.test.ts
+--- a/web/src/board.test.ts
++++ b/web/src/board.test.ts
+@@ -7 +7 @@ describe("board", () => {
+-  it("sums & <counts>", () => expect(1 + 1).toBe(2));
++  it("sums & <counts>", () => expect(1 + 1).toBe(3));
+'''
+
+[head]
+"web/src/board.test.ts" = "it(\"sums\")\n"

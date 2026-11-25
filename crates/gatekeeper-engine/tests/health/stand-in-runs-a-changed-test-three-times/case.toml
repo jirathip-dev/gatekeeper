@@ -1,0 +1,38 @@
+about = "the stand-in runner is called three times: the whole line, then twice with {only} naming the changed test; pass, fail, pass is flaky"
+gate = """
+about = "the tests, timed"
+fix = "fix the test the log names"
+budget_secs = 30
+run = "sh runner.sh {only}"
+
+[timed]
+runner = "nextest"
+junit = "target/nextest/ci/junit.xml"
+"""
+runs = ["nextest-rerun-adds.xml", "stand-in-adds-fail.xml", "nextest-rerun-adds.xml"]
+calls = ["", "-E (binary_id(=demo-app) & test(=tests::adds))", "-E (binary_id(=demo-app) & test(=tests::adds))"]
+fails = true
+log = ["1 tests · 1 run 3 times · 0 over 2 s listed", "flaky: demo-app tests::adds passed 2 of 3 runs"]
+
+[base]
+"Cargo.toml" = "[package]\nname = \"demo-app\"\nversion = \"0.1.0\"\n"
+"src/lib.rs" = """
+pub fn add(a: u32, b: u32) -> u32 { a + b }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn adds() { assert_eq!(add(1, 2), 3); }
+}
+"""
+
+[head]
+"src/lib.rs" = """
+pub fn add(a: u32, b: u32) -> u32 { a + b }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn adds() { assert_eq!(add(2, 1), 3); }
+}
+"""

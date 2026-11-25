@@ -1,0 +1,26 @@
+about = "with no test changed and none over budget the stand-in runner is called once"
+gate = """
+about = "the tests, timed"
+fix = "fix the test the log names"
+budget_secs = 30
+run = "sh runner.sh {only}"
+
+[timed]
+runner = "nextest"
+junit = "target/nextest/ci/junit.xml"
+"""
+runs = ["nextest-rerun-adds.xml"]
+calls = [""]
+log = ["1 tests · 0 run 3 times · 0 over 2 s listed"]
+
+[base]
+"Cargo.toml" = "[package]\nname = \"demo-app\"\nversion = \"0.1.0\"\n"
+"src/lib.rs" = """
+pub fn add(a: u32, b: u32) -> u32 { a + b }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn adds() { assert_eq!(add(1, 2), 3); }
+}
+"""
