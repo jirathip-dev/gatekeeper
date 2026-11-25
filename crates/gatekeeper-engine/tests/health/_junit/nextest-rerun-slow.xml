@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="nextest-run" tests="1" skipped="0" failures="0" errors="0" uuid="2d5281a3-17a9-42aa-b624-4a6a744c2718" timestamp="2026-11-25T20:10:10.942+07:00" time="2.523">
+    <testsuite name="demo-app" tests="1" skipped="0" errors="0" failures="0">
+        <testcase name="board::tests::renders_slowly" classname="demo-app" timestamp="2026-11-25T20:10:10.949+07:00" time="2.513"/>
+    </testsuite>
+</testsuites>

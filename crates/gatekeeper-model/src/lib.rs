@@ -16,7 +16,8 @@ pub use docs::{AGENT_TEXT, DOCS, DocsConfig, Excuses, Names, Prefix, RECORDS, Se
 pub use gate::{Capability, Gate, GateFile, PackFile, Platform, Step, Toolchain, Upload};
 pub use glob::Glob;
 pub use health::{
-    Ceiling, Coverage, CoverageTool, Covered, Date, Health, Lines, Tenths, TestsConfig,
+    Case, Ceiling, Changed, Coverage, CoverageTool, Covered, Date, Ended, Health, Lines, RunKind,
+    Runner, Tenths, TestId, TestsConfig, Timed,
 };
 pub use names::PrivateNames;
 pub use report::{
@@ -201,6 +202,7 @@ pub struct ReleasePin {
 pub struct RustPack {
     pub manifest: String,
     pub unsafe_crates: Vec<String>,
+    pub exported: Excuses,
 }
 
 impl Default for RustPack {
@@ -208,6 +210,7 @@ impl Default for RustPack {
         RustPack {
             manifest: "Cargo.toml".into(),
             unsafe_crates: Vec::new(),
+            exported: Excuses::default(),
         }
     }
 }

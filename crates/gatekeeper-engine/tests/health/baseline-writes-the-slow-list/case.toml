@@ -1,0 +1,13 @@
+about = "baseline <timed gate> runs the line once and lists each test over budget"
+gate = """
+about = "the tests, timed"
+fix = "fix the test the log names"
+budget_secs = 30
+run = "sh runner.sh {only}"
+
+[timed]
+runner = "nextest"
+junit = "target/nextest/ci/junit.xml"
+"""
+runs = ["nextest.xml"]
+baseline = "over budget: demo-app board::tests::renders_slowly\n"

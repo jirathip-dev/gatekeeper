@@ -23,6 +23,7 @@ fn always_passing(name: &str) -> Gate {
         cache: true,
         select: None,
         coverage: None,
+        timed: None,
     }
 }
 

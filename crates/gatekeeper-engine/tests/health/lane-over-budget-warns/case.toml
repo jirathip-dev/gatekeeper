@@ -1,0 +1,8 @@
+about = "on a lane's host over budget is a warning; the reruns still run"
+runner = "nextest"
+trigger = "lane"
+runs = ["nextest.xml", "nextest-rerun-slow.xml", "nextest-rerun-slow.xml"]
+rerun = ["demo-app board::tests::renders_slowly"]
+only = "-E '(binary_id(=demo-app) & test(=board::tests::renders_slowly))'"
+findings = ["failed: demo-app tests::fails_on_purpose"]
+warnings = ["warn: over 2 s: demo-app board::tests::renders_slowly took 2.5 s at its fastest of 3"]

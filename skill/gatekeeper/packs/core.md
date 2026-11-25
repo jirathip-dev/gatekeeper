@@ -88,6 +88,16 @@ the PR body names the head, has `## For humans`, has no "Generated with" line
 - rerun: `./.gatekeeper/run check --gate core/pr-body`
 - what a failure looks like: [core-pr-body](../examples/core-pr-body.md)
 
+## core/ratchet
+
+against the base, no pack gate's baseline list grew, unless a commit carries its Ratchet: trailer or the change moves [pin]
+
+- fix: fix the new finding instead of listing it; a raise is the owner's decision, its commit carries `Ratchet: <pack/gate> <old> → <new> (#issue, q<N>)`
+- budget: 5s
+- cached: no, cache = false
+- rerun: `./.gatekeeper/run check --gate core/ratchet`
+- what a failure looks like: [core-ratchet](../examples/core-ratchet.md)
+
 ## core/rules
 
 every active check in .drover/rules.md passes, each rule names its enforcer, and the file is at most 30 lines; writes checks.json for drover's lesson lane
@@ -107,3 +117,13 @@ the test-to-src line ratio under the lowest ceiling in ci/tests/ratio.d, a ceili
 - cached: no, cache = false
 - rerun: `./.gatekeeper/run check --gate core/test-health`
 - what a failure looks like: [core-test-health](../examples/core-test-health.md)
+
+## core/test-sleeps
+
+no sleep or wall-clock read in a test line, by the patterns in the core pack's test-sleeps.toml; soak files are exempt
+
+- fix: wait on the event, a channel or a fake clock instead; a perf or timing test moves into a [tests] soak file. Existing hits: ./.gatekeeper/run baseline core/test-sleeps, a list that only shrinks
+- budget: 5s
+- cached: no, cache = false
+- rerun: `./.gatekeeper/run check --gate core/test-sleeps`
+- what a failure looks like: [core-test-sleeps](../examples/core-test-sleeps.md)

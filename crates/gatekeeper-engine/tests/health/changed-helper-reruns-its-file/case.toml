@@ -1,0 +1,28 @@
+about = "test code outside every test function of a file reruns that file's tests; a listed one changed fails over budget"
+runner = "nextest"
+trigger = "pull-request"
+runs = ["nextest.xml", "nextest-rerun-slow.xml", "nextest-rerun-slow.xml"]
+slow = ["demo-app board::tests::renders_slowly"]
+rerun = ["demo-app board::tests::renders_slowly"]
+only = "-E '(binary_id(=demo-app) & test(=board::tests::renders_slowly))'"
+findings = ["failed: demo-app tests::fails_on_purpose", "over 2 s: demo-app board::tests::renders_slowly took 2.5 s at its fastest of 3 (changed in this change)"]
+diff = '''
+diff --git a/crates/app/src/board.rs b/crates/app/src/board.rs
+--- a/crates/app/src/board.rs
++++ b/crates/app/src/board.rs
+@@ -3,0 +4 @@ mod tests {
++    // a helper changed here
+'''
+
+[krates]
+"crates/app" = "demo-app"
+
+[head]
+"crates/app/src/board.rs" = '''pub fn render() -> usize { 3 }
+#[cfg(test)]
+mod tests {
+    // a helper changed here
+    #[test]
+    fn renders_slowly() { std::thread::sleep(std::time::Duration::from_millis(2300)); assert_eq!(super::render(), 3); }
+}
+'''

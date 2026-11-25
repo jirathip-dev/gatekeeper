@@ -1,9 +1,10 @@
 use super::RunCtx;
 use super::line::{Vars, expand, filled};
 use crate::baseline::{self, Baseline};
+use crate::health::{self, timed};
 use crate::runner::{self, Ended};
 use crate::select::Picked;
-use crate::{Error, Result, fetch, health, kept};
+use crate::{Error, Result, fetch, kept};
 use gatekeeper_model::{Failure, Gate, GateReport, Platform, Shard, Step, judge};
 use std::cell::OnceCell;
 use std::fs::File;
@@ -99,15 +100,23 @@ pub(crate) fn gate(
     vars.extend([
         ("{shard}", shard.to_string()),
         ("{projects}", projects.join(" ")),
+        ("{only}", String::new()),
     ]);
     let at = (gate, &vars, picked.map_or(&[][..], |p| &p.files[..]));
     let summary = picked.map_or_else(OnceCell::new, |p| OnceCell::from(p.note.clone()));
     let mut covered = None;
-    let result = here(gate, cx, &mut log)
-        .and_then(|()| {
-            let mut steps = gate.steps.iter();
-            steps.try_for_each(|s| step(s, at, cx, &mut log, deadline, &mut listed, &summary))
-        })
+    let steps = here(gate, cx, &mut log).and_then(|()| {
+        let mut steps = gate.steps.iter();
+        steps.try_for_each(|s| step(s, at, cx, &mut log, deadline, &mut listed, &summary))
+    });
+    let run = timed::Run {
+        gate,
+        cx,
+        vars: &vars,
+        start,
+        deadline,
+    };
+    let result = health::after(steps, &run, (&mut log, &mut listed, &summary))
         .and_then(|()| {
             let mut stale = listed.stale().peekable();
             let none = stale.peek().is_none();
@@ -121,7 +130,7 @@ pub(crate) fn gate(
             }
             if none { Ok(()) } else { Err(Failure::Exit(1)) }
         })
-        .and_then(|()| health::after(gate, cx, &mut log, (&summary, &mut covered)));
+        .and_then(|()| health::coverage(gate, cx, &mut log, (&summary, &mut covered)));
     let took = start.elapsed().into();
     let mut report = GateReport::unrun(gate, judge(result, took, gate.budget, cx.host));
     report.took = took;
@@ -132,7 +141,10 @@ pub(crate) fn gate(
         .into_owned();
     report.kept = kept::collect(gate, &cx.root, &cx.out)?;
     report.projects = projects.to_vec();
-    report.note = summary.into_inner();
+    let n = listed.listed().count();
+    let listed = (n > 0).then(|| format!("{n} listed"));
+    let notes: Vec<String> = summary.into_inner().into_iter().chain(listed).collect();
+    report.note = (!notes.is_empty()).then(|| notes.join("; "));
     report.coverage = covered;
     Ok(report)
 }

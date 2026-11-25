@@ -1,3 +1,4 @@
+use crate::ratchet::trailer;
 use crate::run::CheckCx as Cx;
 use crate::{Error, Result, runner};
 use gatekeeper_model::Glob;
@@ -88,24 +89,6 @@ fn cap_table(text: &str) -> Option<toml::Table> {
         .cloned()
 }
 
-fn trailer(l: &str) -> bool {
-    let num = |t: &str| !t.is_empty() && t.bytes().all(|b| b.is_ascii_digit());
-    let Some((old, rest)) = l
-        .trim()
-        .strip_prefix("Cap: ")
-        .and_then(|t| t.split_once(" → "))
-    else {
-        return false;
-    };
-    let Some((new, refs)) = rest.split_once(" (#") else {
-        return false;
-    };
-    let Some((issue, q)) = refs.strip_suffix(')').and_then(|t| t.split_once(", q")) else {
-        return false;
-    };
-    [old, new, issue, q].into_iter().all(num)
-}
-
 fn untrailed(cx: &Cx, base: &str) -> Result<Vec<String>> {
     let range = format!("{base}..HEAD");
     let args = [
@@ -123,7 +106,11 @@ fn untrailed(cx: &Cx, base: &str) -> Result<Vec<String>> {
         .skip(1)
         .map(|c| c.split_once('\x1f').unwrap_or((c, "")));
     Ok(each
-        .filter(|(_, body)| !body.lines().any(trailer))
+        .filter(|(_, body)| {
+            !trailer::find(body, "Cap")
+                .iter()
+                .any(|t| t.record.is_none())
+        })
         .map(|(sha, _)| {
             format!(
                 "{sha} edits the line cap without a `Cap: <old> → <new> (#issue, q<N>)` trailer"

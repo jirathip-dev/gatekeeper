@@ -1,0 +1,12 @@
+about = "a [timed] gate whose line has no {only} is refused when its file is read"
+gate = """
+about = "the tests, timed"
+fix = "fix the test the log names"
+budget_secs = 30
+run = "sh runner.sh"
+
+[timed]
+runner = "nextest"
+junit = "target/nextest/ci/junit.xml"
+"""
+refused = "[timed] needs `{only}` in `run`"

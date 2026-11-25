@@ -8,14 +8,18 @@ pub mod docs;
 pub mod hygiene;
 pub mod knip;
 pub mod lint_floor;
+pub mod machete;
 pub mod oxlint;
 pub mod pin;
 pub mod pr_body;
+pub mod ratchet;
 pub mod rules;
 pub mod swift_tokens;
 pub mod swift_warnings;
 pub mod test_health;
+pub mod test_sleeps;
 pub mod tsc;
+pub mod unused_pub;
 
 use crate::run::CheckCx;
 use crate::{Error, Result};
@@ -31,14 +35,18 @@ pub const NAMES: &[&str] = &[
     "hygiene",
     "knip",
     "lint-floor",
+    "machete",
     "oxlint",
     "pin",
     "pr-body",
+    "ratchet",
     "rules",
     "swift-tokens",
     "swift-warnings",
     "test-health",
+    "test-sleeps",
     "tsc",
+    "unused-pub",
 ];
 
 pub fn run(name: &str, cx: &CheckCx) -> Result<Vec<String>> {
@@ -53,14 +61,18 @@ pub fn run(name: &str, cx: &CheckCx) -> Result<Vec<String>> {
         "hygiene" => hygiene::run(cx),
         "knip" => knip::run(cx),
         "lint-floor" => lint_floor::run(cx),
+        "machete" => machete::run(cx),
         "oxlint" => oxlint::run(cx),
         "pin" => pin::run(cx),
         "pr-body" => pr_body::run(cx),
+        "ratchet" => ratchet::run(cx),
         "rules" => rules::run(cx),
         "swift-tokens" => swift_tokens::run(cx),
         "swift-warnings" => swift_warnings::run(cx),
         "test-health" => test_health::run(cx),
+        "test-sleeps" => test_sleeps::run(cx),
         "tsc" => tsc::run(cx),
+        "unused-pub" => unused_pub::run(cx),
         _ => Err(Error(format!("no built-in check `{name}`"))),
     }
 }

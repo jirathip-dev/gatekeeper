@@ -1,0 +1,7 @@
+about = "against the base, no pack gate's baseline list grew, unless a commit carries its Ratchet: trailer or the change moves [pin]"
+fix = "fix the new finding instead of listing it; a raise is the owner's decision, its commit carries `Ratchet: <pack/gate> <old> → <new> (#issue, q<N>)`"
+budget_secs = 5
+cache = false
+
+[[step]]
+check = "ratchet"
