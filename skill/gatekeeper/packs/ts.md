@@ -2,6 +2,16 @@
 
 tsc strict, oxlint with the bans and the anti-slop rules, knip's unused-code ratchet
 
+## ts/complexity
+
+pinned oxlint with the pack's complexity config alone: no function over complexity 20 or 60 lines beyond the baseline
+
+- fix: split the function the line names; once one is fixed, shrink the list: ./.gatekeeper/run baseline ts/complexity
+- budget: 30s
+- cached: yes
+- rerun: `./.gatekeeper/run check --gate ts/complexity`
+- what a failure looks like: [ts-complexity](../examples/ts-complexity.md)
+
 ## ts/knip
 
 pinned knip with the repo's own knip config: no unused file, export or dependency beyond the baseline

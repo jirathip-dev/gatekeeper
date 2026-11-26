@@ -1,0 +1,10 @@
+about = "oxlint 1.94.0's JSON with the complexity config: two unnamed arrow functions told apart in file order, named ones by name"
+oxlint = '''
+{"diagnostics":[{"message":"function has a complexity of 22. Maximum allowed is 20.","code":"eslint(complexity)","severity":"error","url":"https://oxc.rs/docs/guide/usage/linter/rules/eslint/complexity.html","filename":"src/case.ts","labels":[{"span":{"offset":21,"length":590,"line":1,"column":22}}]},{"message":"function has a complexity of 22. Maximum allowed is 20.","code":"eslint(complexity)","severity":"error","url":"https://oxc.rs/docs/guide/usage/linter/rules/eslint/complexity.html","filename":"src/case.ts","labels":[{"span":{"offset":636,"length":590,"line":26,"column":23}}]},{"message":"function `tangled` has a complexity of 22. Maximum allowed is 20.","code":"eslint(complexity)","severity":"error","url":"https://oxc.rs/docs/guide/usage/linter/rules/eslint/complexity.html","filename":"src/case.ts","labels":[{"span":{"offset":1236,"length":603,"line":51,"column":8}}]},{"message":"The function `long` has too many lines (66). Maximum allowed is 60.","code":"eslint(max-lines-per-function)","severity":"error","url":"https://oxc.rs/docs/guide/usage/linter/rules/eslint/max-lines-per-function.html","help":"Consider splitting it into smaller functions.","filename":"src/case.ts","labels":[{"span":{"offset":1848,"length":1237,"line":76,"column":8}}]}],"number_of_files":1,"number_of_rules":2,"threads_count":12,"start_time":0.165481791}
+'''
+out = [
+    "src/case.ts: function: complexity over 20",
+    "src/case.ts: function #2: complexity over 20",
+    "src/case.ts: function tangled: complexity over 20",
+    "src/case.ts: function long: over 60 lines",
+]
