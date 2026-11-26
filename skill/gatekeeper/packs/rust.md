@@ -27,6 +27,16 @@ clippy with the repo's lints (pedantic and the bans), -D warnings, the pack's cl
 - rerun: `./.gatekeeper/run check --gate rust/clippy`
 - what a failure looks like: [rust-clippy](../examples/rust-clippy.md)
 
+## rust/complexity
+
+one more clippy pass with too_many_lines (over 60) and cognitive_complexity (over 25) forced on through every allow: no function over a threshold beyond the baseline
+
+- fix: split the function the line names; an allow does not hide it; once one is fixed, shrink the list: ./.gatekeeper/run baseline rust/complexity
+- budget: 180s
+- cached: yes
+- rerun: `./.gatekeeper/run check --gate rust/complexity`
+- what a failure looks like: [rust-complexity](../examples/rust-complexity.md)
+
 ## rust/dead-code
 
 pinned cargo-machete and the pub scan: no unused dependency, no machete ignore, no pub item that no other crate names, that only tests name, or a type nothing names, beyond the baseline

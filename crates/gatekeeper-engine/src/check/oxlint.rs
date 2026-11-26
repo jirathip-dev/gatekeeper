@@ -11,17 +11,25 @@ fn diagnostic(d: &Value) -> Option<String> {
     Some(format!("{file}: {code}: {message}"))
 }
 
-/// Pinned oxlint over the `[ts]` projects with the pack's config; each diagnostic is a finding.
-pub fn run(cx: &Cx) -> Result<Vec<String>> {
+fn diagnostics(report: &Value) -> impl Iterator<Item = &Value> {
+    report
+        .get("diagnostics")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+}
+
+pub(crate) fn report(cx: &Cx, files: &str, flags: &[&str]) -> Result<Value> {
     let ts = cx.ts()?;
     let bin = cx.tool("oxlint")?;
-    packs::materialize(FILES, cx.scratch)?;
+    packs::materialize(files, cx.scratch)?;
     let config = cx
         .scratch
         .join("oxlintrc.json")
         .to_string_lossy()
         .into_owned();
     let mut args = vec!["-c", config.as_str(), "--format", "json"];
+    args.extend(flags);
     args.extend(ts.projects.iter().map(String::as_str));
     let out = runner::capture(&bin.to_string_lossy(), &args, cx.root)?;
     let report: Value = serde_json::from_slice(&out.stdout).map_err(|e| {
@@ -30,19 +38,18 @@ pub fn run(cx: &Cx) -> Result<Vec<String>> {
             String::from_utf8_lossy(&out.stderr).trim()
         ))
     })?;
-    let findings: Vec<String> = report
-        .get("diagnostics")
-        .and_then(Value::as_array)
-        .into_iter()
-        .flatten()
-        .filter_map(diagnostic)
-        .collect();
-    if findings.is_empty() && !out.status.success() {
+    if diagnostics(&report).next().is_none() && !out.status.success() {
         return Err(Error(format!(
             "oxlint exited {}: {}",
             out.status,
             String::from_utf8_lossy(&out.stderr).trim()
         )));
     }
-    Ok(findings)
+    Ok(report)
+}
+
+/// Pinned oxlint over the `[ts]` projects with the pack's config; each diagnostic is a finding.
+pub fn run(cx: &Cx) -> Result<Vec<String>> {
+    let report = report(cx, FILES, &[])?;
+    Ok(diagnostics(&report).filter_map(diagnostic).collect())
 }
