@@ -19,6 +19,8 @@ struct Case {
     _about: String,
     machete: Option<String>,
     jscpd: Option<String>,
+    clippy: Option<String>,
+    oxlint: Option<String>,
     #[serde(default)]
     members: Vec<Dir>,
     #[serde(default)]
@@ -41,6 +43,12 @@ fn run(case: Case) -> Vec<String> {
             .chain(each)
             .chain(found.clones)
             .collect();
+    }
+    if let Some(json_lines) = case.clippy {
+        return reports::clippy(&json_lines);
+    }
+    if let Some(json) = case.oxlint {
+        return reports::oxlint(&serde_json::from_str(&json).expect("oxlint json"));
     }
     if let (Some(word), Some(bodies)) = (case.word, case.bodies) {
         let found = trailer::find(&bodies, &word);
@@ -80,5 +88,5 @@ fn each_ratchet_case_reads_its_input_into_exactly_its_lines() {
         assert_eq!(run(case), want, "{name}");
         seen += 1;
     }
-    assert_eq!(seen, 8);
+    assert_eq!(seen, 10);
 }

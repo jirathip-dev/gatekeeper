@@ -148,11 +148,14 @@ pub fn case_ctx(gate: &Gate, case: Option<&str>, out: &Path, bench: &Bench) -> R
         cx.today = today.parse().map_err(Error)?;
     }
     cx.env = env;
-    cx.integration = config.as_ref().map_or_default(|c| c.integration.clone());
-    cx.rust = config.as_ref().map_or_default(|c| c.rust.clone());
+    cx.integration = config
+        .as_ref()
+        .map(|c| c.integration.clone())
+        .unwrap_or_default();
+    cx.rust = config.as_ref().map(|c| c.rust.clone()).unwrap_or_default();
     cx.ts = config.as_ref().and_then(|c| c.ts.clone());
-    cx.docs = config.as_ref().map_or_default(|c| c.docs.clone());
-    cx.tests = config.as_ref().map_or_default(|c| c.tests.clone());
+    cx.docs = config.as_ref().map(|c| c.docs.clone()).unwrap_or_default();
+    cx.tests = config.as_ref().map(|c| c.tests.clone()).unwrap_or_default();
     cx.swift = config.and_then(|c| c.swift);
     cx.tools = bench.tools.clone();
     cx.platform = bench.platform;

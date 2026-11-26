@@ -1,0 +1,6 @@
+about = "one more clippy pass with too_many_lines (over 60) and cognitive_complexity (over 25) forced on through every allow: no function over a threshold beyond the baseline"
+fix = "split the function the line names; an allow does not hide it; once one is fixed, shrink the list: ./.gatekeeper/run baseline rust/complexity"
+budget_secs = 180
+
+[[step]]
+check = "clippy-complexity"

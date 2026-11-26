@@ -39,7 +39,7 @@ pub fn run(args: &[String]) -> ExitCode {
         .exists()
         .then(|| config::load(&root));
     let tools = match own.transpose() {
-        Ok(c) => c.map_or_default(|c| config::tools(&c, &root)),
+        Ok(c) => c.map(|c| config::tools(&c, &root)).unwrap_or_default(),
         Err(e) => return cli::usage_error(&e),
     };
     let bench = Bench {
