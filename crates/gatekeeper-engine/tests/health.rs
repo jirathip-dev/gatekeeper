@@ -234,9 +234,10 @@ fn written_by_done(
     fs::write(reports.join("report.json"), json).expect("report");
     let entry = root.join("entry");
     ci::done(plan, &root.join("reports"), (None, Some(&entry))).expect("done");
-    let sighted: Vec<Sighting> = fs::read_to_string(entry.join("flaky.json"))
-        .map(|t| serde_json::from_str(&t).expect("flaky.json"))
-        .unwrap_or_default();
+    let sighted: Vec<Sighting> = match fs::read_to_string(entry.join("flaky.json")) {
+        Ok(t) => serde_json::from_str(&t).expect("flaky.json"),
+        Err(_) => Vec::new(),
+    };
     let mut written = Vec::new();
     for s in &sighted {
         let slug = gatekeeper_engine::health::flaky::slug(&s.test);
@@ -265,7 +266,7 @@ fn a_timed_gate_runs_through_a_stand_in_runner_as_its_folder_expects() {
         seen += 1;
         let plan = plan::repo(&config, &root, &|_| Host::Lane, &Filter::default());
         if let Some(want) = &case.refused {
-            let got = plan.err().map(|e| e.0).unwrap_or_default();
+            let got = plan.err().map_or_else(String::new, |e| e.0);
             assert!(got.contains(want.as_str()), "{name}: refused with {got}");
             continue;
         }

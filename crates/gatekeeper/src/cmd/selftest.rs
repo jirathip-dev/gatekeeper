@@ -2,6 +2,7 @@ use crate::cli::{self, Args, say};
 use gatekeeper_engine::selftest::{self, Bench, GateResult};
 use gatekeeper_engine::{config, run};
 use gatekeeper_model::PackId;
+use std::collections::BTreeMap;
 use std::process::ExitCode;
 
 fn show(r: &GateResult) {
@@ -39,7 +40,8 @@ pub fn run(args: &[String]) -> ExitCode {
         .exists()
         .then(|| config::load(&root));
     let tools = match own.transpose() {
-        Ok(c) => c.map(|c| config::tools(&c, &root)).unwrap_or_default(),
+        Ok(Some(c)) => config::tools(&c, &root),
+        Ok(None) => BTreeMap::new(),
         Err(e) => return cli::usage_error(&e),
     };
     let bench = Bench {
