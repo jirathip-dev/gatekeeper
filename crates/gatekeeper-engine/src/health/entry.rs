@@ -49,22 +49,7 @@ fn leg(name: &str, now: Millis, was: Option<&Millis>) -> String {
     text
 }
 
-pub(crate) fn done(jobs: &[JobReport], entry: Option<&Path>, out: Option<&Path>) -> Result<String> {
-    let mut legs = BTreeMap::<String, Millis>::new();
-    for j in jobs {
-        let took = j.setup.0 + j.gates.iter().map(|g| g.took.0).sum::<u64>();
-        let slowest = legs.entry(j.leg.clone()).or_default();
-        slowest.0 = slowest.0.max(took);
-    }
-    let read = entry.and_then(|d| std::fs::read_to_string(d.join(FILE)).ok());
-    let was: Health = read
-        .and_then(|t| serde_json::from_str(&t).ok())
-        .unwrap_or_default();
-    let each: Vec<String> = legs
-        .iter()
-        .map(|(n, t)| leg(n, *t, was.legs.get(n)))
-        .collect();
-    let mut coverage = was.coverage;
+fn covered(jobs: &[JobReport], mut coverage: Vec<Covered>) -> (Vec<Covered>, Vec<String>) {
     let mut said = Vec::new();
     for g in jobs.iter().flat_map(|j| &j.gates) {
         let Some(lines) = g.coverage else { continue };
@@ -80,6 +65,25 @@ pub(crate) fn done(jobs: &[JobReport], entry: Option<&Path>, out: Option<&Path>)
             lines,
         });
     }
+    (coverage, said)
+}
+
+pub(crate) fn done(jobs: &[JobReport], entry: Option<&Path>, out: Option<&Path>) -> Result<String> {
+    let mut legs = BTreeMap::<String, Millis>::new();
+    for j in jobs {
+        let took = j.setup.0 + j.gates.iter().map(|g| g.took.0).sum::<u64>();
+        let slowest = legs.entry(j.leg.clone()).or_default();
+        slowest.0 = slowest.0.max(took);
+    }
+    let read = entry.and_then(|d| std::fs::read_to_string(d.join(FILE)).ok());
+    let was: Health = read
+        .and_then(|t| serde_json::from_str(&t).ok())
+        .unwrap_or_default();
+    let each: Vec<String> = legs
+        .iter()
+        .map(|(n, t)| leg(n, *t, was.legs.get(n)))
+        .collect();
+    let (coverage, said) = covered(jobs, was.coverage);
     if let Some(dir) = out {
         let path = dir.join(FILE);
         let health = Health {
