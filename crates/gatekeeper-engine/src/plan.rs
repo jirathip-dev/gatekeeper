@@ -41,11 +41,12 @@ fn decide(gate: &Gate, host: Host, filter: &Filter, projects: &[String]) -> Deci
     ci_only(gate, host).map_or(Decision::Run, Decision::Skip)
 }
 
-/// `Skip::CiOnly` when the gate needs containers and this is a lane's host.
+/// `Skip::CiOnly` when the gate needs containers or the integration branch's coverage and this is a lane's host.
 #[must_use]
 pub fn ci_only(gate: &Gate, host: Host) -> Option<Skip> {
-    (host == Host::Lane && gate.needs.contains(&Capability::Containers))
-        .then_some(Skip::CiOnly(Capability::Containers))
+    let ci = [Capability::Containers, Capability::Coverage];
+    let need = ci.into_iter().find(|c| gate.needs.contains(c));
+    need.filter(|_| host == Host::Lane).map(Skip::CiOnly)
 }
 
 fn check_legs(config: &Config, gates: &[Gate]) -> Result<()> {

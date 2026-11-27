@@ -68,8 +68,12 @@ pub fn matrix(
         if let (Some(e), Value::Object(r)) = (entry.as_object_mut(), results(mode, &name)) {
             e.extend(r);
             let selects = job.gates.iter().any(|g| g.gate.select.is_some());
-            if selects && job.shard.of.get() > 1 {
+            let covers = job.gates.iter().any(|g| g.gate.coverage.is_some());
+            if covers || selects && job.shard.of.get() > 1 {
                 e.insert("timings".into(), timings.into());
+            }
+            if covers {
+                e.insert("coverage".into(), true.into());
             }
         }
         entries.push(entry);

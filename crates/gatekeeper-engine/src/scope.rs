@@ -60,3 +60,31 @@ pub fn changed(root: &Path, base: &str) -> Result<BTreeSet<Change>> {
     });
     Ok(changes.collect())
 }
+
+/// # Errors
+pub fn added_by(root: &Path, base: &str, dir: &str) -> Result<Vec<(String, String, String)>> {
+    let range = format!("{base}..HEAD");
+    let args = [
+        "log",
+        "--no-merges",
+        "--diff-filter=A",
+        "--name-only",
+        "--format=%x1e%h%x1f%B%x1f",
+        &range,
+        "--",
+        dir,
+    ];
+    let log = runner::ok("git", &args, root)?;
+    let mut out = Vec::new();
+    for commit in log.split('\x1e').skip(1) {
+        let mut parts = commit.splitn(3, '\x1f');
+        let (sha, body, files) = (parts.next(), parts.next(), parts.next());
+        let (Some(sha), Some(body)) = (sha, body) else {
+            continue;
+        };
+        for file in files.unwrap_or_default().lines().filter(|l| !l.is_empty()) {
+            out.push((file.to_owned(), sha.to_owned(), body.to_owned()));
+        }
+    }
+    Ok(out)
+}

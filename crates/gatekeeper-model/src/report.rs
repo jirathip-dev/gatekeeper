@@ -1,6 +1,6 @@
 use crate::{
     Affected, CacheNote, Gate, GateId, Hit, Platform, ProjectCache, Proof, Secs, Selected, Shard,
-    Sighting, Skip, TestFile,
+    Sighting, Skip, Tenths, TestFile,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -142,6 +142,9 @@ pub struct GateReport {
     /// Each test file's time, from the JSON report a `[select]` gate's line wrote to `{report}`.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub files: BTreeMap<TestFile, Millis>,
+    /// A `[coverage]` gate's line coverage, from the summary its line left.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub coverage: Option<Tenths>,
     /// The tests of a timed gate that failed, then passed on a rerun, on the integration branch.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub flaky: Vec<Sighting>,
@@ -163,6 +166,7 @@ impl GateReport {
             cache: None,
             selection: None,
             files: BTreeMap::new(),
+            coverage: None,
             flaky: Vec::new(),
         }
     }
