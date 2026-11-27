@@ -19,6 +19,7 @@ pub struct CheckCx<'a> {
     pub docs: &'a DocsConfig,
     pub tools: &'a BTreeMap<String, PathBuf>,
     pub base: Option<&'a str>,
+    pub pushed: Option<&'a str>,
     pub names: Option<&'a PrivateNames>,
     pub head: Option<&'a str>,
     pub pr_body: Option<&'a Path>,
@@ -56,6 +57,8 @@ pub struct RunCtx {
     pub out: PathBuf,
     pub cache: PathBuf,
     pub base: Option<String>,
+    /// A push run's `before` sha when it is an ancestor of HEAD: core/hygiene scans the commit messages since it.
+    pub pushed: Option<String>,
     pub pr_body: Option<PathBuf>,
     /// `DROVER_PRIVATE_NAMES`, read once by the cli; a fixture case's from its `env`.
     pub names: Option<PrivateNames>,
@@ -99,6 +102,7 @@ impl RunCtx {
             docs: &self.docs,
             tools: &self.tools,
             base: self.base.as_deref(),
+            pushed: self.pushed.as_deref(),
             names: self.names.as_ref(),
             head: self.head.as_deref(),
             pr_body: self.pr_body.as_deref(),
@@ -117,6 +121,7 @@ impl RunCtx {
             out: out_dir(root),
             cache: cache.to_path_buf(),
             base: None,
+            pushed: None,
             pr_body: None,
             names: None,
             head: None,
@@ -160,4 +165,12 @@ pub fn default_base(root: &Path, integration: &str) -> Option<String> {
     let branch = format!("origin/{integration}");
     let out = runner::ok("git", &["merge-base", &branch, "HEAD"], root).ok()?;
     Some(out.trim().to_owned())
+}
+
+/// A push's `before` sha when it is an ancestor of HEAD; `None` for a new branch or a force push.
+#[must_use]
+pub fn pushed_base(root: &Path, before: &str) -> Option<String> {
+    let args = ["merge-base", "--is-ancestor", before, "HEAD"];
+    let new_branch = before.bytes().all(|b| b == b'0');
+    (!new_branch && runner::ok("git", &args, root).is_ok()).then(|| before.to_owned())
 }
