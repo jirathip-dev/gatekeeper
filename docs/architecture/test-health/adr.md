@@ -1,5 +1,7 @@
 # ADR: test health checks: ratio, coverage, per-test budget, flaky quarantine (#99)
 
+Note: the line cap this ADR names (`core/cap`, `ci/cap.toml`, `ci/cap.d/`, the `Cap:` trailer) was removed on 2026-11-27 (#133).
+
 ## Summary
 
 Decision: two new core gates read the tree alone: the test-to-src ratio under a ceiling that only falls, and a lint for sleeps in tests. A repo's own test gate becomes "timed": gatekeeper reads its JUnit file, fails a new or changed test over 2 s, and runs changed tests three times. Flaky tests are one small file each, dated, blocking after 7 days. Coverage is compared with the integration branch's last run. Perf tests are whole files named in config and run by a nightly gate.

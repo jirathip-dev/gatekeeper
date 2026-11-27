@@ -1,5 +1,7 @@
 # ADR: code ratchets: dead code, duplication, complexity, surface (#100)
 
+Note: the line cap this ADR names (`core/cap`, `ci/cap.toml`, `ci/cap.d/`, the `Cap:` trailer) was removed on 2026-11-27 (#133).
+
 ## Summary
 
 Decision: four ratchets from six new gates and the knip gate, which stays as it is. Dead code and complexity keep a list of named findings that only shrinks, as knip does today. Duplication and surface keep one number each, in the ceiling folders of the test health design (#99). A list or a number goes up only in a commit that carries the owner's decision. No new tool: the pinned oxlint has both complexity rules.

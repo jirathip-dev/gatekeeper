@@ -7,7 +7,7 @@ rule = [
     "Small glue with no hostile input is written in-house.",
     "Tools (linters, checkers) are used as they are, pinned and checksummed, never forked.",
     "Build frameworks are not added where gatekeeper already does the job.",
-    "To add a dependency: ask the owner first; then list it in .gatekeeper/deps.toml with its one-line reason; if the lockfiles grow by more than the file's `growth`, add `Deps: #<issue> <the owner's answer>` to a commit message, the way a cap raise carries its `Cap:` line. Lowering `growth` is free; a raise counts only from the next PR.",
+    "To add a dependency: ask the owner first; then list it in .gatekeeper/deps.toml with its one-line reason; if the lockfiles grow by more than the file's `growth`, add `Deps: #<issue> <the owner's answer>` to a commit message. Lowering `growth` is free; a raise counts only from the next PR.",
 ]
 
 [[step]]

@@ -1,6 +1,6 @@
 # The core pack
 
-the line cap, the rules file, arch-check, actionlint, the dependency list
+the rules file, arch-check, actionlint, the dependency list
 
 ## core/actionlint
 
@@ -22,16 +22,6 @@ the layers, bans, sizes, frozen and generated files and comments in .drover/arch
 - rerun: `./.gatekeeper/run check --gate core/arch`
 - what a failure looks like: [core-arch](../examples/core-arch.md)
 
-## core/cap
-
-the counted lines under the cap in ci/cap.toml or a raise in ci/cap.d; a commit that edits the cap carries its Cap: trailer
-
-- fix: delete code; a raise of the cap is its own issue, its commit carries `Cap: <old> → <new> (#issue, q<N>)`
-- budget: 5s
-- cached: no, cache = false
-- rerun: `./.gatekeeper/run check --gate core/cap`
-- what a failure looks like: [core-cap](../examples/core-cap.md)
-
 ## core/deps
 
 every direct dependency of Cargo.toml, package.json and Package.swift (with their workspaces) is listed with a reason in .gatekeeper/deps.toml; a PR grows Cargo.lock, pnpm-lock.yaml and Package.resolved by at most the file's `growth` packages
@@ -40,7 +30,7 @@ every direct dependency of Cargo.toml, package.json and Package.swift (with thei
 2. Small glue with no hostile input is written in-house.
 3. Tools (linters, checkers) are used as they are, pinned and checksummed, never forked.
 4. Build frameworks are not added where gatekeeper already does the job.
-5. To add a dependency: ask the owner first; then list it in .gatekeeper/deps.toml with its one-line reason; if the lockfiles grow by more than the file's `growth`, add `Deps: #<issue> <the owner's answer>` to a commit message, the way a cap raise carries its `Cap:` line. Lowering `growth` is free; a raise counts only from the next PR.
+5. To add a dependency: ask the owner first; then list it in .gatekeeper/deps.toml with its one-line reason; if the lockfiles grow by more than the file's `growth`, add `Deps: #<issue> <the owner's answer>` to a commit message. Lowering `growth` is free; a raise counts only from the next PR.
 
 - fix: ask the owner before you add a dependency; then list it with its reason, drop a stale entry, and for growth over the limit put `Deps: #<issue> <the owner's answer>` in a commit message
 - budget: 5s

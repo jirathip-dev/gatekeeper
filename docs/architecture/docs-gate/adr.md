@@ -1,5 +1,7 @@
 # ADR: the docs gate is on by default, with name sets and generated agent text (#83)
 
+Note: the line cap this ADR names (`core/cap`, `ci/cap.toml`, `ci/cap.d/`, the `Cap:` trailer) was removed on 2026-11-27 (#133).
+
 ## Summary
 
 Decision: the docs check becomes its own core gate, on in every repo with no setup, over the readme, the docs folder, skill pages, the agent instruction files and the rules folder. Its settings move to gatekeeper's config file; the rest of the arch file stays where it is. A repo leaves only by turning the gate off with a reason, and old hits sit in the gate's list, which only shrinks. A repo may name a command or a generated file that lists its real names; a doc that uses a name outside the list fails. Skill pages must be listed as generated unless the repo says why one is written by hand, and two names may not share one description, which is the fault of blocks 393.
