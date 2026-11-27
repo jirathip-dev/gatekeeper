@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 pub fn in_ci() -> bool {
-    std::env::var("GITHUB_ACTIONS").is_ok_and(|v| v == "true")
+    std::env::var("GATEKEEPER_HOST").is_ok_and(|v| v == "ci")
 }
 
 pub fn assert_under(took: Duration, limit: Duration, what: &str) {

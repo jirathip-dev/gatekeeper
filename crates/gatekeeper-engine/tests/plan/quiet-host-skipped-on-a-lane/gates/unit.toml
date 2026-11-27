@@ -1,0 +1,4 @@
+about = "unit tests that print their time"
+fix = "none"
+budget_secs = 5
+run = "echo host $GATEKEEPER_HOST"

@@ -113,6 +113,19 @@ impl RunCtx {
         }
     }
 
+    /// What every gate command sees: `env` and `GATEKEEPER_HOST`, `lane` or `ci`.
+    #[must_use]
+    pub fn gate_env(&self) -> Vec<(String, String)> {
+        let host = if self.host == Host::Lane {
+            "lane"
+        } else {
+            "ci"
+        };
+        let mut env = self.env.clone();
+        env.push(("GATEKEEPER_HOST".into(), host.into()));
+        env
+    }
+
     /// A lane's plain run of the repo at `root`: no base, no result cache, this host's platform.
     #[must_use]
     pub fn lane(root: &Path, cache: &Path) -> RunCtx {

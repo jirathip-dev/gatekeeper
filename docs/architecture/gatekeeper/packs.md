@@ -110,9 +110,13 @@ Not gates, so they are test cases of the engine, one folder each under `crates/g
 | budget mode (G1) | `over-budget-hosted-warm` fails; `over-budget-self-hosted`, `over-budget-cold`, `over-budget-lane` pass as `slow` |
 | affected projects (G10) | `affected/`: `leaf-changed`, `dependency-changed`, `file-outside-every-project` (widens), `ignored-file`, `no-base` (widens), `forced-full` |
 | workspace readers (G10) | `graph/`: `cargo`, `pnpm`, `swiftpm`, each a small workspace and the graph it must read |
-| shards and legs (G10) | `plan/`: `shard-report-missing` fails `done`; `lane-plans-one-shard`; `after-leg-waits`; `after-leg-skipped-when-first-fails`; in CI, `after-leg-receives-kept-files` and `after-leg-skipped-without-a-report` |
+| shards and legs (G10) | `plan/`: `shard-report-missing` fails `done`; `lane-plans-one-shard`; `after-leg-waits`; `after-leg-skipped-when-first-fails`; `quiet-host-skipped-on-a-lane`; in CI, `quiet-host-runs-in-ci`, `after-leg-receives-kept-files` and `after-leg-skipped-without-a-report` |
 
 ## The engine's own budget
 
+A lane's check never asserts a time: perf, soak, bench and wall-clock limits are `needs = ["quiet-host"]` gates,
+skipped on a lane's host and run in CI, or tests that read `GATEKEEPER_HOST` (`lane` or `ci`) and assert their limit
+only on `ci`. A gate's `run` that reads `CI` or `GITHUB_ACTIONS` to skip itself fails config validation.
+
 `gatekeeper check` on the `_base` fixture, every gate stubbed, takes under 200 ms: a hard assert in a perf test,
-the way drover's and blocks' perf budgets are asserted.
+the way drover's and blocks' perf budgets are asserted, on `GATEKEEPER_HOST=ci` only.

@@ -37,7 +37,7 @@ fn step(
     match step {
         Step::Run { run } => match filled(run, at.0, at.1, cx) {
             Ok(line) => ended(
-                runner::shell(&line, (&cx.root, &cx.env, at.2), log, deadline),
+                runner::shell(&line, (&cx.root, &cx.gate_env(), at.2), log, deadline),
                 log,
             ),
             Err(e) => {
@@ -47,7 +47,13 @@ fn step(
         },
         Step::Tool { tool, args } => match fetch::resolve(tool, &cx.cache, &cx.tools) {
             Ok(bin) => ended(
-                runner::logged((&bin, &cx.env), &expand(args, cx), &cx.root, log, deadline),
+                runner::logged(
+                    (&bin, &cx.gate_env()),
+                    &expand(args, cx),
+                    &cx.root,
+                    log,
+                    deadline,
+                ),
                 log,
             ),
             Err(e) => {
