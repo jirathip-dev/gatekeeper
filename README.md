@@ -101,7 +101,7 @@ Findings that predate adoption go in a baseline that only shrinks: `./.gatekeepe
 | `baseline <pack/name>` | Lists a gate's current findings once; after that it only drops the fixed ones |
 | `skill --to <dir>` | Writes the lane skill for the pinned version: each gate's `about`, its fix and how to rerun it |
 | `selftest` | Every gate of every pack fails each of its fixtures and passes its clean one. `--pack` |
-| `ci plan`, `ci done` | Used by `gates.yml`: the job matrix (`--pack`, `--runners`, `--all`) and the final verdict over the jobs' reports (`--reports`) |
+| `ci plan`, `ci done` | Used by `gates.yml`: the job matrix (`--pack`, `--runners`, `--all`, `--light`: no `[legs.*]` job on a pull request) and the final verdict over the jobs' reports (`--reports`, `--light`) |
 | `supabase status`, `supabase apply --target dev\|prod` | The migration ledger, by the supabase pack's scripts |
 | `--version` | The version and the commit it was built from |
 
@@ -211,7 +211,7 @@ signature `SHA256SUMS.minisig`, checked against `release.pub`. `[pin]` holds the
 the wrapper refuses a binary that differs. To bump:
 
 ```
-$ ./.gatekeeper/run pin 1.6.0
+$ ./.gatekeeper/run pin 1.7.0
 ```
 
 It checks the signature, rewrites `[pin]`, the `uses: …gates.yml@<sha> # v<version>` lines and the wrapper. Then
@@ -254,10 +254,24 @@ All are `workflow_call`, called by commit with the tag as a comment.
 
 | Workflow | What it does | Inputs |
 |---|---|---|
-| `gates.yml` | Plans the jobs, runs `check` per pack, leg and shard, then `gates / done` | `packs`, `runners`, `scope` (`auto`, `full`); secret `private-names` |
+| `gates.yml` | Plans the jobs, runs `check` per pack, leg and shard, then `gates / done` | `packs`, `runners`, `scope` (`auto`, `light`, `full`); secret `private-names` |
 | `release.yml` | Builds, signs and publishes a binary release with `SHA256SUMS.minisig` | `bin`, `sha`, `branch`, `targets`, `build-env`, `version-check`, `allow-partial`, `prune-days`, `environment`, `key`, `tag`, `publish` |
 | `testflight.yml` | Archives an Xcode project and uploads it to TestFlight | `project`, `scheme`, `platforms`, `upload`, `sign`, `xcode`, `runner`, `prepare`, `environment` |
 | `supabase-deploy.yml` | Runs `supabase/migrations`, then applies migrations to dev or prod | `target`, `environment`; secret `SUPABASE_ACCESS_TOKEN` |
+
+`gates.yml`'s `scope`:
+
+- `auto` (the default): on a pull request, the gates its change can reach; on any other event, every gate.
+- `light`: on a pull request, `auto` without the `[legs.*]` jobs, so only the cheap gates run and `gates / done`
+  passes on them; on push, schedule or dispatch, the same as `auto`.
+- `full`: every gate on every event, with no cache reads.
+
+A caller that runs the full set only once a pull request carries the `merge-ready` label:
+
+```yaml
+    with:
+      scope: ${{ contains(github.event.pull_request.labels.*.name, 'merge-ready') && 'full' || 'light' }}
+```
 
 ## Docs
 
