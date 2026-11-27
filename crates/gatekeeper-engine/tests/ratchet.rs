@@ -18,6 +18,7 @@ struct Case {
     #[serde(rename = "about")]
     _about: String,
     machete: Option<String>,
+    jscpd: Option<String>,
     clippy: Option<String>,
     oxlint: Option<String>,
     #[serde(default)]
@@ -33,6 +34,15 @@ struct Case {
 fn run(case: Case) -> Vec<String> {
     if let Some(stdout) = case.machete {
         return reports::machete(&stdout);
+    }
+    if let Some(report) = case.jscpd {
+        let found = reports::jscpd(&report).expect("a jscpd report");
+        let total = format!("{} duplicated lines", found.duplicated_lines);
+        let each = found.by_format.iter().map(|(f, n)| format!("{f} {n}"));
+        return std::iter::once(total)
+            .chain(each)
+            .chain(found.clones)
+            .collect();
     }
     if let Some(json_lines) = case.clippy {
         return reports::clippy(&json_lines);
@@ -78,5 +88,5 @@ fn each_ratchet_case_reads_its_input_into_exactly_its_lines() {
         assert_eq!(run(case), want, "{name}");
         seen += 1;
     }
-    assert_eq!(seen, 9);
+    assert_eq!(seen, 10);
 }

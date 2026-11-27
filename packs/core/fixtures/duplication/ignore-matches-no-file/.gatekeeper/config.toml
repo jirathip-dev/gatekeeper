@@ -1,0 +1,6 @@
+packs = ["core", "rust"]
+integration = "main"
+pin = "checkout"
+
+[duplication.ignore]
+"crates/gone/**" = "an old copy"

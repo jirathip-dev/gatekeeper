@@ -1,3 +1,6 @@
+mod common;
+
+use common::git;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -17,18 +20,6 @@ fn vitest(covered: u64, total: u64) -> String {
     format!(
         r#"{{"total":{{"lines":{{"total":{total},"covered":{covered},"skipped":0,"pct":0}}}},"/r/src/a.ts":{{"lines":{{"total":1,"covered":1,"skipped":0,"pct":100}}}}}}"#
     )
-}
-
-fn git(root: &Path, args: &[&str]) -> String {
-    let out = Command::new("git")
-        .args(["-c", "user.name=t", "-c", "user.email=t@localhost"])
-        .args(["-c", "commit.gpgsign=false"])
-        .args(args)
-        .current_dir(root)
-        .output()
-        .expect("git runs");
-    assert!(out.status.success(), "git {args:?}: {out:?}");
-    String::from_utf8_lossy(&out.stdout).trim().to_owned()
 }
 
 fn repo(name: &str, table: &str, integration: Option<u32>) -> (PathBuf, String) {

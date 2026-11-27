@@ -1,0 +1,11 @@
+version = "5.4.3"
+
+[asset.aarch64-apple-darwin]
+url = "https://registry.npmjs.org/jscpd-darwin-arm64/-/jscpd-darwin-arm64-5.4.3.tgz"
+sha256 = "6be14439b713b1ec231d6378ebfb4e0d44ee49f92d9d28dc91a5d01d03f98118"
+bin = "package/bin/jscpd"
+
+[asset.x86_64-unknown-linux-gnu]
+url = "https://registry.npmjs.org/jscpd-linux-x64-gnu/-/jscpd-linux-x64-gnu-5.4.3.tgz"
+sha256 = "d1848a5cea3695272911239398bf7a2986d171272c67e806db9d3e60e55c9565"
+bin = "package/bin/jscpd"

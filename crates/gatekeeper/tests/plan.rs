@@ -1,3 +1,6 @@
+mod common;
+
+use common::git;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -43,24 +46,6 @@ fn gk(root: &Path, args: &[&str], env: &[(&str, &str)]) -> (i32, String) {
         String::from_utf8_lossy(&stderr)
     );
     (status.code().expect("exit code"), text)
-}
-
-fn git(root: &Path, args: &[&str]) -> String {
-    let out = Command::new("git")
-        .args([
-            "-c",
-            "user.name=t",
-            "-c",
-            "user.email=t@localhost",
-            "-c",
-            "commit.gpgsign=false",
-        ])
-        .args(args)
-        .current_dir(root)
-        .output()
-        .expect("git runs");
-    assert!(out.status.success(), "git {args:?}: {out:?}");
-    String::from_utf8_lossy(&out.stdout).trim().to_owned()
 }
 
 const UNIT: &str = "about = \"unit tests per project\"\nfix = \"none\"\nbudget_secs = 5\nprojects = [\"crates/*\"]\nrun = \"echo ran {projects}\"\n";

@@ -1,4 +1,5 @@
 use crate::health::{self, flaky, ratchet};
+use crate::ratchet::folder;
 use crate::run::CheckCx as Cx;
 use crate::{Result, runner};
 use gatekeeper_model::{Ceiling, Flaky, Lines, TestId, TestsConfig};
@@ -134,7 +135,7 @@ pub fn run(cx: &Cx) -> Result<Vec<String>> {
         lines.src,
         ratio(lines)
     );
-    match ratchet::lowest(&files) {
+    match folder::lowest(&files) {
         None => out.push(format!(
             "no ceiling in {}: start it ({LOWER})",
             ratchet::DIR
@@ -151,7 +152,7 @@ pub fn run(cx: &Cx) -> Result<Vec<String>> {
         )),
         Some(_) => {}
     }
-    let ceiling = ratchet::lowest(&files).map_or_else(|| "none".to_owned(), |(_, c)| c.to_string());
+    let ceiling = folder::lowest(&files).map_or_else(|| "none".to_owned(), |(_, c)| c.to_string());
     cx.note.set(format!("{counted}, ceiling {ceiling}")).ok();
     Ok(out)
 }

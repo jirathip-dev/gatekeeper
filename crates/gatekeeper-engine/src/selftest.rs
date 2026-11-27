@@ -1,6 +1,6 @@
 use crate::run::{self, RunCtx};
 use crate::{Error, Result, config, packs, plan, runner};
-use gatekeeper_model::{Gate, GateId, Host, PackId, Platform, PrivateNames, Shard, Skip};
+use gatekeeper_model::{Config, Gate, GateId, Host, PackId, Platform, PrivateNames, Shard, Skip};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -98,6 +98,14 @@ fn typed<'a>(env: &'a [(String, String)], key: &str) -> &'a str {
     last.map_or("", |(_, v)| v.as_str())
 }
 
+fn configured(cx: &mut RunCtx, c: &Config) {
+    cx.integration.clone_from(&c.integration);
+    cx.rust.clone_from(&c.rust);
+    cx.ts.clone_from(&c.ts);
+    cx.docs.clone_from(&c.docs);
+    cx.tests.clone_from(&c.tests);
+}
+
 /// # Errors
 pub fn case_ctx(gate: &Gate, case: Option<&str>, out: &Path, bench: &Bench) -> Result<RunCtx> {
     let pack = gate.id.pack;
@@ -148,11 +156,9 @@ pub fn case_ctx(gate: &Gate, case: Option<&str>, out: &Path, bench: &Bench) -> R
         cx.today = today.parse().map_err(Error)?;
     }
     cx.env = env;
-    cx.integration = config.as_ref().map_or_default(|c| c.integration.clone());
-    cx.rust = config.as_ref().map_or_default(|c| c.rust.clone());
-    cx.ts = config.as_ref().and_then(|c| c.ts.clone());
-    cx.docs = config.as_ref().map_or_default(|c| c.docs.clone());
-    cx.tests = config.as_ref().map_or_default(|c| c.tests.clone());
+    if let Some(c) = &config {
+        configured(&mut cx, c);
+    }
     cx.swift = config.and_then(|c| c.swift);
     cx.tools = bench.tools.clone();
     cx.platform = bench.platform;

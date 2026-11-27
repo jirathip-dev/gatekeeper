@@ -1,3 +1,4 @@
+use crate::ratchet::folder;
 use crate::{Result, config, runner};
 use std::path::Path;
 
@@ -41,4 +42,57 @@ pub(crate) fn pin_moved(root: &Path, base: &str) -> bool {
 pub(crate) fn bodies(root: &Path, base: &str) -> Result<String> {
     let range = format!("{base}..HEAD");
     runner::ok("git", &["log", "--no-merges", "--format=%B", &range], root)
+}
+
+const CEILINGS: &str = "ci/ratchet";
+
+pub(crate) struct Touched {
+    pub(crate) file: String,
+    pub(crate) count: String,
+    pub(crate) why: String,
+}
+
+pub(crate) fn touched(root: &Path, base: &str) -> Result<Vec<Touched>> {
+    let args = [
+        "diff",
+        "--name-status",
+        "--no-renames",
+        base,
+        "HEAD",
+        "--",
+        CEILINGS,
+    ];
+    let diff = runner::ok("git", &args, root)?;
+    let mut out = Vec::new();
+    for (status, file) in diff.lines().filter_map(|l| l.split_once('\t')) {
+        let Some(dir) = file.rsplit_once('/').map(|(d, _)| d) else {
+            continue;
+        };
+        let Some(count) = dir
+            .strip_prefix("ci/ratchet/")
+            .and_then(|d| d.strip_suffix(".d"))
+        else {
+            continue;
+        };
+        let why = if status == "A" {
+            let files = folder::read::<u32>(root, dir)?;
+            let new = |p: &str| diff.lines().any(|l| l == format!("A\t{p}"));
+            let base_lowest = files.iter().filter(|(p, _)| !new(p)).map(|(_, c)| *c).min();
+            let mine = files.iter().find(|(p, _)| p == file).map(|(_, c)| *c);
+            match (mine, base_lowest) {
+                (Some(c), Some(b)) if c >= b => {
+                    format!("ceiling {c} is not under the base's ceiling {b}: a ceiling only falls")
+                }
+                _ => continue,
+            }
+        } else {
+            "a ceiling file is never edited or deleted; lower it with a new file".to_owned()
+        };
+        out.push(Touched {
+            file: file.to_owned(),
+            count: count.to_owned(),
+            why,
+        });
+    }
+    Ok(out)
 }

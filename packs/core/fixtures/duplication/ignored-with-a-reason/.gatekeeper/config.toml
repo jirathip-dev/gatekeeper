@@ -1,0 +1,6 @@
+packs = ["core", "rust"]
+integration = "main"
+pin = "checkout"
+
+[duplication.ignore]
+"crates/high/src/copied.rs" = "a vendored copy the upstream crate keeps in step"
