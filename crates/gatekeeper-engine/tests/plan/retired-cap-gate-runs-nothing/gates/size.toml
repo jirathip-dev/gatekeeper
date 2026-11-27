@@ -1,0 +1,4 @@
+about = "a local gate beside the retired core/cap"
+fix = "none"
+budget_secs = 5
+run = "true"

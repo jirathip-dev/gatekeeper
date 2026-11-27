@@ -67,7 +67,7 @@ in which order do two repos and their consumers change so that no repo is checke
 
 | Option | Verdict |
 |---|---|
-| A. Keep the paths: `ci/cap.toml`, `ci/cap.d/`, `.drover/rules.md`, `.drover/arch.toml`, the arch baseline | **Yes.** Drover still reads all three (cap view, briefs, hotspots). A check ported with its files in place is proven by fixtures nobody edits. |
+| A. Keep the paths: the cap files (retired, #127), `.drover/rules.md`, `.drover/arch.toml`, the arch baseline | **Yes.** Drover still reads all three (cap view, briefs, hotspots). A check ported with its files in place is proven by fixtures nobody edits. |
 | B. Move them under gatekeeper's folder | No. Every repo, every role prompt, the lane hook's cap guard and hotspots change for no change in behaviour. It can be its own issue later. |
 
 ### 3. Where the private names come from
@@ -155,7 +155,7 @@ in which order do two repos and their consumers change so that no repo is checke
   it passes with whatever fallback applies. (c) The arch baseline cannot grow: a redo on the owner's ask deletes the
   file first.
 - The merge check also runs the active lesson checks on the merged tree, since one run produces the report.
-- Drover still parses two things gatekeeper owns: the cap number in `ci/cap.toml` for its view, and three list
+- Drover still parses two things gatekeeper owns: the cap number in the cap file (retired, #127) for its view, and three list
   keys of `.drover/arch.toml` for hotspots. Both are typed reads of a few keys.
 - Arch's patterns are read as gatekeeper globs. Where a repo's pattern means something else there, the parity run
   shows it and that repo's bump PR rewrites the pattern.

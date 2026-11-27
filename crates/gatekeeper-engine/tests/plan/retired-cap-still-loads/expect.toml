@@ -1,0 +1,3 @@
+host = { kind = "lane" }
+jobs = ["local"]
+outcomes = { "local/size" = "ok" }

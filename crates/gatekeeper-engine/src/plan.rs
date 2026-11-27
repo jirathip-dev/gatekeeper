@@ -1,7 +1,7 @@
 use crate::{Error, Result, graph, packs, scope};
 use gatekeeper_model::{
-    Affected, Capability, Config, Decision, Filter, Gate, Graph, Host, Job, PackId, Plan, Planned,
-    Platform, RepoRun, Shard, Skip, Trigger, When, Workspace, is_name,
+    Affected, Capability, Config, Decision, Filter, Gate, GateId, Graph, Host, Job, PackId, Plan,
+    Planned, Platform, RepoRun, Shard, Skip, Trigger, When, Workspace, is_name,
 };
 use std::collections::{BTreeMap, BTreeSet};
 use std::num::NonZeroU32;
@@ -152,13 +152,17 @@ fn leg_jobs(config: &Config, leg: &str, gates: Vec<Gate>, cx: &Scoped) -> Result
         .collect())
 }
 
+fn retired(id: &GateId) -> bool {
+    id.pack == PackId::Core && id.name() == "cap"
+}
+
 fn check_off(
     config: &Config,
     gates: &[Gate],
     hosts: &dyn Fn(Platform) -> Host,
     repo: RepoRun,
 ) -> Result<()> {
-    for (id, why) in &config.off {
+    for (id, why) in config.off.iter().filter(|(id, _)| !retired(id)) {
         if why.trim().is_empty() {
             return Err(Error(format!("[off] `{id}` needs a reason")));
         }
@@ -190,7 +194,7 @@ fn check_filter(filter: &Filter, gates: &[Gate]) -> Result<()> {
     if let Some(id) = filter
         .gate
         .as_ref()
-        .filter(|id| !gates.iter().any(|g| g.id == **id))
+        .filter(|id| !retired(id) && !gates.iter().any(|g| g.id == **id))
     {
         return Err(Error(format!("--gate {id}: no such gate")));
     }
@@ -212,7 +216,7 @@ pub fn plan(
     graph: &Graph,
     filter: &Filter,
 ) -> Result<Plan> {
-    for (id, secs) in &config.budgets {
+    for (id, secs) in config.budgets.iter().filter(|(id, _)| !retired(id)) {
         let gate = gates.iter_mut().find(|g| g.id == *id).ok_or_else(|| {
             Error(format!(
                 "[budgets] names `{id}`, which no configured pack has"

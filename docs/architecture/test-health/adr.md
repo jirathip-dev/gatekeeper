@@ -17,7 +17,7 @@ suite more than it runs today except for the tests a change touches?
 
 ## Where it stands
 
-- `core/cap` counts src lines by globs in `ci/cap.toml`, with a `stop_at_cfg_test` cut for Rust. Raises are one
+- `core/cap` counts src lines by globs in the cap file (retired, #127), with a `stop_at_cfg_test` cut for Rust. Raises are one
   file each in `ci/cap.d/`; a commit that edits the cap carries a `Cap:` trailer.
 - `baseline.rs` keeps a list of a gate's known findings in `.gatekeeper/baseline/<gate>.txt`. It only shrinks,
   and a listed finding that is gone fails the gate until the list shrinks.

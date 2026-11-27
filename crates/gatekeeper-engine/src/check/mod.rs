@@ -1,7 +1,6 @@
 pub mod anti_slop;
 pub mod arch;
 pub mod banned_apis;
-pub mod cap;
 pub mod clippy_complexity;
 pub mod deny_floor;
 pub mod deps;
@@ -31,7 +30,6 @@ pub const NAMES: &[&str] = &[
     "anti-slop",
     "arch",
     "banned-apis",
-    "cap",
     "clippy-complexity",
     "deny-floor",
     "deps",
@@ -60,7 +58,6 @@ pub fn run(name: &str, cx: &CheckCx) -> Result<Vec<String>> {
         "anti-slop" => anti_slop::run(cx),
         "arch" => arch::run(cx),
         "banned-apis" => banned_apis::run(cx),
-        "cap" => cap::run(cx),
         "clippy-complexity" => clippy_complexity::run(cx),
         "deny-floor" => deny_floor::run(cx),
         "deps" => deps::run(cx),

@@ -1,6 +1,6 @@
 use gatekeeper_engine::run::{self, RunCtx};
 use gatekeeper_engine::{ci, plan};
-use gatekeeper_model::{Config, Filter, Host, job_label};
+use gatekeeper_model::{Config, Filter, GateId, Host, job_label};
 use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::fs;
@@ -10,6 +10,7 @@ use std::path::{Path, PathBuf};
 struct Expect {
     host: Host,
     leg: Option<String>,
+    gate: Option<GateId>,
     #[serde(default)]
     after_reports: bool,
     jobs: Vec<String>,
@@ -59,6 +60,7 @@ fn run_case(case: &Path) {
     let config: Config = toml::from_str(&text).expect("config toml");
     let filter = Filter {
         leg: expect.leg.clone(),
+        gate: expect.gate.clone(),
         ..Filter::default()
     };
     let plan = plan::repo(&config, &root, &|_| expect.host, &filter).expect("plan");
@@ -105,5 +107,5 @@ fn each_shards_and_legs_case_plans_and_runs_as_its_folder_expects() {
         run_case(&entry.expect("entry").path());
         seen += 1;
     }
-    assert_eq!(seen, 10);
+    assert_eq!(seen, 12);
 }

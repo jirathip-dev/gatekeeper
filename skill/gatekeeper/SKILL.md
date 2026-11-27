@@ -36,7 +36,7 @@ A gate's `run` that reads `CI` or `GITHUB_ACTIONS` to skip itself is a config er
 
 ## Packs
 
-- [core](packs/core.md): the line cap, the rules file, arch-check, actionlint, the dependency list
+- [core](packs/core.md): the rules file, arch-check, actionlint, the dependency list
 - [rust](packs/rust.md): fmt, clippy with the shared lints, cargo-deny, the banned-API fixtures
 - [swift](packs/swift.md): the prebuilt anti-slop-swift, warnings as errors under GATEKEEPER_STRICT=1, the raw colour and size lint
 - [ts](packs/ts.md): tsc strict, oxlint with the bans and the anti-slop rules, knip's unused-code ratchet

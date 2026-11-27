@@ -1,0 +1,9 @@
+packs = []
+integration = "staging"
+pin = "checkout"
+
+[off]
+"core/cap" = "no line cap at adoption"
+
+[budgets]
+"core/cap" = 5

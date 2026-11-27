@@ -1,0 +1,3 @@
+host = { kind = "lane" }
+gate = "core/cap"
+jobs = []

@@ -1,2 +1,2 @@
 [fleet.x]
-line_cap = 10
+limit = 10

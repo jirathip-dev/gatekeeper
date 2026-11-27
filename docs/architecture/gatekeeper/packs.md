@@ -15,7 +15,7 @@ Every gate also has a `clean` case that must pass. `selftest` fails a gate with 
 | Gate | Runs | Fixture cases that must fail | Budget |
 |---|---|---|---|
 | `core/pin` | every `uses: …/gatekeeper/…@<ref> # <tag>`: the ref is the 40-hex commit the running binary was built from, the comment is `v<pin.version>`, the call has no `secrets: inherit`; `.gatekeeper/run` equals the pinned version's wrapper | `sha-differs`, `ref-is-a-tag`, `comment-differs`, `secrets-inherit`, `wrapper-edited` | 1 |
-| `core/cap` | `drover cap-check`: the line cap in `ci/cap.toml` | `over-cap`, `cap-missing` | 5 |
+| `core/cap` | `drover cap-check`: the line cap in the cap file (retired, #127) | `over-cap`, `cap-missing` | 5 |
 | `core/rules` | `drover lesson-check`: the rules file's format, at most 30 lines, and its active checks | `no-enforcer`, `active-check-fails`, `rules-31-lines` | 5 |
 | `core/arch` | `drover arch-check` (with `--base` and `--pr-body` on a pull request) | `layer-crossed`, `ban-hit`, `file-too-long`, `frozen-line-added`, `generated-stale`, `comment-added` | 45 |
 | `core/hygiene` | `drover hygiene check`: the tree, the PR's commit messages and its body against the private-names list | `name-in-tree`, `name-in-commit`, `name-in-pr-body`, `list-missing` | 5 |

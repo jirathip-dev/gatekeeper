@@ -744,7 +744,7 @@ Writes `new-list.txt`:
 
 ```
 [fleet.x]
-line_cap = 10
+limit = 10
 ```
 
 The gate passes.

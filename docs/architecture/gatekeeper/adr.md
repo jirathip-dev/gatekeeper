@@ -207,7 +207,7 @@ drover:
 
 | # | Issue |
 |---|---|
-| D1 | `cap-check` counts the globs and exclusions named in `ci/cap.toml` (Rust, TS, Swift) and reads `ci/cap.d/` |
+| D1 | `cap-check` counts the globs and exclusions named in the cap file (retired, #127) (Rust, TS, Swift) and reads `ci/cap.d/` |
 | D2 | `hygiene check` (tree, commit messages, PR body; exit 1; never prints a name) and `hygiene push` (the CI secret from the fleet's list) |
 | D3 | `pr-body`: the done gate's PR-body rule as a verb CI can call; `lesson-check` also checks the rules file's format |
 | D4 | The default done check is `.gatekeeper/run check` where that file exists |

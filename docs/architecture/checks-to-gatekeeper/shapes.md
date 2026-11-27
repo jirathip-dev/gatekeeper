@@ -66,8 +66,8 @@ to the gate's note and log, never to the findings.
 ## The gate files after
 
 ```toml
-# packs/core/gates/cap.toml
-about = "the counted lines under the cap in ci/cap.toml; a commit that edits the cap carries its Cap: trailer"
+# the core/cap gate file (retired, #127)
+about = "the counted lines under the cap in the cap file; a commit that edits the cap carries its Cap: trailer"
 fix = "delete code; a raise of the cap is its own issue"
 budget_secs = 5
 
@@ -133,7 +133,7 @@ rule line (no `since` mark) is not in the list: the lesson lane never runs or ch
 
 | File | Its format is owned by | Who else reads it |
 |---|---|---|
-| `ci/cap.toml`, `ci/cap.d/*.toml` | gatekeeper's `cap` check | drover: `line_cap` and `warn_within`, by git, for `drover cap` and `cap-near` |
+| the cap files (retired, #127) | gatekeeper's `cap` check | drover: the cap number and its warning margin, by git, for `drover cap` and `cap-near` |
 | `.drover/rules.md` | gatekeeper's `rules` check | drover: whole, into every brief; the lesson lane rewrites lines by number |
 | `.drover/arch.toml` | gatekeeper's `arch` check | drover: `frozen`, `generated`, `shared`, for hotspots |
 | `.drover/arch-baseline.txt` | gatekeeper's `arch` check | nobody |

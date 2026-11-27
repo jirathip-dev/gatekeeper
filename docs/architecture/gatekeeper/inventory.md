@@ -19,8 +19,8 @@ Every consumer copy in the first three groups is deleted in that repo's adoption
 
 | File today | Copies | Goes to |
 |---|---|---|
-| `scripts/line-cap.sh` and its test | 5 | drover verb: `drover cap-check` learns the counted globs and exclusions from `ci/cap.toml` (D1) |
-| `ci/cap.toml`, `ci/cap.d/` | each repo | stays local: the cap is the repo's number |
+| `scripts/line-cap.sh` and its test | 5 | drover verb: `drover cap-check` learns the counted globs and exclusions from the cap file (retired, #127) (D1) |
+| the cap files (retired, #127) | each repo | stays local: the cap is the repo's number |
 | the `.drover/rules.md` 30-line `test` in each justfile | each repo | drover verb: `cap-check --rules` (it has this already) |
 | `scripts/hygiene.sh` | 2 | drover verb: `drover hygiene check` (D2) |
 | `ci/denylist.txt` | 2 | leaves the public repos: the names move to the fleet's `private_names` and the CI secret |
