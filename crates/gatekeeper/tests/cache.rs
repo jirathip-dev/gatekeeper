@@ -1,3 +1,6 @@
+mod common;
+
+use common::git;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -7,18 +10,6 @@ const KEYED: &str = "about = \"passes\"\nfix = \"none\"\nbudget_secs = 5\nrun = 
 const SURE: &str =
     "packs = []\nintegration = \"staging\"\npin = \"checkout\"\n\n[cache]\nrecheck = 1000000\n";
 const BARE: &str = "about = \"bare\"\nfix = \"none\"\nbudget_secs = 5\nrun = \"true\"\n";
-
-fn git(root: &Path, args: &[&str]) -> String {
-    let out = Command::new("git")
-        .args(["-c", "user.name=t", "-c", "user.email=t@localhost"])
-        .args(["-c", "commit.gpgsign=false"])
-        .args(args)
-        .current_dir(root)
-        .output()
-        .expect("git runs");
-    assert!(out.status.success(), "git {args:?}: {out:?}");
-    String::from_utf8_lossy(&out.stdout).trim().to_owned()
-}
 
 fn repo(name: &str, config: &str, gates: &[(&str, &str)]) -> PathBuf {
     let root = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join(name);

@@ -1,3 +1,6 @@
+mod common;
+
+use common::git;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -281,24 +284,6 @@ fn ci_plan_emits_one_leg_per_pack_and_done_fails_a_missing_or_failed_report() {
     let (code, out) = gk(&root, &["ci", "done", "--reports", "reports"], &[]);
     assert_eq!(code, 1);
     assert!(out.contains("FAIL local/c-ok: OVER"), "{out}");
-}
-
-fn git(root: &Path, args: &[&str]) -> String {
-    let out = Command::new("git")
-        .args([
-            "-c",
-            "user.name=t",
-            "-c",
-            "user.email=t@localhost",
-            "-c",
-            "commit.gpgsign=false",
-        ])
-        .args(args)
-        .current_dir(root)
-        .output()
-        .expect("git runs");
-    assert!(out.status.success(), "git {args:?}: {out:?}");
-    String::from_utf8_lossy(&out.stdout).trim().to_owned()
 }
 
 const WEB: &str =
