@@ -1,0 +1,9 @@
+packs = ["core"]
+integration = "main"
+pin = "checkout"
+
+[docs.names]
+run = "sh names.sh"
+
+[surface]
+names = ["refusal"]

@@ -1,0 +1,1 @@
+ci/ratchet/surface-verb.d/2026-11-26-2.toml: a ceiling file is never edited or deleted; lower it with a new file (a raise carries `Ratchet: surface-verb <old> → <new> (#issue, q<N>)`)

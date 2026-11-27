@@ -4,6 +4,8 @@ on:
     types: [opened, synchronize, reopened, edited]
   push:
     branches: [staging, main]
+  schedule:
+    - cron: "0 18 * * *"
 
 permissions:
   contents: read

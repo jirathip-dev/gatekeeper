@@ -36,19 +36,18 @@ fn list(root: &Path, source: &Source, listed: &[Glob]) -> Result<(Option<String>
     }
 }
 
-pub(crate) fn read<'a>(
+type Found = BTreeMap<SetName, BTreeMap<String, Option<String>>>;
+
+pub(crate) fn every(
     root: &Path,
-    names: Option<&'a Names>,
+    names: &Names,
     listed: &[Glob],
-) -> Result<(Sets<'a>, Vec<String>)> {
-    let Some(names) = names else {
-        return Ok((Sets(vec![]), vec![]));
-    };
+) -> Result<(Option<Found>, Vec<String>)> {
     let (text, mut bad) = match list(root, &names.source, listed)? {
         (Some(t), bad) => (t, bad),
-        (None, bad) => return Ok((Sets(vec![]), bad)),
+        (None, bad) => return Ok((None, bad)),
     };
-    let mut found = BTreeMap::<SetName, BTreeMap<String, Option<String>>>::new();
+    let mut found = Found::new();
     for (n, l) in text.lines().enumerate().filter(|(_, l)| !l.is_empty()) {
         let mut f = l.splitn(3, '\t');
         let set = f.next().map(|s| SetName::try_from(s.to_owned()));
@@ -63,6 +62,21 @@ pub(crate) fn read<'a>(
             )),
         }
     }
+    Ok((Some(found), bad))
+}
+
+pub(crate) fn read<'a>(
+    root: &Path,
+    names: Option<&'a Names>,
+    listed: &[Glob],
+) -> Result<(Sets<'a>, Vec<String>)> {
+    let Some(names) = names else {
+        return Ok((Sets(vec![]), vec![]));
+    };
+    let (found, mut bad) = every(root, names, listed)?;
+    let Some(mut found) = found else {
+        return Ok((Sets(vec![]), bad));
+    };
     for (set, held) in &found {
         bad.extend(undescribed(set, held));
     }
