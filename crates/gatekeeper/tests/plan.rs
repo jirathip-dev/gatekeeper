@@ -262,3 +262,71 @@ fn ci_done_prints_each_legs_time_against_the_entry_and_writes_this_runs() {
             .expect("json");
     assert_eq!(written["legs"]["local"], 100_000, "{written}");
 }
+
+fn legs_of(out: &str) -> Vec<String> {
+    out.lines()
+        .filter_map(|l| {
+            l.split_once('=')
+                .filter(|(k, _)| ["matrix", "after"].contains(k))
+        })
+        .flat_map(|(_, json)| {
+            let m: serde_json::Value = serde_json::from_str(json).expect("json");
+            m["include"].as_array().expect("include").clone()
+        })
+        .map(|j| j["leg"].as_str().expect("leg").to_owned())
+        .collect()
+}
+
+#[test]
+fn ci_plan_light_drops_the_legs_on_a_pull_request_only() {
+    let one = "about = \"one\"\nfix = \"none\"\nbudget_secs = 5\nrun = \"true\"\n";
+    let root = repo(
+        "ci-light",
+        &format!("{CONFIG}{LEGS}"),
+        &[("one", one), ("db", DB_LEG), ("seed", SEED_LEG)],
+    );
+    let event = root.join("event.json");
+    fs::write(
+        &event,
+        r#"{"pull_request": {"head": {"repo": {"full_name": "o/r"}}}}"#,
+    )
+    .expect("event");
+    let event = event.to_string_lossy();
+    let pr = [
+        ("GITHUB_ACTIONS", "true"),
+        ("GITHUB_EVENT_NAME", "pull_request"),
+        ("GITHUB_REF", "refs/pull/41/merge"),
+        ("GITHUB_REPOSITORY", "o/r"),
+        ("GITHUB_EVENT_PATH", &event),
+    ];
+    let push = [
+        ("GITHUB_ACTIONS", "true"),
+        ("GITHUB_EVENT_NAME", "push"),
+        ("GITHUB_REF_NAME", "staging"),
+    ];
+    let all = ["db", "local", "seed"];
+    let (code, out) = gk(&root, &["ci", "plan", "--light"], &pr);
+    assert_eq!(code, 0, "{out}");
+    assert_eq!(legs_of(&out), ["local"]);
+    assert_eq!(legs_of(&gk(&root, &["ci", "plan"], &pr).1), all);
+    assert_eq!(
+        legs_of(&gk(&root, &["ci", "plan", "--light"], &push).1),
+        all
+    );
+    assert_eq!(legs_of(&gk(&root, &["ci", "plan", "--light"], &[]).1), all);
+    let (code, out) = gk(&root, &["check", "--leg", "local"], &[]);
+    assert_eq!(code, 0, "{out}");
+    let reports = root.join("reports/gates-local");
+    fs::create_dir_all(&reports).expect("reports");
+    fs::copy(
+        root.join("target/gatekeeper/report.json"),
+        reports.join("report.json"),
+    )
+    .expect("copy");
+    let done = ["ci", "done", "--reports", "reports", "--light"];
+    let (code, out) = gk(&root, &done, &pr);
+    assert_eq!(code, 0, "{out}");
+    let (code, out) = gk(&root, &done, &push);
+    assert_eq!(code, 1, "{out}");
+    assert!(out.contains("job db: no report"), "{out}");
+}
