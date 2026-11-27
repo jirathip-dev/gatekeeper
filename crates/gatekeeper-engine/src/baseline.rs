@@ -116,14 +116,44 @@ fn now(checks: Vec<&String>, at: (&Path, &Path), config: (&Config, Date)) -> BTr
     found.collect()
 }
 
-fn ceiling(root: &Path, cache: &Path, (config, today): (&Config, Date)) -> Result<Written> {
-    let measured = with_cx("duplication", (root, cache), (config, today), |cx| {
-        check::duplication::measure(cx)
+fn ceilings(name: &str, root: &Path, cache: &Path, at: (&Config, Date)) -> Result<Written> {
+    let measured = with_cx(name, (root, cache), at, |cx| match name {
+        "surface" => check::surface::measure(cx).map(|(c, _)| c),
+        _ => check::duplication::measure(cx).map(|(c, _, _)| vec![c]),
     });
-    let (c, _, _) = measured?;
-    let fits = ratchet::judge::fits(c.n, c.step);
-    let dir = c.name.dir();
-    ratchet::folder::write(root, (&dir, "the count"), today, (fits, fits))
+    let mut each = Vec::new();
+    for c in measured? {
+        let fits = ratchet::judge::fits(c.n, c.step);
+        let (dir, what) = (c.name.dir(), c.name.to_string());
+        each.push(ratchet::folder::write(
+            root,
+            (&dir, &what),
+            at.1,
+            (fits, fits),
+        )?);
+    }
+    if each.len() == 1 {
+        return Ok(each.remove(0));
+    }
+    let said = each.iter().map(|w| {
+        let path = w.path.strip_prefix(root).unwrap_or(&w.path);
+        format!(
+            "{}: {}",
+            path.display(),
+            w.note.as_deref().unwrap_or_default()
+        )
+    });
+    let said: Vec<String> = said.collect();
+    Ok(Written {
+        path: root.join("ci/ratchet"),
+        lines: each.iter().map(|w| w.lines).sum(),
+        unlisted: Vec::new(),
+        note: Some(if said.is_empty() {
+            "no [surface]: nothing is counted".to_owned()
+        } else {
+            said.join("; ")
+        }),
+    })
 }
 
 /// # Errors
@@ -141,8 +171,10 @@ pub fn write(
         let lines = check::test_health::lines(root, &config.tests)?;
         return crate::health::ratchet::write(root, today, lines);
     }
-    if checks == ["duplication"] {
-        return ceiling(root, cache, (config, today));
+    if let [name] = checks[..]
+        && (name == "duplication" || name == "surface")
+    {
+        return ceilings(name, root, cache, (config, today));
     }
     let now = match &gate.timed {
         Some(timed) => {

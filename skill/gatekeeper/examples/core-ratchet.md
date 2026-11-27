@@ -152,6 +152,48 @@ Removes `ci/ratchet/duplication.d/2026-11-26-0.toml`.
 
 The gate passes.
 
+## surface-raised-with-trailer
+
+Writes `ci/ratchet/surface-verb.d/2026-11-27-3.toml`:
+
+```
+ceiling = 3
+```
+
+Commits with the message:
+
+```
+surface: the owner approved a new verb
+
+Ratchet: surface-verb 2 → 3 (#5, q7)
+```
+
+Removes `ci/ratchet/surface-verb.d/2026-11-26-2.toml`.
+
+The gate passes.
+
+## surface-raised-without-trailer
+
+Writes `ci/ratchet/surface-verb.d/2026-11-27-3.toml`:
+
+```
+ceiling = 3
+```
+
+Commits with the message:
+
+```
+surface: a new verb
+
+Ratchet: duplication 2 → 3 (#5, q7)
+```
+
+Removes `ci/ratchet/surface-verb.d/2026-11-26-2.toml`.
+
+The gate fails and its log prints `ci/ratchet/surface-verb.d/2026-11-26-2.toml: a ceiling file is never edited or deleted; lower it with a new file (a raise carries `Ratchet: surface-verb <old> → <new> (#issue, q<N>)`)`.
+
+Fix: fix the new finding instead of listing it; a raise is the owner's decision, its commit carries `Ratchet: <pack/gate> <old> → <new> (#issue, q<N>)`. Rerun: `./.gatekeeper/run check --gate core/ratchet`
+
 ## trailer-names-another-count
 
 Writes `.gatekeeper/baseline/rust-dead-code.txt`:

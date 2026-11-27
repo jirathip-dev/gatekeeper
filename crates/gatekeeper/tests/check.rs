@@ -666,3 +666,63 @@ fn an_off_entry_without_a_reason_for_an_unknown_gate_or_for_the_pin_is_a_config_
         }
     }
 }
+
+const SURFACE: &str =
+    "about = \"surface\"\nfix = \"none\"\nbudget_secs = 5\n\n[[step]]\ncheck = \"surface\"\n";
+const COUNTED: &str = r#"
+[docs.names]
+run = "printf 'flag\\t--json\\nflag\\t--force\\nverb\\tspawn\\n'"
+
+[surface]
+names = ["flag"]
+
+[surface.lines]
+agent = ["docs/*.md"]
+"#;
+
+#[test]
+fn surface_notes_a_missing_table_and_baseline_writes_each_count_once_then_holds_it() {
+    let root = repo("surface", CONFIG, &[("surface", SURFACE)]);
+    let (code, out) = gk(&root, &["check"], &[]);
+    assert_eq!(code, 0, "{out}");
+    assert!(out.contains("no [surface]: nothing is counted"), "{out}");
+
+    let config = root.join(".gatekeeper/config.toml");
+    fs::write(&config, format!("{CONFIG}{COUNTED}")).expect("config");
+    fs::create_dir_all(root.join("docs")).expect("docs");
+    fs::write(root.join("docs/agent.md"), "one\n\ntwo\nthree\n").expect("doc");
+    git(&root, &["init", "-q"]);
+    git(&root, &["add", "-A"]);
+    let (code, out) = gk(&root, &["check"], &[]);
+    assert_eq!(code, 1, "{out}");
+    assert!(out.contains("surface-flag: no ceiling"), "{out}");
+    assert!(out.contains("surface-agent: no ceiling"), "{out}");
+
+    let today = [("GATEKEEPER_TODAY", "2026-12-09")];
+    let (code, out) = gk(&root, &["baseline", "local/surface"], &today);
+    assert_eq!(code, 0, "{out}");
+    for (file, ceiling) in [
+        ("surface-flag.d/2026-12-09-2.toml", 2),
+        ("surface-agent.d/2026-12-09-3.toml", 3),
+    ] {
+        let text = fs::read_to_string(root.join("ci/ratchet").join(file)).expect(file);
+        assert_eq!(text, format!("ceiling = {ceiling}\n"));
+    }
+    let (code, out) = gk(&root, &["check"], &[]);
+    assert_eq!(code, 0, "{out}");
+    assert!(
+        out.contains("surface-flag 2 names / ceiling 2, surface-agent 3 lines / ceiling 3"),
+        "{out}"
+    );
+    let (code, out) = gk(&root, &["baseline", "local/surface"], &today);
+    assert_eq!(code, 0, "{out}");
+    assert_eq!(out.matches("nothing written").count(), 2, "{out}");
+
+    fs::write(root.join("docs/agent.md"), "one\n\ntwo\nthree\nfour\n").expect("doc");
+    let (code, out) = gk(&root, &["check"], &[]);
+    assert_eq!(code, 1, "{out}");
+    assert!(
+        out.contains("surface-agent: 4 lines, over the ceiling 3"),
+        "{out}"
+    );
+}

@@ -57,10 +57,31 @@ pub fn load(root: &Path) -> Result<Config> {
             "{PATH}: [tests] soak `{g}` can match a Rust file outside a tests/ folder: a soak test is its own test target"
         )));
     }
+    surface(&config)?;
     if let Some(name) = config.tools.keys().find(|t| packs::tool_file(t).is_none()) {
         return Err(Error(format!("{PATH}: [tools] {name} is no pinned tool")));
     }
     Ok(config)
+}
+
+fn surface(config: &Config) -> Result<()> {
+    let surface = &config.surface;
+    if !surface.names.is_empty() && config.docs.names.is_none() {
+        return Err(Error(format!(
+            "{PATH}: [surface] names counts sets of the names list: it needs [docs.names]"
+        )));
+    }
+    if let Some(set) = surface.names.iter().find(|s| surface.lines.contains_key(s)) {
+        return Err(Error(format!(
+            "{PATH}: [surface] `{set}` is in both names and lines: one count each"
+        )));
+    }
+    if let Some((set, _)) = surface.lines.iter().find(|(_, g)| g.is_empty()) {
+        return Err(Error(format!(
+            "{PATH}: [surface.lines] `{set}` names no glob"
+        )));
+    }
+    Ok(())
 }
 
 /// `[tools]`: the tools this repo builds itself, each at its path from the repo root.

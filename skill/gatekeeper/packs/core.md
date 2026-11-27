@@ -118,6 +118,16 @@ every active check in .drover/rules.md passes, each rule names its enforcer, and
 - rerun: `./.gatekeeper/run check --gate core/rules`
 - what a failure looks like: [core-rules](../examples/core-rules.md)
 
+## core/surface
+
+each [surface] count, a set of the docs gate's names list or the non-blank lines of a glob list, under the lowest ceiling in ci/ratchet/surface-<count>.d, a ceiling that only falls
+
+- fix: remove the new name or line, or one old one; a count a whole step under its ceiling turns the ratchet: ./.gatekeeper/run baseline core/surface adds a lower file. A raise needs the owner's decision in a `Ratchet: surface-<count> <old> → <new> (#issue, q<N>)` trailer
+- budget: 10s
+- cached: no, cache = false
+- rerun: `./.gatekeeper/run check --gate core/surface`
+- what a failure looks like: [core-surface](../examples/core-surface.md)
+
 ## core/test-health
 
 the test-to-src line ratio under the lowest ceiling in ci/tests/ratio.d, a ceiling that only falls; each flaky entry in ci/tests/flaky.d names its issue and is inside its 7 days

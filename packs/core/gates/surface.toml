@@ -1,0 +1,7 @@
+about = "each [surface] count, a set of the docs gate's names list or the non-blank lines of a glob list, under the lowest ceiling in ci/ratchet/surface-<count>.d, a ceiling that only falls"
+fix = "remove the new name or line, or one old one; a count a whole step under its ceiling turns the ratchet: ./.gatekeeper/run baseline core/surface adds a lower file. A raise needs the owner's decision in a `Ratchet: surface-<count> <old> → <new> (#issue, q<N>)` trailer"
+budget_secs = 10
+cache = false
+
+[[step]]
+check = "surface"
