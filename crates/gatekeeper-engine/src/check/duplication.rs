@@ -18,6 +18,7 @@ const FORMATS: [Format; 6] = [
 
 const IGNORE_START: &str = concat!("jscpd", ":ignore-start");
 
+#[derive(Default)]
 struct Scan {
     formats: Vec<&'static str>,
     exts: Vec<&'static str>,
@@ -27,12 +28,7 @@ struct Scan {
 
 fn scan(cx: &Cx) -> Result<Scan> {
     let config = config::load(cx.root)?;
-    let mut out = Scan {
-        formats: Vec::new(),
-        exts: Vec::new(),
-        ignored: Vec::new(),
-        findings: Vec::new(),
-    };
+    let mut out = Scan::default();
     for (_, format, exts) in FORMATS.iter().filter(|(p, _, _)| config.packs.contains(p)) {
         out.formats.push(format);
         out.exts.extend(*exts);
