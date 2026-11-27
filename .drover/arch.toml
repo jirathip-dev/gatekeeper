@@ -59,6 +59,10 @@ glob = "*.rs"
 dir = "crates/gatekeeper-engine/tests/ratchet"
 glob = "*/case.toml"
 
+[[collect]]
+dir = "ci/ratchet"
+glob = "*.d/*.toml"
+
 [[layer]]
 name = "model"
 paths = ["crates/gatekeeper-model/src/**"]
