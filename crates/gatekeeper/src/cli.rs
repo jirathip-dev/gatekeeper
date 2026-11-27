@@ -2,7 +2,7 @@ use gatekeeper_engine::Error;
 use gatekeeper_engine::cache::{self, Ident, Results};
 use gatekeeper_model::{
     CacheMode, Config, Date, Event, Filter, GateId, Host, Off, PackId, PrivateNames, RepoRun,
-    RunRef, Shard, Trigger,
+    RunRef, Shard, Trigger, When,
 };
 use std::env;
 use std::io::Write as _;
@@ -95,6 +95,7 @@ impl Args {
             shard,
             trigger: Trigger::default(),
             repo: repo_run(),
+            when: when(),
         })
     }
 }
@@ -124,6 +125,16 @@ pub fn today() -> Result<Date, Error> {
         given => given
             .parse()
             .map_err(|e| Error(format!("GATEKEEPER_TODAY: {e}"))),
+    }
+}
+
+/// `Nightly` on the workflow's schedule event: only nightly gates run.
+pub fn when() -> When {
+    let schedule = var("GITHUB_ACTIONS") == "true" && var("GITHUB_EVENT_NAME") == "schedule";
+    if schedule {
+        When::Nightly
+    } else {
+        When::Always
     }
 }
 

@@ -1,0 +1,21 @@
+about = "a test of a [tests] soak file that shows up in a timed gate's JUnit file fails the gate, naming the file"
+gate = """
+about = "the tests, timed"
+fix = "fix the test the log names"
+budget_secs = 30
+run = "sh runner.sh {only}"
+
+[timed]
+runner = "nextest"
+junit = "target/nextest/ci/junit.xml"
+"""
+soak = ["tests/link.rs"]
+runs = ["nextest-soak.xml"]
+calls = [""]
+fails = true
+log = ["2 tests · 0 run 3 times · 0 over 2 s listed", "soak: demo-app::link reconnects_once ran here, but tests/link.rs is a [tests] soak file: it runs in a nightly gate only"]
+
+[base]
+"Cargo.toml" = "[package]\nname = \"demo-app\"\nversion = \"0.1.0\"\n"
+"src/lib.rs" = "pub fn add(a: u32, b: u32) -> u32 { a + b }\n"
+"tests/link.rs" = "#[test]\nfn reconnects_once() {}\n"
