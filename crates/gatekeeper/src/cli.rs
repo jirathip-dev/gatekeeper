@@ -170,6 +170,15 @@ fn payload() -> serde_json::Value {
     serde_json::from_str(&text).unwrap_or_default()
 }
 
+/// A push run's `before` sha from its payload; `None` for any other run.
+pub fn pushed_before() -> Option<String> {
+    let Event::Push { .. } = event() else {
+        return None;
+    };
+    let before = payload().pointer("/before")?.as_str()?.to_owned();
+    Some(before).filter(|b| !b.is_empty() && b.bytes().all(|c| c.is_ascii_hexdigit()))
+}
+
 /// A private repo's run, a fork's pull request, or the repo's own: a lane's host is its own.
 pub fn repo_run() -> RepoRun {
     let private = payload().pointer("/repository/private") == Some(&serde_json::Value::Bool(true));

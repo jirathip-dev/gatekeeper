@@ -88,3 +88,80 @@ fn fixture_writes_the_shared_names_case_and_nothing_else() {
         assert!(!root.join("x").exists(), "{bad}");
     }
 }
+
+fn git(root: &Path, args: &[&str]) -> String {
+    let out = Command::new("git")
+        .args(["-c", "user.name=t", "-c", "user.email=t@localhost"])
+        .args(["-c", "commit.gpgsign=false"])
+        .args(args)
+        .current_dir(root)
+        .output()
+        .expect("git runs");
+    assert!(out.status.success(), "git {args:?}: {out:?}");
+    String::from_utf8_lossy(&out.stdout).trim().to_owned()
+}
+
+fn commit(root: &Path, message: &str) -> String {
+    git(root, &["commit", "-q", "--allow-empty", "-m", message]);
+    git(root, &["rev-parse", "HEAD"])
+}
+
+fn hygiene_on(root: &Path, event: &str, before: &str) -> (i32, String) {
+    let path = root.join("event.json");
+    let payload = format!(
+        r#"{{"before":"{before}","repository":{{"private":false}},"pull_request":{{"head":{{"repo":{{"full_name":"o/r"}}}}}}}}"#
+    );
+    fs::write(&path, payload).expect("event");
+    let ci = [
+        ("GITHUB_ACTIONS", "true"),
+        ("GITHUB_EVENT_NAME", event),
+        ("GITHUB_EVENT_PATH", path.to_str().expect("utf8")),
+        ("GITHUB_REF", "refs/pull/7/merge"),
+        ("GITHUB_REPOSITORY", "o/r"),
+        ("DROVER_PRIVATE_NAMES", "acme-secret"),
+    ];
+    let env = if event == "lane" { &ci[4..] } else { &ci[..] };
+    gk(root, &["check", "--gate", "core/hygiene"], env)
+}
+
+#[test]
+fn a_push_run_scans_only_the_pushed_commit_messages() {
+    let root = dir("hygiene-push");
+    fs::create_dir_all(root.join(".gatekeeper")).expect("dir");
+    let config = "packs = [\"core\"]\nintegration = \"staging\"\npin = \"checkout\"\n";
+    fs::write(root.join(".gatekeeper/config.toml"), config).expect("config");
+    fs::write(root.join(".gitignore"), "cache/\ntarget/\nevent.json\n").expect("ignore");
+    git(&root, &["init", "-q"]);
+    git(&root, &["add", "-A"]);
+    let base = commit(&root, "init");
+    git(&root, &["update-ref", "refs/remotes/origin/staging", &base]);
+    let old = commit(&root, "release for acme-secret");
+    let before = commit(&root, "clean one");
+    commit(&root, "clean two");
+    let old_hit = format!("private-name #1 at commit {} message", &old[..7]);
+    let (code, out) = hygiene_on(&root, "push", &before);
+    assert_eq!(code, 0, "clean push: {out}");
+    assert!(!out.contains(&old_hit), "clean push: {out}");
+    let pushed = git(&root, &["rev-parse", "HEAD"]);
+    let leak = commit(&root, "leak acme-secret");
+    let leak_hit = format!("private-name #1 at commit {} message", &leak[..7]);
+    let (code, out) = hygiene_on(&root, "push", &pushed);
+    assert_ne!(code, 0, "leaky push: {out}");
+    assert!(out.contains(&leak_hit), "leaky push: {out}");
+    assert!(!out.contains(&old_hit), "leaky push: {out}");
+    let orphan = git(&root, &["commit-tree", "-m", "elsewhere", "HEAD^{tree}"]);
+    let zeros = "0".repeat(40);
+    let today = [
+        ("push", zeros.as_str()),
+        ("push", orphan.as_str()),
+        ("push", ""),
+        ("pull_request", before.as_str()),
+        ("lane", before.as_str()),
+    ];
+    for (event, before) in today {
+        let (code, out) = hygiene_on(&root, event, before);
+        assert_ne!(code, 0, "{event} {before}: {out}");
+        assert!(out.contains(&old_hit), "{event} {before}: {out}");
+        assert!(out.contains(&leak_hit), "{event} {before}: {out}");
+    }
+}
