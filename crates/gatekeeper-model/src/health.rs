@@ -189,10 +189,71 @@ impl fmt::Display for Date {
     }
 }
 
+/// `[coverage]`: the gate's line leaves a coverage summary at `summary`.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Coverage {
+    pub tool: CoverageTool,
+    pub summary: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum CoverageTool {
+    LlvmCov,
+    Vitest,
+}
+
+/// Line coverage in tenths of a percent: 714 is 71.4 %.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct Tenths(pub u32);
+
+impl Tenths {
+    pub const TOLERANCE: Tenths = Tenths(1);
+
+    /// `covered` of `count` lines, rounded down; `None` when nothing is counted.
+    #[must_use]
+    pub fn of(covered: u64, count: u64) -> Option<Tenths> {
+        let tenths = (count > 0).then(|| covered.min(count) * 1000 / count)?;
+        u32::try_from(tenths).ok().map(Tenths)
+    }
+}
+
+impl FromStr for Tenths {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Tenths, String> {
+        let (whole, tenth) = s.split_once('.').unwrap_or((s, "0"));
+        let parsed = whole.parse::<u32>().ok().zip(tenth.parse::<u32>().ok());
+        match parsed {
+            Some((w, t)) if tenth.len() == 1 && w * 10 + t <= 1000 => Ok(Tenths(w * 10 + t)),
+            _ => Err(format!(
+                "`{s}` is no coverage: a percent with one decimal, 0.0 to 100.0"
+            )),
+        }
+    }
+}
+
+impl fmt::Display for Tenths {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}.{}", self.0 / 10, self.0 % 10)
+    }
+}
+
+/// A coverage gate's number on the integration branch.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Covered {
+    pub gate: GateId,
+    pub lines: Tenths,
+}
+
 /// `<entry>/health.json`: what the last push to the integration branch measured.
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Health {
     pub schema: u32,
+    #[serde(default)]
+    pub coverage: Vec<Covered>,
     pub legs: BTreeMap<String, Millis>,
 }
 

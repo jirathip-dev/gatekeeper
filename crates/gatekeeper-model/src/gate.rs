@@ -1,4 +1,4 @@
-use crate::{GateId, Glob, Secs, Select, Shards, Timed};
+use crate::{Coverage, GateId, Glob, Secs, Select, Shards, Timed};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::fmt;
@@ -49,6 +49,7 @@ pub struct GateFile {
     #[serde(default)]
     pub select: Option<Select>,
     #[serde(default)]
+    pub coverage: Option<Coverage>,
     pub timed: Option<Timed>,
 }
 
@@ -85,6 +86,7 @@ pub struct Gate {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub select: Option<Select>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub coverage: Option<Coverage>,
     pub timed: Option<Timed>,
 }
 
@@ -101,6 +103,12 @@ impl Gate {
     pub fn from_file(id: GateId, file: GateFile, pack: &PackFile) -> Result<Gate, &'static str> {
         if file.select.is_some() {
             select_refusal(&file)?;
+        }
+        if file.coverage.is_some() && file.shards != Shards::default() {
+            return Err("a [coverage] gate runs as one job: give it no `shards`");
+        }
+        if file.coverage.is_some() && !file.needs.contains(&Capability::Coverage) {
+            return Err("a [coverage] gate needs `needs = [\"coverage\"]`: it runs in CI only");
         }
         if file.timed.is_some() {
             timed_refusal(&file)?;
@@ -130,8 +138,9 @@ impl Gate {
             uploads: file.upload,
             rule: file.rule,
             versions: file.versions,
-            cache: file.cache,
+            cache: file.cache && file.coverage.is_none(),
             select: file.select,
+            coverage: file.coverage,
             timed: file.timed,
         })
     }
@@ -222,6 +231,7 @@ impl Toolchain {
 pub enum Capability {
     Containers,
     PrivateNames,
+    Coverage,
 }
 
 impl fmt::Display for Capability {
@@ -229,6 +239,7 @@ impl fmt::Display for Capability {
         match self {
             Capability::Containers => f.write_str("containers"),
             Capability::PrivateNames => f.write_str("the private-names list"),
+            Capability::Coverage => f.write_str("the integration branch's coverage"),
         }
     }
 }

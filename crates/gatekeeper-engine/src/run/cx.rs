@@ -78,7 +78,7 @@ pub struct RunCtx {
     pub platform: Platform,
     /// Set for every step: a fixture case's `env`.
     pub env: Vec<(String, String)>,
-    /// `--timings`: the recorded times a sharded `[select]` gate splits by, one `<gate>.json` each.
+    /// `--timings`: the integration entry: a sharded `[select]` gate's times, one `<gate>.json` each, and `health.json`.
     pub timings: Option<PathBuf>,
     pub tests: TestsConfig,
     /// `GATEKEEPER_TODAY` or the clock, in UTC, read once by the cli; a fixture case's from its `env`.

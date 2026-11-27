@@ -118,6 +118,7 @@ pub(crate) fn gate(
     ]);
     let at = (gate, &vars, picked.map_or(&[][..], |p| &p.files[..]));
     let summary = picked.map_or_else(OnceCell::new, |p| OnceCell::from(p.note.clone()));
+    let mut covered = None;
     let steps = here(gate, cx, &mut log).and_then(|()| {
         let mut steps = gate.steps.iter();
         steps.try_for_each(|s| step(s, at, cx, &mut log, deadline, &mut listed, &summary))
@@ -131,7 +132,9 @@ pub(crate) fn gate(
     };
     let sighted = OnceCell::new();
     let out = (&mut log, &mut listed, &summary, &sighted);
-    let result = health::after(steps, &run, out).and_then(|()| stale(gate, &listed, &mut log));
+    let result = health::after(steps, &run, out)
+        .and_then(|()| stale(gate, &listed, &mut log))
+        .and_then(|()| health::coverage(gate, cx, &mut log, (&summary, &mut covered)));
     let took = start.elapsed().into();
     let mut report = GateReport::unrun(gate, judge(result, took, gate.budget, cx.host));
     report.took = took;
@@ -146,6 +149,7 @@ pub(crate) fn gate(
     let listed = (n > 0).then(|| format!("{n} listed"));
     let notes: Vec<String> = summary.into_inner().into_iter().chain(listed).collect();
     report.note = (!notes.is_empty()).then(|| notes.join("; "));
+    report.coverage = covered;
     report.flaky = sighted.into_inner().unwrap_or_default();
     Ok(report)
 }

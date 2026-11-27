@@ -1,4 +1,5 @@
 pub(crate) mod count;
+pub(crate) mod coverage;
 pub(crate) mod entry;
 pub mod flaky;
 pub mod judge;
@@ -9,10 +10,39 @@ pub mod spans;
 pub(crate) mod timed;
 
 use crate::baseline::Baseline;
-use gatekeeper_model::{Failure, Lines, Sighting, TestsConfig};
+use crate::run::RunCtx;
+use gatekeeper_model::{Failure, Gate, Lines, Sighting, Tenths, TestsConfig};
 use std::cell::OnceCell;
 use std::fs::File;
+use std::io::Write as _;
 use std::path::Path;
+
+pub(crate) fn coverage(
+    gate: &Gate,
+    cx: &RunCtx,
+    log: &mut File,
+    (note, covered): (&OnceCell<String>, &mut Option<Tenths>),
+) -> Result<(), Failure> {
+    let Some(cov) = &gate.coverage else {
+        return Ok(());
+    };
+    let judged = coverage::judge(&gate.id, cov, cx).map_err(|e| {
+        writeln!(log, "{e}").ok();
+        Failure::Exit(1)
+    })?;
+    *covered = Some(judged.lines);
+    writeln!(log, "{}", judged.note).ok();
+    note.set(judged.note).ok();
+    for line in &judged.findings {
+        writeln!(log, "{line}").ok();
+    }
+    if judged.findings.is_empty() {
+        Ok(())
+    } else {
+        Err(Failure::Exit(1))
+    }
+}
+
 pub(crate) fn totals<'a>(
     root: &Path,
     files: impl Iterator<Item = &'a str>,
