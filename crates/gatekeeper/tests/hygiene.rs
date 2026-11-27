@@ -108,13 +108,16 @@ fn commit(root: &Path, message: &str) -> String {
 
 fn hygiene_on(root: &Path, event: &str, before: &str) -> (i32, String) {
     let path = root.join("event.json");
-    let payload = format!(r#"{{"before":"{before}","repository":{{"private":false}}}}"#);
+    let payload = format!(
+        r#"{{"before":"{before}","repository":{{"private":false}},"pull_request":{{"head":{{"repo":{{"full_name":"o/r"}}}}}}}}"#
+    );
     fs::write(&path, payload).expect("event");
     let ci = [
         ("GITHUB_ACTIONS", "true"),
         ("GITHUB_EVENT_NAME", event),
         ("GITHUB_EVENT_PATH", path.to_str().expect("utf8")),
         ("GITHUB_REF", "refs/pull/7/merge"),
+        ("GITHUB_REPOSITORY", "o/r"),
         ("DROVER_PRIVATE_NAMES", "acme-secret"),
     ];
     let env = if event == "lane" { &ci[4..] } else { &ci[..] };
