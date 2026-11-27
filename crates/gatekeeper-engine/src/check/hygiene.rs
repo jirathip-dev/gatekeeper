@@ -8,7 +8,7 @@ fn hits<'a>(names: &'a PrivateNames, text: &'a str, at: &'a str) -> impl Iterato
         .filter_map(move |(l, n)| Some(format!("private-name #{} at {at}:{n}", names.hit(l)?)))
 }
 
-/// The tracked files, the commit messages since the base and the PR body against the private names; no list: `list-missing`.
+/// The tracked files, the commit messages since the base (a push run: since its `before`) and the PR body against the private names; no list: `list-missing`.
 pub fn run(cx: &Cx) -> Result<Vec<String>> {
     let Some(names) = cx.names else {
         return Ok(vec![
@@ -21,7 +21,7 @@ pub fn run(cx: &Cx) -> Result<Vec<String>> {
         let text = fs::read_to_string(cx.root.join(p)).unwrap_or_default();
         rows.extend(hits(names, &text, p));
     }
-    if let Some(base) = cx.base {
+    if let Some(base) = cx.pushed.or(cx.base) {
         let range = format!("{base}..HEAD");
         let log = runner::ok("git", &["log", "-z", "--format=%H%n%B", &range], cx.root)?;
         for commit in log.split('\0') {

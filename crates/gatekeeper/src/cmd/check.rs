@@ -115,6 +115,7 @@ fn prepare(args: &Args, root: &Path) -> Result<(Plan, RunCtx, Option<usize>, Cac
     let (mode, results) = cli::results(&config, args, root)?;
     let mut cx = RunCtx::lane(root, &cli::cache());
     cx.base = base;
+    cx.pushed = cli::pushed_before().and_then(|b| run::pushed_base(root, &b));
     cx.pr_body = args.value("--pr-body").map(PathBuf::from);
     cx.names = cli::private_names();
     cx.head = cli::head();
