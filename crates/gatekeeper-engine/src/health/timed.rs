@@ -97,7 +97,12 @@ fn again(
     };
     let line = filled(run, at.gate, &vars, at.cx).map_err(|e| failed(e, log))?;
     let since = SystemTime::now();
-    match runner::shell(&line, (&at.cx.root, &at.cx.env, &files), log, at.deadline) {
+    match runner::shell(
+        &line,
+        (&at.cx.root, &at.cx.gate_env(), &files),
+        log,
+        at.deadline,
+    ) {
         Ok(Exit::Timeout) => Err(Failure::Timeout),
         Err(e) => Err(failed(e, log)),
         Ok(Exit::Exit(_)) => fresh(at.cx, timed, since).map_err(|e| failed(e, log)),
@@ -191,7 +196,7 @@ pub(crate) fn slow(gate: &Gate, timed: &Timed, cx: &RunCtx) -> Result<BTreeSet<S
     let mut log = File::create(&path).map_err(|e| Error::at(&path, e))?;
     let deadline = Instant::now() + Duration::from_secs(u64::from(gate.budget.0).max(1) * 5);
     let since = SystemTime::now();
-    runner::shell(&line, (&cx.root, &cx.env, &[]), &mut log, deadline)?;
+    runner::shell(&line, (&cx.root, &cx.gate_env(), &[]), &mut log, deadline)?;
     let cases = fresh(cx, timed, since)
         .map_err(|e| Error(format!("{}: {e}, see {}", gate.id, path.display())))?;
     let slow = cases.iter().filter(|c| c.ended != Ended::Skipped);

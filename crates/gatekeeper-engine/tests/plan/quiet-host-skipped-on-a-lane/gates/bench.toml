@@ -1,0 +1,5 @@
+about = "a wall-clock limit"
+fix = "none"
+budget_secs = 5
+needs = ["quiet-host"]
+run = "exit 1"

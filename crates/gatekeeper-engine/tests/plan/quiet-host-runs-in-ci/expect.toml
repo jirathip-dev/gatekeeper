@@ -1,0 +1,4 @@
+host = { kind = "self-hosted" }
+jobs = ["local"]
+outcomes = { "local/bench" = "ok" }
+logs = { "local/bench" = "host ci" }

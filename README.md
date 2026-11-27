@@ -211,7 +211,7 @@ signature `SHA256SUMS.minisig`, checked against `release.pub`. `[pin]` holds the
 the wrapper refuses a binary that differs. To bump:
 
 ```
-$ ./.gatekeeper/run pin 1.5.1
+$ ./.gatekeeper/run pin 1.6.0
 ```
 
 It checks the signature, rewrites `[pin]`, the `uses: …gates.yml@<sha> # v<version>` lines and the wrapper. Then

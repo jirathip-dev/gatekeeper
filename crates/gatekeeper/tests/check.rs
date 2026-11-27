@@ -100,6 +100,35 @@ fn a_skip_prints_its_reason_and_ci_runs_what_a_lane_skips() {
 }
 
 #[test]
+fn a_quiet_host_gate_is_ci_only_and_a_run_reading_ci_is_refused() {
+    let bench = DB.replace("containers", "quiet-host");
+    let root = repo("check-quiet", CONFIG, &[("bench", &bench)]);
+    let (code, out) = gk(&root, &["check"], &[]);
+    assert_eq!(code, 0, "{out}");
+    assert!(
+        out.contains("skip  local/bench")
+            && out.contains("CI only on a lane's host: needs a quiet host"),
+        "{out}"
+    );
+    for run in [
+        "if [ -z \\\"${CI:-}\\\" ]; then exit 0; fi; true",
+        "[ \\\"$GITHUB_ACTIONS\\\" = true ] || exit 0",
+    ] {
+        let gate = OK.replace("run = \"true\"", &format!("run = \"{run}\""));
+        let root = repo("check-reads-ci", CONFIG, &[("bench", &gate)]);
+        let (code, out) = gk(&root, &["check"], &[]);
+        assert_eq!(code, 2, "{out}");
+        assert!(
+            out.contains("bench.toml") && out.contains("needs = [\"quiet-host\"]"),
+            "{out}"
+        );
+    }
+    let ci = OK.replace("run = \"true\"", "run = \"echo $CIRCLE $GATEKEEPER_HOST\"");
+    let root = repo("check-reads-host", CONFIG, &[("unit", &ci)]);
+    assert_eq!(gk(&root, &["check"], &[]).0, 0);
+}
+
+#[test]
 fn a_passing_run_exits_0_and_reports_the_setup_time() {
     let root = three("check-setup");
     let start = SystemTime::now()

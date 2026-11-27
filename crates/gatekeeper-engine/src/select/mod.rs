@@ -166,7 +166,7 @@ fn chosen(
     let (universe, selection) = gather(
         (select, cx.ts.as_ref()),
         (&plan.trigger, &plan.workspace.graph),
-        (&cx.root, &cx.env, cx.base.as_deref()),
+        (&cx.root, &cx.gate_env(), cx.base.as_deref()),
         (log, deadline),
     )?;
     let unreasoned = BTreeSet::new();

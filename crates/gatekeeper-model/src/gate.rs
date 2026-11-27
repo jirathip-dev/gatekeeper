@@ -113,6 +113,15 @@ impl Gate {
         if file.timed.is_some() {
             timed_refusal(&file)?;
         }
+        let runs = file.step.iter().filter_map(|s| match s {
+            Step::Run { run } => Some(run),
+            _ => None,
+        });
+        if file.run.iter().chain(runs).any(|r| reads_ci(r)) {
+            return Err(
+                "`run` reads `CI` or `GITHUB_ACTIONS` to skip itself on a lane's host: give the gate `needs = [\"quiet-host\"]` instead, or read `GATEKEEPER_HOST`",
+            );
+        }
         let steps = match (file.run, file.step) {
             (Some(run), s) if s.is_empty() => vec![Step::Run { run }],
             (None, s) if !s.is_empty() => s,
@@ -144,6 +153,16 @@ impl Gate {
             timed: file.timed,
         })
     }
+}
+
+fn reads_ci(run: &str) -> bool {
+    let refs = ["$CI", "${CI", "$GITHUB_ACTIONS", "${GITHUB_ACTIONS"];
+    refs.iter().any(|r| {
+        run.match_indices(r).any(|(at, _)| {
+            let next = run[at + r.len()..].chars().next();
+            !next.is_some_and(|c| c.is_ascii_alphanumeric() || c == '_')
+        })
+    })
 }
 
 fn select_refusal(file: &GateFile) -> Result<(), &'static str> {
@@ -232,6 +251,7 @@ pub enum Capability {
     Containers,
     PrivateNames,
     Coverage,
+    QuietHost,
 }
 
 impl fmt::Display for Capability {
@@ -240,6 +260,7 @@ impl fmt::Display for Capability {
             Capability::Containers => f.write_str("containers"),
             Capability::PrivateNames => f.write_str("the private-names list"),
             Capability::Coverage => f.write_str("the integration branch's coverage"),
+            Capability::QuietHost => f.write_str("a quiet host"),
         }
     }
 }
