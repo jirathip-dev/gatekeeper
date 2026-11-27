@@ -120,6 +120,13 @@ fn crate_of<'a>(path: &'a str, krates: &'a BTreeMap<String, String>) -> Option<(
         .min_by_key(|(rel, _)| rel.len())
 }
 
+/// The nextest binary id of a Rust file: `<crate>` for `src/`, `<crate>::<target>` for `tests/<target>…`.
+#[must_use]
+pub fn binary(path: &str, krates: &BTreeMap<String, String>) -> Option<String> {
+    let (rel, krate) = crate_of(path, krates)?;
+    owner(rel, krate).map(|(binary, _)| binary)
+}
+
 fn rust(
     path: &str,
     text: &str,

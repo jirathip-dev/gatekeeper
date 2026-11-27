@@ -17,7 +17,7 @@ pub use gate::{Capability, Gate, GateFile, PackFile, Platform, Step, Toolchain, 
 pub use glob::Glob;
 pub use health::{
     Case, Ceiling, Changed, Coverage, CoverageTool, Covered, Date, Ended, Flaky, Health, Lines,
-    RunKind, Runner, Sighting, Tenths, TestId, TestsConfig, Timed,
+    RunKind, Runner, Sighting, Tenths, TestId, TestsConfig, Timed, When,
 };
 pub use names::PrivateNames;
 pub use report::{
@@ -256,6 +256,7 @@ pub struct Filter {
     pub shard: Option<Shard>,
     pub trigger: Trigger,
     pub repo: RepoRun,
+    pub when: When,
 }
 
 /// Whose run this is, for a gate that needs the repo's secrets.
@@ -334,6 +335,8 @@ pub enum Skip {
     PrivateRepo,
     ForkPullRequest,
     EmptyShard,
+    Nightly,
+    NotNightly,
 }
 
 impl fmt::Display for Skip {
@@ -348,6 +351,10 @@ impl fmt::Display for Skip {
                 f.write_str("a fork's pull request has no secrets; it runs on the merge push")
             }
             Skip::EmptyShard => f.write_str("no selected test file fell in this shard"),
+            Skip::Nightly => {
+                f.write_str("a nightly gate: it runs on the workflow's schedule event")
+            }
+            Skip::NotNightly => f.write_str("a scheduled run runs nightly gates only"),
         }
     }
 }

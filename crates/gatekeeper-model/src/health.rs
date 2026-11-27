@@ -301,6 +301,15 @@ fn here() -> String {
     ".".into()
 }
 
+/// When a gate runs, and what a run is: `nightly` only on the workflow's schedule event.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum When {
+    #[default]
+    Always,
+    Nightly,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Runner {

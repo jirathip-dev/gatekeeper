@@ -12,6 +12,7 @@ pub struct Evidence<'a> {
     pub changed: &'a BTreeSet<Changed>,
     pub slow: &'a BTreeSet<TestId>,
     pub flaky: &'a [Flaky],
+    pub soak: &'a BTreeMap<String, String>,
     pub budget: Secs,
     pub kind: RunKind,
     pub root: &'a str,
@@ -45,6 +46,10 @@ fn matches(changed: &Changed, case: &Case, root: &str) -> bool {
     }
 }
 
+fn soak_file<'a>(case: &Case, e: &Evidence<'a>) -> Option<&'a String> {
+    (e.soak.get(&case.class)).or_else(|| e.soak.get(&under(e.root, &case.class)))
+}
+
 fn is_changed(case: &Case, e: &Evidence) -> bool {
     e.changed.iter().any(|c| matches(c, case, e.root))
 }
@@ -65,6 +70,7 @@ pub fn rerun_set<'a>(first: &'a [Case], e: &Evidence) -> Vec<&'a Case> {
         return first.iter().filter(|c| c.ended == Ended::Failed).collect();
     }
     let ran = first.iter().filter(|c| c.ended != Ended::Skipped);
+    let ran = ran.filter(|c| soak_file(c, e).is_none());
     let again =
         ran.filter(|c| is_changed(c, e) || over(c.took, e.budget) && !e.slow.contains(&c.id()));
     again.collect()
@@ -72,6 +78,12 @@ pub fn rerun_set<'a>(first: &'a [Case], e: &Evidence) -> Vec<&'a Case> {
 
 fn judged(case: &Case, runs: &[&Case], e: &Evidence, out: &mut Verdict) {
     let id = case.id();
+    if let Some(file) = soak_file(case, e) {
+        out.findings.push(format!(
+            "soak: {id} ran here, but {file} is a [tests] soak file: it runs in a nightly gate only"
+        ));
+        return;
+    }
     let n = runs.len();
     let passed = runs.iter().filter(|c| c.ended == Ended::Passed).count();
     let line = match passed {

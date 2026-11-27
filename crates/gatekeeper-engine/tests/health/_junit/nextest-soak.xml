@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="nextest-run" tests="2" skipped="0" failures="0" errors="0" uuid="4e2c3ffe-540e-4f3a-a17a-b44ad8ce3eaa" timestamp="2026-11-25T20:07:16.728+07:00" time="0.126">
+    <testsuite name="demo-app" tests="1" skipped="0" errors="0" failures="0">
+        <testcase name="tests::adds" classname="demo-app" timestamp="2026-11-25T20:07:16.730+07:00" time="0.036"/>
+    </testsuite>
+    <testsuite name="demo-app::link" tests="1" skipped="0" errors="0" failures="0">
+        <testcase name="reconnects_once" classname="demo-app::link" timestamp="2026-11-25T20:07:16.730+07:00" time="0.090"/>
+    </testsuite>
+</testsuites>

@@ -3,8 +3,8 @@ use gatekeeper_engine::health::{junit, rerun, spans};
 use gatekeeper_engine::run::{self, RunCtx};
 use gatekeeper_engine::{baseline, ci, plan};
 use gatekeeper_model::{
-    Case, Config, Date, Filter, Flaky, Host, Plan, Report, RunKind, Runner, Secs, Sighting, TestId,
-    TestsConfig, artifact,
+    Case, Config, Date, Filter, Flaky, Glob, Host, Plan, Report, RunKind, Runner, Secs, Sighting,
+    TestId, TestsConfig, artifact,
 };
 use serde::Deserialize;
 use std::collections::{BTreeMap, BTreeSet};
@@ -70,6 +70,8 @@ struct Run {
     trigger: RunKind,
     #[serde(default)]
     written: Vec<String>,
+    #[serde(default)]
+    soak: Vec<Glob>,
 }
 
 fn here() -> String {
@@ -131,6 +133,7 @@ fn each_pure_case_reruns_and_judges_as_its_folder_expects() {
             changed: &changed,
             slow: &case.slow,
             flaky: &case.flaky,
+            soak: &BTreeMap::new(),
             budget: Secs(2),
             kind: case.trigger,
             root: &case.root,
@@ -280,6 +283,7 @@ fn a_timed_gate_runs_through_a_stand_in_runner_as_its_folder_expects() {
         }
         let mut cx = RunCtx::lane(&root, &cache);
         cx.today = today().parse().expect("today");
+        cx.tests.soak.clone_from(&case.soak);
         match case.trigger {
             RunKind::Integration => cx.host = Host::SelfHosted,
             _ => cx.base = Some(sha.clone()),
@@ -308,5 +312,5 @@ fn a_timed_gate_runs_through_a_stand_in_runner_as_its_folder_expects() {
             );
         }
     }
-    assert_eq!(seen, 6);
+    assert_eq!(seen, 8);
 }

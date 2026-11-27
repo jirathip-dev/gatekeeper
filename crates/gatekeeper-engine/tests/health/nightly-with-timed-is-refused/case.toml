@@ -1,0 +1,13 @@
+about = "a nightly gate runs soak files, which no timed gate may run: `when = \"nightly\"` with [timed] is refused"
+gate = """
+about = "the soak tests"
+fix = "fix the test the log names"
+budget_secs = 30
+run = "sh runner.sh {only}"
+when = "nightly"
+
+[timed]
+runner = "nextest"
+junit = "target/nextest/ci/junit.xml"
+"""
+refused = "a nightly gate runs soak files: give it no [timed] or [coverage]"
