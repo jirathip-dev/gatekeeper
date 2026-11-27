@@ -13,6 +13,10 @@ anti-slop-swift = "target/anti-slop/debug/anti-slop"
 platform = "macos"
 setup = ["rust"]
 
+[legs.coverage]
+platform = "linux"
+setup = ["rust"]
+
 [cache]
 recheck = 1
 

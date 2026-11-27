@@ -1,5 +1,9 @@
-about = "cargo test: the engine's plan, budget, fetch and perf cases, the wrapper"
-fix = "fix the failing test the log names"
-budget_secs = 120
+about = "cargo nextest: the engine's plan, budget, fetch and perf cases, the wrapper, each test within the per-test budget"
+fix = "fix the failing or slow test the log names"
+budget_secs = 180
 setup = ["rust"]
-run = "cargo test --workspace --all-features --locked"
+run = "{tool:cargo-nextest} nextest run --workspace --all-features --locked --profile ci {only}"
+
+[timed]
+runner = "nextest"
+junit = "target/nextest/ci/junit.xml"
