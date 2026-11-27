@@ -1,5 +1,6 @@
-use crate::Excuses;
+use crate::{Excuses, Glob, SetName};
 use serde::Deserialize;
+use std::collections::BTreeMap;
 use std::fmt;
 
 /// `[duplication]`: every key optional, the gate on without the table.
@@ -8,6 +9,17 @@ use std::fmt;
 pub struct DuplicationConfig {
     pub ignore: Excuses,
 }
+
+/// `[surface]`: each set of the names list in `names`, and each glob list in `[surface.lines]`, is one count; no table counts nothing.
+#[derive(Clone, Debug, Default, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct SurfaceConfig {
+    pub names: Vec<SetName>,
+    pub lines: BTreeMap<SetName, Vec<Glob>>,
+}
+
+/// A surface count moves by one name or one line.
+pub const SURFACE_STEP: u32 = 1;
 
 /// The smallest clone jscpd reports, so the headroom under a ceiling never holds a new one.
 pub const DUPLICATION_STEP: u32 = 10;
@@ -33,6 +45,11 @@ impl CountName {
     #[must_use]
     pub fn duplication() -> CountName {
         CountName("duplication".into())
+    }
+
+    #[must_use]
+    pub fn surface(set: &SetName) -> CountName {
+        CountName(format!("surface-{set}"))
     }
 
     #[must_use]

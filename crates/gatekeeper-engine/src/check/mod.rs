@@ -17,6 +17,7 @@ pub mod pin;
 pub mod pr_body;
 pub mod ratchet;
 pub mod rules;
+pub mod surface;
 pub mod swift_tokens;
 pub mod swift_warnings;
 pub mod test_health;
@@ -47,6 +48,7 @@ pub const NAMES: &[&str] = &[
     "pr-body",
     "ratchet",
     "rules",
+    "surface",
     "swift-tokens",
     "swift-warnings",
     "test-health",
@@ -76,6 +78,7 @@ pub fn run(name: &str, cx: &CheckCx) -> Result<Vec<String>> {
         "pr-body" => pr_body::run(cx),
         "ratchet" => ratchet::run(cx),
         "rules" => rules::run(cx),
+        "surface" => surface::run(cx),
         "swift-tokens" => swift_tokens::run(cx),
         "swift-warnings" => swift_warnings::run(cx),
         "test-health" => test_health::run(cx),
