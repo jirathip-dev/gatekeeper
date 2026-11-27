@@ -1,2 +1,3 @@
 target*/
 node_modules/
+packs/rust/fixtures/dead-code/*/Cargo.lock
