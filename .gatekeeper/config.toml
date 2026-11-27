@@ -17,6 +17,9 @@ setup = ["rust"]
 platform = "linux"
 setup = ["rust"]
 
+[tests]
+soak = ["crates/*/tests/perf.rs"]
+
 [cache]
 recheck = 1
 

@@ -1,9 +1,6 @@
 [profile.ci]
 fail-fast = false
-
-[[profile.ci.overrides]]
-filter = "binary(perf)"
-threads-required = "num-cpus"
+default-filter = "not binary(perf)"
 
 [profile.ci.junit]
 path = "junit.xml"

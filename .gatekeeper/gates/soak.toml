@@ -1,0 +1,6 @@
+about = "the perf tests' wall-clock limits, nightly on CI's runners"
+fix = "the log names the test and its time against the limit"
+budget_secs = 600
+when = "nightly"
+setup = ["rust"]
+run = "{tool:cargo-nextest} nextest run -p gatekeeper-engine --locked -E 'binary(perf)'"
