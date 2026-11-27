@@ -11,7 +11,7 @@ on:
         type: string
         default: '{"linux": "ubuntu-latest", "macos": "macos-latest"}'
       scope:
-        description: auto runs what a pull request's change can reach and everything on any other event; full runs everything
+        description: auto runs what a pull request's change can reach and everything on any other event; light is auto without the [legs.*] jobs on a pull request; full runs everything
         type: string
         default: auto
     secrets:
@@ -64,9 +64,10 @@ jobs:
           SCOPE: ${{ inputs.scope }}
           TIMINGS: ${{ steps.timings.outputs.cache-matched-key }}
         run: |
-          case "$SCOPE" in auto | full) ;; *) echo "scope: auto or full, not $SCOPE"; exit 2 ;; esac
+          case "$SCOPE" in auto | light | full) ;; *) echo "scope: auto, light or full, not $SCOPE"; exit 2 ;; esac
           set -- ci plan --pack "$PACKS" --runners "$RUNNERS" --timings "$TIMINGS"
           if [ "$SCOPE" = full ]; then set -- "$@" --all; fi
+          if [ "$SCOPE" = light ]; then set -- "$@" --light; fi
           ./.gatekeeper/run "$@" >> "$GITHUB_OUTPUT"
 
   leg:
@@ -302,7 +303,11 @@ jobs:
       - env:
           PACKS: ${{ inputs.packs }}
           RUNNERS: ${{ inputs.runners }}
-        run: ./.gatekeeper/run ci "done" --pack "$PACKS" --runners "$RUNNERS" --reports "$RUNNER_TEMP/reports" --entry target/gatekeeper-timings --timings-out target/gatekeeper-timings | tee -a "$GITHUB_STEP_SUMMARY"
+          SCOPE: ${{ inputs.scope }}
+        run: |
+          set -- ci "done" --pack "$PACKS" --runners "$RUNNERS" --reports "$RUNNER_TEMP/reports" --entry target/gatekeeper-timings --timings-out target/gatekeeper-timings
+          if [ "$SCOPE" = light ]; then set -- "$@" --light; fi
+          ./.gatekeeper/run "$@" | tee -a "$GITHUB_STEP_SUMMARY"
       - if: always() && hashFiles('target/gatekeeper-timings/flaky.json') != ''
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
