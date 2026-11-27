@@ -75,22 +75,25 @@ fn changed(cx: &RunCtx) -> Result<BTreeSet<Changed>> {
     Ok(spans::changed(&touched, &texts, &krates, &cx.tests))
 }
 
-fn soak(cx: &RunCtx) -> Result<BTreeMap<String, String>> {
-    let files = runner::ok("git", &["ls-files", "-z"], &cx.root)?;
+fn soak(cx: &RunCtx, log: &mut File) -> BTreeMap<String, String> {
+    let files = runner::ok("git", &["ls-files", "-z"], &cx.root).unwrap_or_else(|e| {
+        writeln!(log, "soak files: {e}").ok();
+        String::new()
+    });
     let mut out = BTreeMap::new();
     let soaked = files
         .split('\0')
         .filter(|p| cx.tests.soak.iter().any(|g| g.matches(p)));
     for path in soaked {
         let krates: BTreeMap<String, String> = package(&cx.root, path).into_iter().collect();
-        let key = if path.ends_with(".rs") {
+        let key = if path.rsplit_once('.').is_some_and(|(_, x)| x == "rs") {
             spans::binary(path, &krates)
         } else {
             Some(path.to_owned())
         };
         out.extend(key.map(|k| (k, path.to_owned())));
     }
-    Ok(out)
+    out
 }
 
 fn again(
@@ -166,10 +169,7 @@ pub(crate) fn run(
     });
     let listed = listed(slow);
     let entries = flaky::entries(&at.cx.root);
-    let soak = soak(at.cx).unwrap_or_else(|e| {
-        writeln!(log, "soak files: {e}").ok();
-        BTreeMap::new()
-    });
+    let soak = soak(at.cx, log);
     let e = Evidence {
         runs: &[],
         changed: &changed,

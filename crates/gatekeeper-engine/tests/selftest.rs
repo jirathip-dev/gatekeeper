@@ -1,5 +1,5 @@
 use gatekeeper_engine::selftest::{self, Bench};
-use gatekeeper_model::{Gate, GateId, Host, PackId, Platform, Secs, Shards, Step};
+use gatekeeper_model::{Gate, GateId, Host, PackId, Platform, Secs, Shards, Step, When};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 
@@ -24,6 +24,7 @@ fn always_passing(name: &str) -> Gate {
         select: None,
         coverage: None,
         timed: None,
+        when: When::Always,
     }
 }
 
