@@ -16,8 +16,3 @@ over budget: gatekeeper::check deps_passes_a_release_pr_of_growth_already_on_the
 over budget: gatekeeper::coverage a_drop_with_its_trailer_passes_and_one_without_fails
 over budget: gatekeeper::coverage both_summaries_pass_within_the_tolerance_and_fail_under_it
 over budget: gatekeeper::hygiene a_push_run_scans_only_the_pushed_commit_messages
-over budget: gatekeeper::plan a_projects_gate_runs_over_the_affected_projects_and_a_file_outside_them_widens_the_run
-over budget: gatekeeper::replay replay_exits_1_on_a_missed_failure
-over budget: gatekeeper::replay replay_reports_counts_totals_and_missed_failures
-over budget: gatekeeper::select files_are_passed_as_arguments
-over budget: gatekeeper::test_health baseline_lists_the_sleeps_then_only_shrinks
