@@ -1,4 +1,4 @@
-use crate::{Coverage, GateId, Glob, Secs, Select, Shards, Timed};
+use crate::{Coverage, GateId, Glob, Secs, Select, Shards, Timed, When};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::fmt;
@@ -51,6 +51,8 @@ pub struct GateFile {
     #[serde(default)]
     pub coverage: Option<Coverage>,
     pub timed: Option<Timed>,
+    #[serde(default)]
+    pub when: When,
 }
 
 fn yes() -> bool {
@@ -88,6 +90,8 @@ pub struct Gate {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub coverage: Option<Coverage>,
     pub timed: Option<Timed>,
+    #[serde(default)]
+    pub when: When,
 }
 
 impl Gate {
@@ -122,6 +126,9 @@ impl Gate {
                 "`run` reads `CI` or `GITHUB_ACTIONS` to skip itself on a lane's host: give the gate `needs = [\"quiet-host\"]` instead, or read `GATEKEEPER_HOST`",
             );
         }
+        if file.when == When::Nightly && (file.timed.is_some() || file.coverage.is_some()) {
+            return Err("a nightly gate runs soak files: give it no [timed] or [coverage]");
+        }
         let steps = match (file.run, file.step) {
             (Some(run), s) if s.is_empty() => vec![Step::Run { run }],
             (None, s) if !s.is_empty() => s,
@@ -151,6 +158,7 @@ impl Gate {
             select: file.select,
             coverage: file.coverage,
             timed: file.timed,
+            when: file.when,
         })
     }
 }

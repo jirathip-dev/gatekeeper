@@ -1,7 +1,7 @@
 use crate::{Error, Result, graph, packs, scope};
 use gatekeeper_model::{
     Affected, Capability, Config, Decision, Filter, Gate, Graph, Host, Job, PackId, Plan, Planned,
-    Platform, RepoRun, Shard, Skip, Trigger, Workspace, is_name,
+    Platform, RepoRun, Shard, Skip, Trigger, When, Workspace, is_name,
 };
 use std::collections::{BTreeMap, BTreeSet};
 use std::num::NonZeroU32;
@@ -18,6 +18,11 @@ fn selected(gate: &Gate, graph: &Graph, affected: Option<&Affected>) -> Vec<Stri
 }
 
 fn decide(gate: &Gate, host: Host, filter: &Filter, projects: &[String]) -> Decision {
+    match (gate.when, filter.when) {
+        (When::Nightly, When::Always) => return Decision::Skip(Skip::Nightly),
+        (When::Always, When::Nightly) => return Decision::Skip(Skip::NotNightly),
+        _ => {}
+    }
     let trigger = &filter.trigger;
     let in_scope = match trigger {
         Trigger::Change(files) => {
