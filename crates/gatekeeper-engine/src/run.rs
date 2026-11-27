@@ -10,7 +10,7 @@ mod cx;
 mod gate;
 mod line;
 
-pub use cx::{CheckCx, RunCtx, default_base, out_dir, platform};
+pub use cx::{CheckCx, RunCtx, default_base, out_dir, platform, pushed_base};
 pub(crate) use gate::gate;
 pub use line::script;
 pub(crate) use line::{Vars, filled};
