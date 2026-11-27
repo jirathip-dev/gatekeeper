@@ -29,6 +29,15 @@ A sharded `[select]` gate writes vitest's JSON report to `{report}`; each CI sha
 `ci done` fails a gate whose shards selected different lists (rerun all jobs), and a shard no file fell into prints `skip` and passes.
 `./.gatekeeper/run replay --gate <pack>/<gate> --runs runs.jsonl --other '<cmd> {base}'` measures it against another selector: each line of `runs.jsonl` is `{"pr", "base", "head", "failed"}`, both select in a scratch worktree of the head, and it prints per run the counts, the files only one chose and each missed failure, then the totals, into `target/gatekeeper/replay/`; it exits 1 when gatekeeper missed a failure.
 
+A repo's own test gate with `[timed]` names its `runner` (`nextest` or `vitest`) and the `junit` file its `run` line leaves; the line carries `{only}`, empty on the first run and the runner's own filter on a rerun.
+Each test has `[tests] budget_secs` in `.gatekeeper/config.toml` (default 2): a test over it that is not on the gate's slow list, or is listed and changed, runs twice more and fails at its fastest in CI; on a lane's host it is a warning.
+The tests a change touches run three times; runs that differ are a `flaky` finding.
+The slow list is the gate's baseline file, `.gatekeeper/baseline/local-<gate>.txt`, written by `./.gatekeeper/run baseline local/<gate>`; it only shrinks, and a listed test under half the budget fails the gate until the same command drops it.
+A test that failed, then passed on a rerun on the integration branch gets an entry in `ci/tests/flaky.d/<slug>.toml` (`test`, `since`, `sha`, `issue`): for 7 days its failures are warnings, then `core/test-health` fails until the test is fixed or deleted and the entry with it.
+A gate with `[coverage]` (`tool` is `llvm-cov` or `vitest`, `summary` the file its line leaves) gives `needs = ["coverage"]`: CI runs it, and it fails more than 0.1 point under the integration branch's number. A deliberate drop is a file in `ci/tests/coverage.d/<date>-<gate>-<floor>.toml` (`gate`, `floor`, `why`) whose commit carries a `Coverage:` trailer.
+`[tests] soak` names whole test files that run only in a gate with `when = "nightly"`, on the workflow's schedule event; a soak file's test in a timed gate's JUnit file fails that gate.
+`[tests] test`, `src` and `exclude` override which lines `core/test-health` counts as test and as src.
+
 A lane's check never asserts a time: perf, soak, bench and wall-clock limits are CI's.
 A gate that measures time gives `needs = ["quiet-host"]`: a lane's host skips it with `CI only on a lane's host: needs a quiet host`, and CI runs it.
 A test inside an ordinary gate reads `GATEKEEPER_HOST`, `lane` or `ci`: on `lane` it asserts the outcome and prints the time, on `ci` it asserts the limit too.
