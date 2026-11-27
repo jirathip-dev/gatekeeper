@@ -14,7 +14,10 @@ fn planned(args: &Args) -> Result<(Plan, Map<String, Value>, Config), Error> {
         serde_json::from_str(args.value("--runners").unwrap_or(RUNNERS))
             .map_err(|e| Error(format!("--runners: {e}")))?;
     let hosts = |p| ci::host(&runners, p);
-    let plan = plan::repo(&config, &root, &hosts, &args.filter()?)?;
+    let mut plan = plan::repo(&config, &root, &hosts, &args.filter()?)?;
+    if args.has("--light") && matches!(cli::event(), Event::PullRequest { .. }) {
+        plan.jobs.retain(|j| !config.legs.contains_key(&j.leg));
+    }
     Ok((plan, runners, config))
 }
 
@@ -50,7 +53,7 @@ fn done(args: &Args) -> Result<bool, Error> {
     Ok(!problems.is_empty())
 }
 
-/// `ci plan [--pack P] [--runners JSON] [--timings ENTRY] [--all]` prints the job matrices; `ci done --reports DIR [--runners JSON] [--entry DIR] [--timings-out DIR]` merges the reports and compares each leg's time with the entry's.
+/// `ci plan [--pack P] [--runners JSON] [--timings ENTRY] [--all] [--light]` prints the job matrices; `ci done --reports DIR [--runners JSON] [--entry DIR] [--timings-out DIR] [--light]` merges the reports and compares each leg's time with the entry's.
 pub fn run(args: &[String]) -> ExitCode {
     let Some((sub, rest)) = args.split_first() else {
         return cli::usage_error(&"ci: plan or done");
@@ -65,7 +68,7 @@ pub fn run(args: &[String]) -> ExitCode {
             "--timings-out",
             "--entry",
         ],
-        &["--all"],
+        &["--all", "--light"],
     );
     match sub.as_str() {
         "plan" => match parsed.and_then(|a| plan_matrix(&a)) {
