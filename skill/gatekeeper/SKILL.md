@@ -1,9 +1,9 @@
 ---
 name: gatekeeper
-description: Read, fix and rerun a failing gatekeeper gate (gatekeeper 1.5.1).
+description: Read, fix and rerun a failing gatekeeper gate (gatekeeper 1.6.0).
 ---
 
-# gatekeeper 1.5.1
+# gatekeeper 1.6.0
 
 `./.gatekeeper/run check` is what CI runs and what a lane runs. A failing gate prints `FAIL  <pack>/<gate>`, its log's tail, its `fix:` line, its log path and the command that reruns it alone.
 
@@ -28,6 +28,11 @@ A selection that cannot be computed fails the gate with its `.select.log`; it ne
 A sharded `[select]` gate writes vitest's JSON report to `{report}`; each CI shard selects the same list and runs its slice, split by the times the last push to the integration branch recorded.
 `ci done` fails a gate whose shards selected different lists (rerun all jobs), and a shard no file fell into prints `skip` and passes.
 `./.gatekeeper/run replay --gate <pack>/<gate> --runs runs.jsonl --other '<cmd> {base}'` measures it against another selector: each line of `runs.jsonl` is `{"pr", "base", "head", "failed"}`, both select in a scratch worktree of the head, and it prints per run the counts, the files only one chose and each missed failure, then the totals, into `target/gatekeeper/replay/`; it exits 1 when gatekeeper missed a failure.
+
+A lane's check never asserts a time: perf, soak, bench and wall-clock limits are CI's.
+A gate that measures time gives `needs = ["quiet-host"]`: a lane's host skips it with `CI only on a lane's host: needs a quiet host`, and CI runs it.
+A test inside an ordinary gate reads `GATEKEEPER_HOST`, `lane` or `ci`: on `lane` it asserts the outcome and prints the time, on `ci` it asserts the limit too.
+A gate's `run` that reads `CI` or `GITHUB_ACTIONS` to skip itself is a config error: use `needs = ["quiet-host"]`.
 
 ## Packs
 

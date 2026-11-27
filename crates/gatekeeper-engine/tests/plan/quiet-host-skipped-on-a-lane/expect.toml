@@ -1,0 +1,4 @@
+host = { kind = "lane" }
+jobs = ["local"]
+outcomes = { "local/bench" = "skip", "local/unit" = "ok" }
+logs = { "local/unit" = "host lane" }
