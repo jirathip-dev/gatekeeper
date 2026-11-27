@@ -238,7 +238,7 @@ Upgrading to v1.3.0: `rust/bans` now also reads each crate's own `[lints]` table
 floor there, or, for a crate that needs `unsafe`, name it in `[rust] unsafe_crates` (see the rust pack's
 `rust/bans` rules).
 
-Upgrading to v1.4.0: `core/pr-body`, `core/cap`, `core/rules`, `core/hygiene` and `core/arch` run inside
+Upgrading to v1.4.0: `core/pr-body`, the line cap, `core/rules`, `core/hygiene` and `core/arch` run inside
 gatekeeper, and the core pack no longer pins the drover tool. A config whose `[tools]` names `drover`, or a local
 gate whose `run` line uses `{tool:drover}`, is refused: drop the line. A private repo adds an `[off]` line for
 `core/hygiene`.
@@ -248,8 +248,8 @@ the list of old hits it writes (no file when there is no hit). A `[docs]` table 
 refused: move `watch` and `skip` to `[docs]` in `.gatekeeper/config.toml` and drop `paths` (an entry outside the
 defaults goes to `also`). A skill page that is not generated is listed in `generated` or named in `[docs.written]`.
 
-Upgrading to v1.6.0: the line cap is removed. `core/cap` is gone and nothing reads `ci/cap.toml`, `ci/cap.d/` or a
-`Cap:` trailer; a repo that still has them passes, and may delete them. An `[off]` line for `core/cap` names a gate
+Upgrading to v1.6.0: the line cap is removed. Its gate is gone and nothing reads `ci/cap.toml`, `ci/cap.d/` or a
+`Cap:` trailer; a repo that still has them passes, and may delete them. An `[off]` line for the cap gate names a gate
 no pack has, so drop it. File size is watched by the `.drover/arch.toml` size rules.
 
 ## Workflows
