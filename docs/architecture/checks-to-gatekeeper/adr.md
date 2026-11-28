@@ -1,5 +1,7 @@
 # ADR: the 5 checks move into gatekeeper's core pack; drover runs them through gatekeeper (#1643)
 
+Note: the line cap this ADR names (`core/cap`, `ci/cap.toml`, `ci/cap.d/`, the `Cap:` trailer) was removed on 2026-11-27 (#133).
+
 ## Summary
 
 Decision: gatekeeper gets the five checks as its own code, with the same findings. The files they read keep their paths. Drover keeps the cap view, lesson promotion and the pre-send leak guard. Its done gate runs gatekeeper on the lane's host and hands it the PR body and the names list. Private names are matched in two places, the guard and gatekeeper's check: one shared set of cases, which both must pass, keeps them the same.

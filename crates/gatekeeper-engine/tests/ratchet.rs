@@ -88,5 +88,5 @@ fn each_ratchet_case_reads_its_input_into_exactly_its_lines() {
         assert_eq!(run(case), want, "{name}");
         seen += 1;
     }
-    assert_eq!(seen, 10);
+    assert_eq!(seen, 9);
 }

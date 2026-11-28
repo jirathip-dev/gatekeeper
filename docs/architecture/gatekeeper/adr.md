@@ -1,5 +1,7 @@
 # ADR: gatekeeper, one gate kit for every fleet repo (#1)
 
+Note: the line cap this ADR names (`core/cap`, `ci/cap.toml`, `ci/cap.d/`, the `Cap:` trailer) was removed on 2026-11-27 (#133).
+
 ## Summary
 
 Decision: gatekeeper is one small program and four shared workflows. A repo lists its packs in one file; the program

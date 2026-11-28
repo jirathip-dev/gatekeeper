@@ -37,9 +37,6 @@ swift = ["swift/{name}"]
 ts = ["ts/{name}"]
 supabase = ["supabase/{name}"]
 
-[off]
-"core/cap" = "drover has no line cap (#1812)"
-
 [surface]
 names = ["verb"]
 

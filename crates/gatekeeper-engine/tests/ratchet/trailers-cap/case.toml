@@ -1,9 +1,0 @@
-about = "a Cap: trailer has no record"
-word = "Cap"
-bodies = """
-cap: raise to 200
-
-Cap: 100 → 200 (#5, q7)
-Cap: 100 → (#5, q7)
-"""
-out = ["100 → 200 (#5, q7)"]

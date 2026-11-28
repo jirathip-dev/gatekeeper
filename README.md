@@ -53,7 +53,7 @@ the rest of its pack still runs:
 ```toml
 [off]
 "rust/clippy" = "pre-adoption pedantic findings; own issue"
-"core/cap" = "no line cap at adoption"
+"core/deps" = "dependency reasons not written yet; own issue"
 ```
 
 `check`, `list` and the `gates / done` summary show each one as `off: <reason>`. An entry with an empty reason, a gate
@@ -114,7 +114,7 @@ Budgets are seconds of a gate's own wall time.
 
 | Pack | Platform | Gates (budget) | Total |
 |---|---|---|---|
-| core | linux | `pin` (1), `cap` (5), `rules` (5), `arch` (45), `hygiene` (5), `pr-body` (2), `actionlint` (5), `deps` (5), `docs` (10) | 83 |
+| core | linux | `pin` (1), `rules` (5), `arch` (45), `hygiene` (5), `pr-body` (2), `actionlint` (5), `deps` (5), `docs` (10) | 78 |
 | rust | linux | `fmt` (10), `clippy` (180), `bans` (30), `deny` (20) | 240 |
 | swift | macOS | `anti-slop` (30), `warnings` (360), `tokens` (10, any platform) | 400 |
 | ts | linux | `tsc` (90), `oxlint` (30), `knip` (60) | 180 |
@@ -212,7 +212,7 @@ signature `SHA256SUMS.minisig`, checked against `release.pub`. `[pin]` holds the
 the wrapper refuses a binary that differs. To bump:
 
 ```
-$ ./.gatekeeper/run pin 1.7.0
+$ ./.gatekeeper/run pin 1.8.0
 ```
 
 It checks the signature, rewrites `[pin]`, the `uses: …gates.yml@<sha> # v<version>` lines and the wrapper. Then
@@ -242,7 +242,7 @@ Upgrading to v1.3.0: `rust/bans` now also reads each crate's own `[lints]` table
 floor there, or, for a crate that needs `unsafe`, name it in `[rust] unsafe_crates` (see the rust pack's
 `rust/bans` rules).
 
-Upgrading to v1.4.0: `core/pr-body`, `core/cap`, `core/rules`, `core/hygiene` and `core/arch` run inside
+Upgrading to v1.4.0: `core/pr-body`, the line cap, `core/rules`, `core/hygiene` and `core/arch` run inside
 gatekeeper, and the core pack no longer pins the drover tool. A config whose `[tools]` names `drover`, or a local
 gate whose `run` line uses `{tool:drover}`, is refused: drop the line. A private repo adds an `[off]` line for
 `core/hygiene`.
@@ -251,6 +251,10 @@ Upgrading to v1.5.0: `core/docs` is on with no config. Run `./.gatekeeper/run ba
 the list of old hits it writes (no file when there is no hit). A `[docs]` table in `.drover/arch.toml` is
 refused: move `watch` and `skip` to `[docs]` in `.gatekeeper/config.toml` and drop `paths` (an entry outside the
 defaults goes to `also`). A skill page that is not generated is listed in `generated` or named in `[docs.written]`.
+
+Upgrading to v1.8.0: the line cap is removed. Its gate is gone and nothing reads a repo's line-cap config, its raise files or a
+`Cap:` trailer; a repo that still has them passes, and may delete them. An `[off]` line for the cap gate names a gate
+no pack has, so drop it. File size is watched by the `.drover/arch.toml` size rules.
 
 ## Workflows
 

@@ -19,9 +19,9 @@ Every consumer copy in the first three groups is deleted in that repo's adoption
 
 | File today | Copies | Goes to |
 |---|---|---|
-| `scripts/line-cap.sh` and its test | 5 | drover verb: `drover cap-check` learns the counted globs and exclusions from `ci/cap.toml` (D1) |
-| `ci/cap.toml`, `ci/cap.d/` | each repo | stays local: the cap is the repo's number |
-| the `.drover/rules.md` 30-line `test` in each justfile | each repo | drover verb: `cap-check --rules` (it has this already) |
+| `scripts/line-cap.sh` and its test | 5 | removed: the line cap was dropped on 2026-11-27 (#133); size is watched by `.drover/arch.toml` size rules and hotspots |
+| `ci/cap.toml`, `ci/cap.d/` | each repo | removed on 2026-11-27 (#133); a repo that still has them is not read |
+| the `.drover/rules.md` 30-line `test` in each justfile | each repo | gatekeeper: `core/rules` |
 | `scripts/hygiene.sh` | 2 | drover verb: `drover hygiene check` (D2) |
 | `ci/denylist.txt` | 2 | leaves the public repos: the names move to the fleet's `private_names` and the CI secret |
 | `scripts/comment-rule.py`, `scripts/comments.py` and their tests | 2 | drover verb: arch-check's `[comments]` (it has this already); the open-issue check on `TODO(#N)` stays a local gate |
@@ -94,7 +94,7 @@ Every consumer copy in the first three groups is deleted in that repo's adoption
 
 ## Scripts by destination, in short
 
-- **drover verbs**: `cap-check` (extended), `arch-check` (as is), `lesson-check` (as is), `hygiene check` and
+- **drover verbs**: `arch-check` (as is), `lesson-check` (as is), `hygiene check` and
   `hygiene push` (new), `pr-body` (new).
 - **gatekeeper**: the lint floor and fixtures, clippy config, the fixture runner, anti-slop for Swift and TS, the
   token lint, the tsconfig and deny floors, knip's ratchet, the migration check, the pgTAP runner, apply and

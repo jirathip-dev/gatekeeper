@@ -1,5 +1,7 @@
 # ADR: per-file test selection for TypeScript (#46)
 
+Note: the line cap this ADR names (`core/cap`, `ci/cap.toml`, `ci/cap.d/`, the `Cap:` trailer) was removed on 2026-11-27 (#133).
+
 ## Summary
 
 Decision: a test gate may ask for per-file selection. gatekeeper then runs only the test files a change can

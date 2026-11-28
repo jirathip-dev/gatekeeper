@@ -1,7 +1,0 @@
-about = "the counted lines under the cap in ci/cap.toml or a raise in ci/cap.d; a commit that edits the cap carries its Cap: trailer"
-fix = "delete code; a raise of the cap is its own issue, its commit carries `Cap: <old> → <new> (#issue, q<N>)`"
-budget_secs = 5
-cache = false
-
-[[step]]
-check = "cap"

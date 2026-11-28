@@ -1,5 +1,7 @@
 # ADR: a result cache, skip a gate whose inputs already passed (#17)
 
+Note: the line cap this ADR names (`core/cap`, `ci/cap.toml`, `ci/cap.d/`, the `Cap:` trailer) was removed on 2026-11-27 (#133).
+
 ## Summary
 
 Decision: gatekeeper keeps a small record of each gate that passed, named by a fingerprint of what the gate says
