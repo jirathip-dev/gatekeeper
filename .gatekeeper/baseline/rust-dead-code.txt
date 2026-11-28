@@ -1,0 +1,25 @@
+crates/gatekeeper-engine/src/ci.rs: pub const TIMINGS: no other crate names it
+crates/gatekeeper-engine/src/health/flaky.rs: pub fn quarantined: no other crate names it
+crates/gatekeeper-engine/src/health/judge.rs: pub const SLOW: no other crate names it
+crates/gatekeeper-engine/src/health/rerun.rs: pub const MOST: no other crate names it
+crates/gatekeeper-engine/src/health/spans.rs: pub fn test_fns: no other crate names it
+crates/gatekeeper-engine/src/lib.rs: pub const SOURCE: no other crate names it
+crates/gatekeeper-engine/src/pin.rs: pub const REPO: no other crate names it
+crates/gatekeeper-engine/src/plan.rs: pub fn ci_only: no other crate names it
+crates/gatekeeper-engine/src/run/cx.rs: pub fn gate_env: no other crate names it
+crates/gatekeeper-engine/src/runner.rs: pub fn attached: no other crate names it
+crates/gatekeeper-engine/src/runner.rs: pub fn capture: no other crate names it
+crates/gatekeeper-engine/src/runner.rs: pub fn logged: no other crate names it
+crates/gatekeeper-engine/src/runner.rs: pub fn shell: no other crate names it
+crates/gatekeeper-engine/src/scope.rs: pub fn added_by: no other crate names it
+crates/gatekeeper-engine/src/select/vitest.rs: pub fn times: no other crate names it
+crates/gatekeeper-model/src/health.rs: pub const QUARANTINE_DAYS: no other crate names it
+crates/gatekeeper-model/src/health.rs: pub const STEP: no other crate names it
+crates/gatekeeper-model/src/report.rs: pub fn budget_mode: no other crate names it
+crates/gatekeeper/src/cli.rs: pub fn private_names: no other crate names it
+crates/gatekeeper/src/cli.rs: pub fn pushed_before: no other crate names it
+crates/gatekeeper/src/cli.rs: pub fn repo_run: no other crate names it
+crates/gatekeeper/src/cli.rs: pub fn say: no other crate names it
+crates/gatekeeper/src/cli.rs: pub fn usage_error: no other crate names it
+crates/gatekeeper/src/cmd/mod.rs: pub const VERBS: no other crate names it
+packs/rust/fixtures/dead-code/unused-dependency/crates/a/Cargo.toml: unused dependency: b

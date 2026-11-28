@@ -37,6 +37,8 @@ swift = ["swift/{name}"]
 ts = ["ts/{name}"]
 supabase = ["supabase/{name}"]
 
-[off]
-"rust/dead-code" = "gatekeeper writes its own list when it adopts the code ratchets (slice R5 of the code ratchets ADR, #100)"
-"rust/complexity" = "gatekeeper writes its own list when it adopts the code ratchets (slice R5 of the code ratchets ADR, #100)"
+[surface]
+names = ["verb"]
+
+[surface.lines]
+skill = ["skill/gatekeeper/SKILL.md", "skill/gatekeeper/packs/*.md"]
