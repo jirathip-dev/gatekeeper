@@ -132,6 +132,31 @@ The gate fails and its log prints `ci/ratchet/duplication.d/2026-11-27-10.toml: 
 
 Fix: fix the new finding instead of listing it; a raise is the owner's decision, its commit carries `Ratchet: <pack/gate> <old> → <new> (#issue, q<N>)`. Rerun: `./.gatekeeper/run check --gate core/ratchet`
 
+## old-cap-files-are-ignored
+
+Writes `ci/cap.d/2026-11-27-200.toml`:
+
+```
+line_cap = 200
+```
+
+Writes `ci/cap.toml`:
+
+```
+[fleet.fixture]
+line_cap = 100
+```
+
+Commits with the message:
+
+```
+cap: raise the line cap
+
+Cap: 100 → 200 (#5, q7)
+```
+
+The gate passes.
+
 ## raised-with-trailer
 
 Writes `ci/ratchet/duplication.d/2026-11-27-10.toml`:
