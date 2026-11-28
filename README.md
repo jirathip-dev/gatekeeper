@@ -252,7 +252,7 @@ the list of old hits it writes (no file when there is no hit). A `[docs]` table 
 refused: move `watch` and `skip` to `[docs]` in `.gatekeeper/config.toml` and drop `paths` (an entry outside the
 defaults goes to `also`). A skill page that is not generated is listed in `generated` or named in `[docs.written]`.
 
-Upgrading to v1.8.0: the line cap is removed. Its gate is gone and nothing reads `ci/cap.toml`, `ci/cap.d/` or a
+Upgrading to v1.8.0: the line cap is removed. Its gate is gone and nothing reads a repo's line-cap config, its raise files or a
 `Cap:` trailer; a repo that still has them passes, and may delete them. An `[off]` line for the cap gate names a gate
 no pack has, so drop it. File size is watched by the `.drover/arch.toml` size rules.
 
