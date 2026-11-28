@@ -218,8 +218,9 @@ $ ./.gatekeeper/run pin 1.7.0
 It checks the signature, rewrites `[pin]`, the `uses: …gates.yml@<sha> # v<version>` lines and the wrapper. Then
 run `check`: a stricter gate can turn the repo red only in that one PR. `pin latest` pins the newest release whose
 signature verifies (no pre-release or draft). Drover files the bumps: its scheduled job runs `pin --outdated` and,
-on exit 1, queues a bump whose lane runs `pin latest`, fixes or baselines the new findings and lands it when green. `core/pin` fails a `uses:` line whose sha
-is not the pinned build's commit or whose comment is not its version, and an edited wrapper.
+on exit 1, queues a bump whose lane runs `pin latest`, fixes or baselines the new findings and lands it when green.
+`core/pin` fails a `uses:` line whose sha is not the pinned build's commit or whose comment is not its version, and an
+edited wrapper.
 
 Upgrading from v1.1.1 or older: that release's `pin` cannot pin, so run the new release's own binary once at the
 repo root (`t` is `aarch64-apple-darwin` or `x86_64-unknown-linux-gnu`):
