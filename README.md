@@ -97,7 +97,8 @@ Findings that predate adoption go in a baseline that only shrinks: `./.gatekeepe
 |---|---|
 | `check` | Runs every gate in scope. `--pack <p>`, `--gate <pack/name>`, `--leg <name>`, `--shard <i>/<n>`, `--all` (every project, no cache reads), `--no-cache` (reads and writes nothing), `--base <rev>`, `--pr-body <file>` |
 | `list` | Each gate, its budget and its cache key or why it is not cached. `--pack`, `--gate`, `--json` |
-| `pin <version>` | Checks that release's signed checksums and rewrites `[pin]`, the `uses:` lines and the wrapper |
+| `pin <version>`, `pin latest` | Checks that release's (or the newest verified release's) signed checksums and rewrites `[pin]`, the `uses:` lines and the wrapper |
+| `pin --outdated` | Exits 1 with `pinned <old>, latest <new>` when a newer signed release verifies, 0 when `[pin]` is the latest, 2 when the lookup fails |
 | `baseline <pack/name>` | Lists a gate's current findings once; after that it only drops the fixed ones |
 | `skill --to <dir>` | Writes the lane skill for the pinned version: each gate's `about`, its fix and how to rerun it |
 | `selftest` | Every gate of every pack fails each of its fixtures and passes its clean one. `--pack` |
@@ -215,7 +216,9 @@ $ ./.gatekeeper/run pin 1.7.0
 ```
 
 It checks the signature, rewrites `[pin]`, the `uses: …gates.yml@<sha> # v<version>` lines and the wrapper. Then
-run `check`: a stricter gate can turn the repo red only in that one PR. `core/pin` fails a `uses:` line whose sha
+run `check`: a stricter gate can turn the repo red only in that one PR. `pin latest` pins the newest release whose
+signature verifies (no pre-release or draft). Drover files the bumps: its scheduled job runs `pin --outdated` and,
+on exit 1, queues a bump whose lane runs `pin latest`, fixes or baselines the new findings and lands it when green. `core/pin` fails a `uses:` line whose sha
 is not the pinned build's commit or whose comment is not its version, and an edited wrapper.
 
 Upgrading from v1.1.1 or older: that release's `pin` cannot pin, so run the new release's own binary once at the

@@ -19,6 +19,11 @@ A rerun of a cached pass that fails now prints `cached pass does not hold`: the 
 A `projects` gate keeps one record per project, over that project, every project it needs and every file outside all projects that `[scope] ignore` keeps: a change reruns the projects it reaches, and the row says how many ran and how many were cached.
 A sharded CI job keeps one record for its whole set of projects and is cached only while that set and its files are unchanged.
 
+Pin bump: drover files one when `./.gatekeeper/run pin --outdated` exits 1 (`pinned <old>, latest <new>`).
+Run `./.gatekeeper/run pin latest`, then `./.gatekeeper/run check`.
+Fix each new finding where the fix is in reach; otherwise run `./.gatekeeper/run baseline <pack>/<gate>` for it: a PR that moves `[pin]` may grow a baseline (`core/ratchet`).
+Never turn a gate off in `[off]` without a reason line.
+
 The code ratchets only fall: `rust/dead-code`, `rust/complexity`, `ts/complexity` and `ts/knip` keep a list in `.gatekeeper/baseline/<pack>-<gate>.txt`; `core/duplication` and `core/surface` keep a ceiling, one file per lowering in `ci/ratchet/<count>.d/<date>-<n>.toml`, the lowest wins.
 `./.gatekeeper/run baseline <pack>/<gate>` drops a list's gone lines, or adds a lower ceiling file; a second run writes nothing.
 `core/ratchet` fails a change that adds a list line, or edits, deletes or adds a ceiling file that is not lower, unless a commit carries `Ratchet: <pack/gate or count> <old> → <new> (#issue, q<N>)` with the owner's decision; a change that moves `[pin]` may add list lines.
