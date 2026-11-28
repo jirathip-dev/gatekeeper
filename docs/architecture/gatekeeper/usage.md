@@ -107,7 +107,6 @@ check:
 $ ./.gatekeeper/run check
 gatekeeper 1.0.0 · packs core rust · base origin/staging · 3 files changed
 ok    core/pin          0.0s /   1s
-ok    core/cap          0.4s /   5s   412 / cap 500
 ok    core/arch         2.1s /  45s
 ok    core/hygiene      0.3s /   5s
 skip  core/pr-body                    no pull request yet
