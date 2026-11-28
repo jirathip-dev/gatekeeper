@@ -1,5 +1,6 @@
 use crate::{Error, Result, fetch, runner};
-use gatekeeper_model::Config;
+use gatekeeper_model::{Config, Pin};
+use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
 use std::fs;
@@ -63,11 +64,32 @@ fn signed_commit(dir: &Path, tag: &str) -> Result<String> {
     }
 }
 
+type Verified = (String, BTreeMap<String, String>);
+
+#[derive(Deserialize)]
+struct Release {
+    tag_name: String,
+    draft: bool,
+    prerelease: bool,
+    assets: Vec<Asset>,
+}
+
+#[derive(Deserialize)]
+struct Asset {
+    name: String,
+}
+
+fn semver(version: &str) -> Option<[u32; 3]> {
+    let mut parts = version.split('.').map(|p| p.parse().ok());
+    let v = [parts.next()??, parts.next()??, parts.next()??];
+    parts.next().is_none().then_some(v)
+}
+
 fn verified(
     version: &str,
     scratch: &Path,
     farrier: &Path,
-) -> Result<(String, BTreeMap<String, String>)> {
+) -> Result<std::result::Result<Verified, Error>> {
     let tag = format!("v{version}");
     let dir = scratch.join(&tag);
     if dir.exists() {
@@ -82,18 +104,21 @@ fn verified(
     let mut sums = BTreeMap::new();
     for line in list.lines() {
         let (sum, asset) = line.split_once("  ").unwrap_or((line, ""));
-        let target = asset.strip_prefix("gatekeeper-").ok_or_else(|| {
-            Error(format!(
+        let Some(target) = asset.strip_prefix("gatekeeper-") else {
+            return Ok(Err(Error(format!(
                 "{tag}: SHA256SUMS line `{line}` names no gatekeeper asset"
-            ))
-        })?;
+            ))));
+        };
         let path = dir.join(asset);
         fetch(&format!("{base}/{asset}"), &path)?;
         fs::set_permissions(&path, fs::Permissions::from_mode(0o755))
             .map_err(|e| Error::at(&path, e))?;
         sums.insert(target.to_owned(), sum.to_owned());
     }
-    let sha = signed_commit(&dir, &tag)?;
+    let sha = match signed_commit(&dir, &tag) {
+        Ok(sha) => sha,
+        Err(e) => return Ok(Err(e)),
+    };
     let mut keys = Vec::new();
     for (name, key) in KEYS {
         let path = scratch.join(name);
@@ -106,9 +131,41 @@ fn verified(
     for key in &keys {
         args.extend(["--key", key]);
     }
-    runner::ok(&farrier.to_string_lossy(), &args, scratch)
-        .map_err(|e| Error(format!("{tag}: refused: {e}")))?;
-    Ok((sha, sums))
+    Ok(runner::ok(&farrier.to_string_lossy(), &args, scratch)
+        .map(|_| (sha, sums))
+        .map_err(|e| Error(format!("{tag}: refused: {e}"))))
+}
+
+fn latest(scratch: &Path, farrier: &Path) -> Result<(String, Verified)> {
+    let list = scratch.join("releases.json");
+    fetch(
+        &format!("https://api.github.com/repos/{REPO}/releases"),
+        &list,
+    )?;
+    let text = fs::read_to_string(&list).map_err(|e| Error::at(&list, e))?;
+    let releases: Vec<Release> =
+        serde_json::from_str(&text).map_err(|e| Error(format!("{REPO} releases: {e}")))?;
+    let mut signed: Vec<_> = releases
+        .iter()
+        .filter(|r| !r.draft && !r.prerelease)
+        .filter(|r| r.assets.iter().any(|a| a.name == "SHA256SUMS.minisig"))
+        .filter_map(|r| {
+            let version = r.tag_name.strip_prefix('v')?;
+            Some((semver(version)?, version))
+        })
+        .collect();
+    signed.sort_unstable();
+    let mut refused = Vec::new();
+    for (_, version) in signed.into_iter().rev() {
+        match verified(version, scratch, farrier)? {
+            Ok(v) => return Ok((version.to_owned(), v)),
+            Err(e) => refused.push(e.0),
+        }
+    }
+    Err(Error(format!(
+        "no signed release verifies: {}",
+        refused.join("; ")
+    )))
 }
 
 fn write(root: &Path, rel: &str, new: &str, what: &str) -> Result<String> {
@@ -163,12 +220,7 @@ fn workflows(root: &Path, sha: &str, version: &str, said: &mut Vec<String>) -> R
     Ok(())
 }
 
-/// # Errors
-pub fn pin(root: &Path, version: &str, scratch: &Path, cache: &Path) -> Result<Vec<String>> {
-    let parts: Vec<_> = version.split('.').collect();
-    if parts.len() != 3 || parts.iter().any(|p| p.parse::<u32>().is_err()) {
-        return Err(Error(format!("`{version}` is not MAJOR.MINOR.PATCH")));
-    }
+fn setup(root: &Path, scratch: &Path, cache: &Path) -> Result<(String, Config, PathBuf)> {
     fs::create_dir_all(scratch).map_err(|e| Error::at(scratch, e))?;
     let config = root.join(CONFIG);
     let text = fs::read_to_string(&config).map_err(|e| Error::at(&config, e))?;
@@ -176,7 +228,37 @@ pub fn pin(root: &Path, version: &str, scratch: &Path, cache: &Path) -> Result<V
     let tools = crate::config::tools(&own, root);
     let farrier =
         fetch::resolve("farrier", cache, &tools).map_err(|e| Error(format!("farrier: {e}")))?;
-    let (sha, sums) = verified(version, scratch, &farrier)?;
+    Ok((text, own, farrier))
+}
+
+/// # Errors
+pub fn outdated(root: &Path, scratch: &Path, cache: &Path) -> Result<Option<String>> {
+    let (_, own, farrier) = setup(root, scratch, cache)?;
+    let Pin::Release(pin) = own.pin else {
+        return Err(Error(format!("{CONFIG}: `pin` is not a release")));
+    };
+    let old = semver(&pin.version).ok_or_else(|| {
+        Error(format!(
+            "[pin] version `{}` is not MAJOR.MINOR.PATCH",
+            pin.version
+        ))
+    })?;
+    let (new, _) = latest(scratch, &farrier)?;
+    Ok((semver(&new) > Some(old)).then(|| format!("pinned {}, latest {new}", pin.version)))
+}
+
+/// # Errors
+pub fn pin(root: &Path, version: &str, scratch: &Path, cache: &Path) -> Result<Vec<String>> {
+    if version != "latest" && semver(version).is_none() {
+        return Err(Error(format!("`{version}` is not MAJOR.MINOR.PATCH")));
+    }
+    let (text, _, farrier) = setup(root, scratch, cache)?;
+    let (version, (sha, sums)) = if version == "latest" {
+        latest(scratch, &farrier)?
+    } else {
+        (version.to_owned(), verified(version, scratch, &farrier)??)
+    };
+    let version = version.as_str();
     let wrapper = scratch.join("run");
     let raw = format!("https://raw.githubusercontent.com/{REPO}/{sha}/packs/core/files/run");
     fetch(&raw, &wrapper)?;
