@@ -1,0 +1,1 @@
+Pin bump (drover files it when `./.gatekeeper/run pin --outdated` exits 1): run `./.gatekeeper/run pin latest`, then `./.gatekeeper/run check`; fix each new finding where the fix is in reach, else run `./.gatekeeper/run baseline <pack>/<gate>` for it (a PR that moves `[pin]` may grow a baseline, see `core/ratchet`); never add an `[off]` line without its reason.
