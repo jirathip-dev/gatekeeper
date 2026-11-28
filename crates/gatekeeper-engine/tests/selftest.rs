@@ -57,9 +57,9 @@ fn a_gate_with_no_failing_case_fails_selftest() {
 #[test]
 fn a_gate_that_passes_a_case_meant_to_fail_fails_selftest() {
     let (out, bench) = out("selftest-lenient");
-    let result = selftest::gate(&always_passing("arch"), &out, &bench).expect("selftest");
-    assert_eq!(result.cases, 44);
-    assert_eq!(result.problems.len(), 29, "{:?}", result.problems);
+    let result = selftest::gate(&always_passing("pr-body"), &out, &bench).expect("selftest");
+    assert_eq!(result.cases, 7);
+    assert_eq!(result.problems.len(), 5, "{:?}", result.problems);
     assert!(
         result
             .problems
