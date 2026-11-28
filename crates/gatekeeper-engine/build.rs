@@ -1,6 +1,7 @@
 use std::fmt::Write as _;
 use std::hash::{DefaultHasher, Hasher};
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::{env, fs, io};
 
 fn walk(dir: &Path, out: &mut Vec<PathBuf>) -> io::Result<()> {
@@ -18,12 +19,41 @@ fn walk(dir: &Path, out: &mut Vec<PathBuf>) -> io::Result<()> {
     Ok(())
 }
 
+fn pack_files(packs: &Path, out: &mut Vec<PathBuf>) -> io::Result<()> {
+    let listed = Command::new("git")
+        .arg("-C")
+        .arg(packs)
+        .args([
+            "ls-files",
+            "-z",
+            "--cached",
+            "--others",
+            "--exclude-standard",
+        ])
+        .output();
+    let Some(listed) = listed.ok().filter(|o| o.status.success()) else {
+        return walk(packs, out);
+    };
+    out.extend(
+        String::from_utf8_lossy(&listed.stdout)
+            .split('\0')
+            .filter(|rel| !rel.is_empty() && !rel.starts_with("swift/anti-slop/"))
+            .map(|rel| packs.join(rel))
+            .filter(|path| path.is_file()),
+    );
+    Ok(())
+}
+
 fn main() -> io::Result<()> {
     let manifest = PathBuf::from(env::var("CARGO_MANIFEST_DIR").map_err(io::Error::other)?);
     let packs = manifest.join("../../packs").canonicalize()?;
     println!("cargo::rerun-if-changed={}", packs.display());
+    println!(
+        "cargo::rerun-if-changed={}",
+        packs.join("../.gitignore").display()
+    );
     let mut files = Vec::new();
-    walk(&packs, &mut files)?;
+    pack_files(&packs, &mut files)?;
     files.sort();
     let mut src = String::from("pub static FILES: &[(&str, &[u8])] = &[\n");
     for file in files {
